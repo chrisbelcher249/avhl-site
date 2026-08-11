@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# AVHL Website — 2026–27 Rebuild
 
-## Getting Started
+This is the cleaned 2026–27 AVHL website project. It is a Next.js App Router site styled with Tailwind CSS.
 
-First, run the development server:
+## What is included
+
+- 40 Major League teams
+- Western Conference: Pacific + Central
+- Eastern Conference: Atlantic + Metropolitan
+- 10 clubs per division
+- Searchable/filterable `/teams` directory
+- Dynamic team pages at `/teams/[slug]`
+- Team profiles generated from the official Major League specification CSV
+- Consistent site header/footer and responsive layout
+- Prepared pages for standings, schedule, statistics, history, and league info
+
+## Team data
+
+The original source file is kept at:
+
+`data/source/major-team-specifications-2026-27.csv`
+
+The website uses:
+
+`data/teams.js`
+
+If the CSV changes, regenerate the website data with:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+python scripts/generate-teams.py
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The script validates that there are exactly 40 clubs and exactly 10 teams in each division.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Run locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev
+```
 
-## Learn More
+Then open `http://localhost:3000`.
 
-To learn more about Next.js, take a look at the following resources:
+## Production check
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy
 
-## Deploy on Vercel
+If the GitHub repository is still connected to Vercel, commit and push these project files to the repository. Vercel should build and deploy the new version automatically.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The detailed raw NHL customization fields remain preserved in the source CSV. The public team pages intentionally surface the useful fan-facing information (identity, arena, market, fan profile, ownership, facilities, colors) rather than exposing hundreds of editor-only configuration columns.

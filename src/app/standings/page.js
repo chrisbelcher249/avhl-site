@@ -1,10 +1,7 @@
+import PlaceholderPage from "@/components/PlaceholderPage";
+
+export const metadata = { title: "Standings" };
+
 export default function Standings() {
-  return (
-    <main className="min-h-screen bg-white text-[#000B36] p-12">
-      <h1 className="text-5xl font-black">AVHL Standings</h1>
-      <p className="mt-4 text-xl text-[#A90117]">
-        Current league standings coming soon.
-      </p>
-    </main>
-  );
+  return <PlaceholderPage eyebrow="Major League" title="Standings" description="The 2026–27 league table will live here, organized by conference and division." items={[["Division race","Pacific, Central, Atlantic, and Metropolitan tables."],["Playoff picture","A clear view of qualification and postseason positioning."],["Relegation pressure","Season-long context for the clubs fighting at the bottom."]]} />;
 }

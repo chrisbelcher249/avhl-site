@@ -1,39 +1,24 @@
-import Link from "next/link";
+import TeamDirectory from "@/components/TeamDirectory";
 import { teams } from "../../../data/teams";
+
+export const metadata = {
+  title: "Major League Teams",
+  description: "Explore all 40 AVHL Major League clubs for the 2026–27 season.",
+};
 
 export default function TeamsPage() {
   return (
-    <main className="min-h-screen bg-white text-[#000B36] px-6 py-12">
-      <section className="max-w-6xl mx-auto">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-          AVHL Teams
-        </h1>
-
-        <p className="text-lg text-[#000B36]/70 mb-10 max-w-2xl">
-          Explore the teams of the American Virtual Hockey League.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {teams.map((team) => (
-            <Link
-              key={team.slug}
-              href={`/teams/${team.slug}`}
-              className="rounded-2xl border border-[#000B36]/15 p-6 shadow-sm hover:shadow-lg transition bg-white"
-            >
-              <div
-                className="h-2 rounded-full mb-5"
-                style={{ backgroundColor: team.colors.primary }}
-              />
-
-              <h2 className="text-2xl font-black">{team.name}</h2>
-
-              <p className="text-[#000B36]/60 mt-2">{team.record}</p>
-
-              <p className="mt-6 font-bold">
-                View Team →
-              </p>
-            </Link>
-          ))}
+    <main className="bg-white px-6 py-12 text-[#000B36] md:px-8 md:py-16">
+      <section className="mx-auto max-w-7xl">
+        <div className="max-w-3xl">
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-[#A90117]">2026–27 Major League</p>
+          <h1 className="mt-3 text-5xl font-black tracking-tight md:text-7xl">All 40 clubs.</h1>
+          <p className="mt-5 text-lg leading-8 text-[#000B36]/60">
+            Browse every Major League franchise by division, or search by team, city, abbreviation, or arena.
+          </p>
+        </div>
+        <div className="mt-10">
+          <TeamDirectory teams={teams} />
         </div>
       </section>
     </main>

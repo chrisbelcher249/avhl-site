@@ -1,10 +1,7 @@
+import PlaceholderPage from "@/components/PlaceholderPage";
+
+export const metadata = { title: "History" };
+
 export default function History() {
-  return (
-    <main className="min-h-screen bg-white text-[#000B36] p-12">
-      <h1 className="text-5xl font-black">AVHL History</h1>
-      <p className="mt-4 text-xl text-[#A90117]">
-        Champions, records, awards, and league history coming soon.
-      </p>
-    </main>
-  );
+  return <PlaceholderPage eyebrow="League archive" title="History" description="Champions, playoff runs, records, awards, and defining AVHL moments will be organized here as the historical database is connected." items={[["Champions","Season-by-season Cup winners and postseason paths."],["Records","Franchise and individual milestones across AVHL history."],["Moments","The games and plays that became part of league lore."]]} />;
 }

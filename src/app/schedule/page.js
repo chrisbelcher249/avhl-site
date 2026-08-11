@@ -1,10 +1,7 @@
+import PlaceholderPage from "@/components/PlaceholderPage";
+
+export const metadata = { title: "Schedule" };
+
 export default function Schedule() {
-  return (
-    <main className="min-h-screen bg-white text-[#000B36] p-12">
-      <h1 className="text-5xl font-black">AVHL Schedule</h1>
-      <p className="mt-4 text-xl text-[#A90117]">
-        Current league schedule coming soon.
-      </p>
-    </main>
-  );
+  return <PlaceholderPage eyebrow="2026–27 season" title="Schedule" description="The full Major League schedule will live here with team filters, dates, and home/away matchups." items={[["Daily slate","A clean league-wide view of games by date."],["Team filters","Jump directly to any club's schedule."],["Results ready","The same structure can display completed-game scores later in the season."]]} />;
 }

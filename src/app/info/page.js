@@ -1,144 +1,48 @@
 import Link from "next/link";
 
+export const metadata = { title: "League Info" };
+
 export default function InfoPage() {
   return (
-    <main className="min-h-screen bg-white text-[#000B36]">
-      <section className="px-6 py-16 md:py-24">
-        <div className="max-w-6xl mx-auto">
-          <p className="uppercase tracking-[0.3em] text-sm font-black text-[#000B36]/50 mb-4">
-            About the AVHL
+    <main className="bg-white text-[#000B36]">
+      <section className="bg-[#000B36] px-6 py-16 text-white md:px-8 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-cyan-200">About the AVHL</p>
+          <h1 className="mt-4 max-w-5xl text-5xl font-black tracking-tight md:text-7xl">A custom hockey universe built to keep evolving.</h1>
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-white/68 md:text-xl">
+            The American Virtual Hockey League combines simulation, franchise building, statistics, promotion and relegation, and long-term storytelling into one persistent hockey world.
           </p>
-
-          <h1 className="text-5xl md:text-7xl font-black tracking-tight max-w-4xl">
-            Growing hockey in the USA.
-          </h1>
-
-          <p className="mt-6 text-lg md:text-xl text-[#000B36]/70 max-w-3xl leading-relaxed">
-            The American Virtual Hockey League is a completely custom hockey universe
-            featuring 80 teams across all 50 states. We run full-season simulations across the Major and Minor Leagues,
-            and record statistics, document playoff drama, create team identities, and we have compiled years of hockey history.
-          </p>
-
-          <div className="mt-10 flex flex-col sm:flex-row gap-4">
-            <Link
-              href="/teams"
-              className="inline-flex justify-center rounded-full bg-[#000B36] px-7 py-3 text-white font-black hover:bg-[#00145C] transition"
-            >
-              Explore Teams
-            </Link>
-
-            <Link
-              href="/history"
-              className="inline-flex justify-center rounded-full border border-[#000B36]/20 px-7 py-3 font-black hover:bg-[#000B36]/5 transition"
-            >
-              League History
-            </Link>
+          <div className="mt-8">
+            <Link href="/teams" className="inline-flex rounded-full bg-[#18BDFC] px-7 py-3.5 text-sm font-black uppercase tracking-wide text-[#000B36] hover:bg-white">Meet the clubs</Link>
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-12 bg-[#000B36] text-white">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="rounded-3xl bg-white/10 p-7 border border-white/10">
-            <p className="text-4xl font-black">80</p>
-            <h2 className="text-xl font-black mt-3">Teams</h2>
-            <p className="text-white/70 mt-3 leading-relaxed">
-              A full league system built in EA NHL 26, featuring unique markets, brands,
-              rivalries, and team identities.
-            </p>
+      <section className="px-6 py-16 md:px-8 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              ["80", "Teams across the wider AVHL system", "Major and Minor League clubs create a larger ecosystem than a single static league."],
+              ["40", "Major League clubs", "The 2026–27 Major League is split into four 10-team divisions across two conferences."],
+              ["2022", "Established", "Each completed season adds another layer of results, rivalries, records, and franchise identity."],
+            ].map(([value, heading, copy]) => (
+              <div key={heading} className="rounded-3xl border border-[#000B36]/10 bg-[#F6F8FC] p-7">
+                <p className="text-4xl font-black text-[#A90117]">{value}</p>
+                <h2 className="mt-3 text-xl font-black">{heading}</h2>
+                <p className="mt-3 text-sm leading-6 text-[#000B36]/58">{copy}</p>
+              </div>
+            ))}
           </div>
 
-          <div className="rounded-3xl bg-white/10 p-7 border border-white/10">
-            <p className="text-4xl font-black">Promotion</p>
-            <h2 className="text-xl font-black mt-3">Relegation</h2>
-            <p className="text-white/70 mt-3 leading-relaxed">
-              Promotion and relegation keep every season meaningful from the
-              top of the standings to the bottom.
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-white/10 p-7 border border-white/10">
-            <p className="text-4xl font-black">2022</p>
-            <h2 className="text-xl font-black mt-3">Established</h2>
-            <p className="text-white/70 mt-3 leading-relaxed">
-              This league was founded back in June of 2022 by a high school freshman and his younger brohter.
-              What started as a fun summer project bloomed into a custom universe, putting a new digital and futuristic spin
-              on the hockey industry.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="px-6 py-16 md:py-24">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          <div>
-            <p className="uppercase tracking-[0.3em] text-sm font-black text-[#000B36]/50 mb-4">
-              Our Mission
-            </p>
-
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-              Growing the world's greatest sport across the United States by fostering an online community of
-              people passionate about hockey.
-            </h2>
-          </div>
-
-          <div className="space-y-6 text-lg text-[#000B36]/70 leading-relaxed">
-            <p>
-              The AVHL exists to bring the structure, emotion, and storytelling
-              of real sports into a virtual hockey league. Every team has a
-              place. Every season adds history. Every game,
-              series, and championship becomes part of the league&apos;s
-              identity.
-            </p>
-
-            <p>
-              The goal is not just to simulate games. The goal is to build a
-              league that feels alive — one where fans can follow teams,
-              remember moments, debate outcomes, and watch a hockey universe
-              grow year after year.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="px-6 pb-16 md:pb-24">
-        <div className="max-w-6xl mx-auto rounded-3xl bg-[#D7F3FF] border border-[#000B36]/10 p-8 md:p-12">
-          <p className="uppercase tracking-[0.3em] text-sm font-black text-[#000B36]/50 mb-4">
-            What Makes It Different
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="mt-16 grid gap-12 lg:grid-cols-2">
             <div>
-              <h3 className="text-2xl font-black">A true league system</h3>
-              <p className="mt-3 text-[#000B36]/70 leading-relaxed">
-                The AVHL is not just one static league. Teams can rise, fall,
-                rebuild, and fight their way back through promotion and
-                relegation. Fairness is strictly enforced, and parity is superior to professional sports leagues.
-              </p>
+              <p className="text-sm font-black uppercase tracking-[0.24em] text-[#A90117]">What makes it different</p>
+              <h2 className="mt-3 text-4xl font-black md:text-5xl">The league is designed to have consequences.</h2>
             </div>
-
-            <div>
-              <h3 className="text-2xl font-black">Team-first storytelling</h3>
-              <p className="mt-3 text-[#000B36]/70 leading-relaxed">
-                Logos, colors, rivalries, playoff heartbreak, championships,
-                and fan culture all shape how each franchise is remembered.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-2xl font-black">Simulated results</h3>
-              <p className="mt-3 text-[#000B36]/70 leading-relaxed">
-                Games and seasons are simulated to create unpredictable results,
-                dramatic playoff races, and real consequences.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-2xl font-black">Built for the long run</h3>
-              <p className="mt-3 text-[#000B36]/70 leading-relaxed">
-                Each year adds new champions, new stories, new rivalries, and
-                new reasons to care about what happens next.
-              </p>
+            <div className="space-y-7 text-lg leading-8 text-[#000B36]/62">
+              <p>Teams do not exist in isolation. Division races, promotion and relegation, ownership expectations, market identity, and season history all give each club a different context.</p>
+              <p>The goal is not simply to simulate games. It is to make the universe feel persistent enough that results matter months and years later.</p>
+              <p>The website is the public record for that universe: clubs, schedules, statistics, standings, and history in one place.</p>
             </div>
           </div>
         </div>
