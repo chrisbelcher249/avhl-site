@@ -1,7 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeamMark from "@/components/TeamMark";
+import RosterSection from "@/components/RosterSection";
 import { teamBySlug, teams } from "../../../../data/teams";
+import { returningPlayersBySlug } from "../../../../data/returningPlayers";
 
 export function generateStaticParams() {
   return teams.map((team) => ({ slug: team.slug }));
@@ -13,30 +16,25 @@ export async function generateMetadata({ params }) {
   if (!team) return {};
   return {
     title: team.name,
-    description: `${team.name} — ${team.division} Division profile for the 2026–27 AVHL Major League season.`,
+    description: `${team.name} — ${team.division} Division club profile, uniforms, arena, mascot, and returning players for the 2026–27 AVHL season.`,
   };
 }
 
-function Metric({ label, value }) {
+function Fact({ label, value }) {
   return (
-    <div className="rounded-2xl border border-[#000B36]/10 bg-white p-5">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#000B36]/40">{label}</p>
-      <p className="mt-2 text-xl font-black">{value ?? "—"}</p>
+    <div className="rounded-2xl border border-[#000B36]/10 bg-white p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/40">{label}</p>
+      <p className="mt-1.5 text-base font-black">{value || "—"}</p>
     </div>
   );
 }
 
-function RatingBar({ label, value }) {
-  const score = Number(value) || 0;
+function SectionHeading({ eyebrow, title, copy }) {
   return (
-    <div>
-      <div className="flex items-center justify-between text-sm font-bold">
-        <span>{label}</span>
-        <span>{value ?? "—"}/10</span>
-      </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#000B36]/8">
-        <div className="h-full rounded-full bg-[#18BDFC]" style={{ width: `${Math.max(0, Math.min(10, score)) * 10}%` }} />
-      </div>
+    <div className="max-w-3xl">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-[#A90117]">{eyebrow}</p>
+      <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">{title}</h2>
+      {copy ? <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/52 md:text-base">{copy}</p> : null}
     </div>
   );
 }
@@ -46,25 +44,40 @@ export default async function TeamPage({ params }) {
   const team = teamBySlug[slug];
   if (!team) notFound();
 
+  const roster = returningPlayersBySlug[slug] || { count: 0, skaters: [], goalies: [] };
   const divisionTeams = teams.filter((candidate) => candidate.division === team.division && candidate.slug !== team.slug);
+  const uniforms = [
+    ["Home", team.assets.home],
+    ["Away", team.assets.away],
+    ["Alternate", team.assets.alt],
+  ];
 
   return (
-    <main className="bg-[#F6F8FC] text-[#000B36]">
-      <section className="relative overflow-hidden bg-[#000B36] text-white">
-        <div className="absolute inset-x-0 bottom-0 h-1" style={{ backgroundColor: team.colors.primary }} />
-        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full opacity-20 blur-3xl" style={{ backgroundColor: team.colors.primary }} />
-        <div className="mx-auto max-w-7xl px-6 py-12 md:px-8 md:py-16">
-          <Link href="/teams" className="text-sm font-black text-white/55 transition hover:text-white">← All teams</Link>
-          <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-center">
-            <TeamMark team={team} size="lg" />
-            <div>
-              <div className="flex flex-wrap gap-2 text-xs font-black uppercase tracking-[0.14em]">
-                <span className="rounded-full bg-white/10 px-3 py-1.5 text-white/75">{team.conference} Conference</span>
-                <span className="rounded-full bg-white/10 px-3 py-1.5 text-white/75">{team.division} Division</span>
+    <main className="bg-[#F4F7FB] text-[#000B36]">
+      <section className="relative isolate min-h-[560px] overflow-hidden bg-[#000724] text-white md:min-h-[620px]">
+        <Image src={team.assets.arena} alt={`${team.arena}, home arena of the ${team.name}`} fill priority sizes="100vw" className="object-cover object-center" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#000724]/95 via-[#000724]/78 to-[#000724]/28" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#000724] via-transparent to-[#000724]/20" />
+        <div className="absolute inset-x-0 bottom-0 h-2" style={{ backgroundColor: team.colors.primary }} />
+
+        <div className="relative mx-auto flex min-h-[560px] max-w-7xl flex-col px-6 py-10 md:min-h-[620px] md:px-8 md:py-14">
+          <Link href="/teams" className="w-fit text-sm font-black text-white/60 transition hover:text-white">← All teams</Link>
+          <div className="mt-auto grid items-end gap-8 pb-6 lg:grid-cols-[auto_1fr_auto]">
+            <TeamMark team={team} size="xl" priority />
+            <div className="pb-2">
+              <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.16em]">
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-white/80 backdrop-blur">{team.conference} Conference</span>
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-white/80 backdrop-blur">{team.division} Division</span>
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-white/80 backdrop-blur">{team.abbreviation}</span>
               </div>
-              <p className="mt-5 text-sm font-black uppercase tracking-[0.25em] text-cyan-200">{team.city}</p>
-              <h1 className="mt-1 text-5xl font-black uppercase tracking-tight sm:text-6xl md:text-7xl">{team.nickname}</h1>
-              <p className="mt-4 text-lg font-bold text-white/60">{team.arena}</p>
+              <p className="mt-5 text-sm font-black uppercase tracking-[0.26em]" style={{ color: team.colors.secondary === "#FFFFFF" ? "#DDF7FF" : team.colors.secondary }}>{team.city}</p>
+              <h1 className="mt-1 text-5xl font-black uppercase leading-[0.92] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">{team.nickname}</h1>
+              <p className="mt-5 max-w-xl text-base font-bold text-white/66 md:text-lg">{team.arena}</p>
+            </div>
+            <div className="hidden min-w-48 rounded-3xl border border-white/15 bg-black/20 p-5 backdrop-blur lg:block">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Returning core</p>
+              <p className="mt-2 text-4xl font-black">{roster.count}</p>
+              <p className="mt-1 text-xs font-bold text-white/50">{roster.skaters.length} skaters · {roster.goalies.length} goalies</p>
             </div>
           </div>
         </div>
@@ -72,96 +85,114 @@ export default async function TeamPage({ params }) {
 
       <section className="mx-auto max-w-7xl px-6 py-10 md:px-8 md:py-14">
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-8">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Club profile</p>
-                  <h2 className="mt-2 text-3xl font-black">2026–27 identity</h2>
-                </div>
-                <p className="text-sm font-bold text-[#000B36]/45">Official team specification</p>
-              </div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <Metric label="Abbreviation" value={team.abbreviation} />
-                <Metric label="Prestige" value={team.prestige} />
-                <Metric label="Market size" value={team.marketSize} />
-                <Metric label="Arena" value={team.arena} />
-              </div>
+          <div className="rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-8">
+            <SectionHeading eyebrow="Club identity" title="2026–27 team profile" />
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <Fact label="Arena" value={team.arena} />
+              <Fact label="Mascot" value={team.mascot?.name} />
+              <Fact label="Division" value={team.division} />
+              <Fact label="Returning players" value={String(roster.count)} />
             </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-8">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Brand</p>
-                <h2 className="mt-2 text-2xl font-black">Team colors</h2>
-                <div className="mt-6 space-y-3">
-                  {[
-                    [team.colors.primaryName || "Primary", team.colors.primary],
-                    [team.colors.secondaryName || "Secondary", team.colors.secondary],
-                    [team.colors.tertiaryName || "Tertiary", team.colors.tertiary],
-                  ].map(([name, hex]) => (
-                    <div key={`${name}-${hex}`} className="flex items-center justify-between gap-4 rounded-2xl border border-[#000B36]/8 p-3">
-                      <div className="flex items-center gap-3">
-                        <span className="h-10 w-10 rounded-xl border border-black/10" style={{ backgroundColor: hex }} />
-                        <div>
-                          <p className="font-black">{name}</p>
-                          <p className="text-xs font-bold uppercase tracking-wide text-[#000B36]/40">{hex}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {[
+                [team.colors.primaryName || "Primary", team.colors.primary],
+                [team.colors.secondaryName || "Secondary", team.colors.secondary],
+                [team.colors.tertiaryName || "Tertiary", team.colors.tertiary],
+              ].map(([name, hex]) => (
+                <div key={`${name}-${hex}`} className="flex items-center gap-3 rounded-2xl border border-[#000B36]/10 p-3">
+                  <span className="h-11 w-11 shrink-0 rounded-xl border border-black/10" style={{ backgroundColor: hex }} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black">{name}</p>
+                    <p className="text-[10px] font-black uppercase tracking-wide text-[#000B36]/38">{hex}</p>
+                  </div>
                 </div>
-              </div>
-
-              <div className="rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-8">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Ownership</p>
-                <h2 className="mt-2 text-2xl font-black">Owner profile</h2>
-                <div className="mt-7 space-y-6">
-                  <RatingBar label="Spending" value={team.owner.spending} />
-                  <RatingBar label="Success" value={team.owner.success} />
-                  <RatingBar label="Patience" value={team.owner.patience} />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-8">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Fan & market profile</p>
-              <h2 className="mt-2 text-2xl font-black">How the club is positioned</h2>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <Metric label="Local fan base" value={team.localFanBase} />
-                <Metric label="National fan base" value={team.nationalFanBase} />
-                <Metric label="Local popularity" value={team.localPopularity} />
-                <Metric label="National popularity" value={team.nationalPopularity} />
-                <Metric label="State tax rate" value={team.tax.state} />
-                <Metric label="Federal tax rate" value={team.tax.federal} />
-              </div>
+              ))}
             </div>
           </div>
 
-          <aside className="space-y-6">
-            <div className="rounded-3xl bg-[#000B36] p-6 text-white shadow-sm md:p-7">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Division rivals</p>
-              <h2 className="mt-2 text-2xl font-black">{team.division}</h2>
-              <div className="mt-5 space-y-2">
-                {divisionTeams.map((rival) => (
-                  <Link key={rival.slug} href={`/teams/${rival.slug}`} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-bold text-white/70 transition hover:bg-white/10 hover:text-white">
-                    <span>{rival.name}</span>
-                    <span className="text-xs text-white/35">{rival.abbreviation}</span>
-                  </Link>
-                ))}
-              </div>
+          <div className="rounded-3xl bg-[#000B36] p-6 text-white shadow-sm md:p-8">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Division rivals</p>
+            <h2 className="mt-2 text-2xl font-black">{team.division}</h2>
+            <div className="mt-5 grid gap-1.5">
+              {divisionTeams.map((rival) => (
+                <Link key={rival.slug} href={`/teams/${rival.slug}`} className="flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-bold text-white/68 transition hover:bg-white/10 hover:text-white">
+                  <Image src={rival.assets.logo} alt="" width={40} height={40} className="h-8 w-8 object-contain" />
+                  <span className="flex-1">{rival.name}</span>
+                  <span className="text-[10px] text-white/32">{rival.abbreviation}</span>
+                </Link>
+              ))}
             </div>
-
-            <div className="rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-7">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Arena experience</p>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <Metric label="Concessions" value={`Level ${team.facilities.concessions ?? "—"}`} />
-                <Metric label="Club seating" value={`Level ${team.facilities.clubSeating ?? "—"}`} />
-                <Metric label="Team store" value={`Level ${team.facilities.teamStore ?? "—"}`} />
-                <Metric label="Parking" value={`Level ${team.facilities.parking ?? "—"}`} />
-              </div>
-            </div>
-          </aside>
+          </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-14 md:px-8 md:pb-20">
+        <SectionHeading eyebrow="Home ice" title={team.arena} copy={`The 2026–27 home of the ${team.name}.`} />
+        <div className="mt-6 overflow-hidden rounded-[2rem] border border-[#000B36]/10 bg-[#000B36] shadow-lg">
+          <div className="relative aspect-[16/9] w-full">
+            <Image src={team.assets.arena} alt={`${team.arena} arena view`} fill sizes="(max-width: 1280px) 100vw, 1200px" className="object-cover" />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-[#000B36]/8 bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-14 md:px-8 md:py-20">
+          <SectionHeading eyebrow="Uniform set" title="Home, away & alternate" copy="All three official 2026–27 looks, presented from the finalized team artwork." />
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            {uniforms.map(([label, src]) => (
+              <div key={label} className="overflow-hidden rounded-3xl border border-[#000B36]/10 bg-[#F6F8FC] shadow-sm">
+                <div className="relative aspect-[812/1282] w-full overflow-hidden bg-[#EEF2F7]">
+                  <Image src={src} alt={`${team.name} ${label.toLowerCase()} uniform`} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
+                </div>
+                <div className="flex items-center justify-between p-5">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/38">2026–27</p>
+                    <h3 className="mt-1 text-xl font-black">{label}</h3>
+                  </div>
+                  <span className="h-8 w-8 rounded-full border-4 border-white shadow" style={{ backgroundColor: team.colors.primary }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-6 px-6 py-14 md:px-8 md:py-20 lg:grid-cols-[0.72fr_1.28fr]">
+        <div className="overflow-hidden rounded-3xl border border-[#000B36]/10 bg-white shadow-sm">
+          <div className="relative aspect-[972/1472] bg-[#EDF2F8]">
+            <Image src={team.assets.mascot} alt={`${team.mascot?.name || team.name} mascot`} fill sizes="(max-width: 1024px) 100vw, 38vw" className="object-cover" />
+          </div>
+          <div className="p-6 md:p-7">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#A90117]">Official mascot</p>
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <h2 className="text-3xl font-black">{team.mascot?.name || "Mascot"}</h2>
+              {team.mascot?.number ? <span className="rounded-full px-3 py-1.5 text-sm font-black text-white" style={{ backgroundColor: team.colors.primary }}>#{team.mascot.number}</span> : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl bg-[#000B36] p-6 text-white shadow-sm md:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Game night identity</p>
+          <h2 className="mt-2 text-3xl font-black">Arena presentation</h2>
+          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/52">Team-specific presentation details from the official 2026–27 club specifications.</p>
+          <div className="mt-7 grid gap-4 sm:grid-cols-2">
+            {[
+              ["Goal horn", team.presentation?.goalHorn],
+              ["Goal song", team.presentation?.goalSong],
+              ["Win song", team.presentation?.winSong],
+              ["Win presentation", team.presentation?.winPresentation],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.05] p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/38">{label}</p>
+                <p className="mt-2 text-sm font-black leading-6 text-white/88">{value || "—"}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-16 md:px-8 md:pb-24">
+        <RosterSection roster={roster} primary={team.colors.primary} />
       </section>
     </main>
   );

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { teams } from "../../data/teams";
+import { returningPlayerCount } from "../../data/returningPlayers";
 
 const divisions = [
   { name: "Pacific", conference: "Western" },
@@ -43,11 +44,12 @@ export default function Home() {
       </section>
 
       <section className="border-b border-[#000B36]/10 bg-[#F6F8FC]">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-[#000B36]/10 px-6 md:grid-cols-4 md:divide-y-0 md:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-[#000B36]/10 px-6 md:grid-cols-5 md:divide-y-0 md:px-8">
           {[
             [teams.length, "Major League clubs"],
             [4, "Divisions"],
             [2, "Conferences"],
+            [returningPlayerCount, "Returning players mapped"],
             ["2022", "League established"],
           ].map(([value, label]) => (
             <div key={label} className="px-4 py-8 text-center md:py-10">
@@ -78,8 +80,8 @@ export default function Home() {
                   <p className="mt-2 text-sm font-bold text-[#000B36]/50">10 clubs</p>
                   <div className="mt-5 flex -space-x-2">
                     {divisionTeams.slice(0, 6).map((team) => (
-                      <span key={team.slug} title={team.name} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-[9px] font-black text-white" style={{ backgroundColor: team.colors.primary }}>
-                        {team.abbreviation}
+                      <span key={team.slug} title={team.name} className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-white p-1 shadow-sm">
+                        <Image src={team.assets.logo} alt="" width={700} height={700} className="h-full w-full object-contain" />
                       </span>
                     ))}
                   </div>

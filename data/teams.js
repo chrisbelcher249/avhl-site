@@ -1,7 +1,12 @@
 // AUTO-GENERATED from data/source/major-team-specifications-2026-27.csv
-// Run: python scripts/generate-teams.py
+// Run: python scripts/generate-site-data.py
 
-export const divisionOrder = ["Pacific", "Central", "Atlantic", "Metropolitan"];
+export const divisionOrder = [
+  "Pacific",
+  "Central",
+  "Atlantic",
+  "Metropolitan"
+];
 
 export const conferenceMap = {
   Western: ["Pacific", "Central"],
@@ -19,26 +24,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Domino's Center",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Heath",
+      "number": "97"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Treble (Ship Horn 1), 2 Blasts (MsLs)",
+      "goalSong": "Hip Hop - Bad News",
+      "winSong": "Pop - Feel So Alive",
+      "winPresentation": "Team Salute"
     },
     "colors": {
       "primary": "#ED1C24",
@@ -47,6 +41,14 @@ export const teams = [
       "secondaryName": "Orange",
       "tertiary": "#FFF200",
       "tertiaryName": "Yellow"
+    },
+    "assets": {
+      "logo": "/teams/ARI/logo.webp",
+      "arena": "/teams/ARI/arena.webp",
+      "mascot": "/teams/ARI/mascot.webp",
+      "home": "/teams/ARI/home.webp",
+      "away": "/teams/ARI/away.webp",
+      "alt": "/teams/ARI/alt.webp"
     }
   },
   {
@@ -59,26 +61,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Costco Center",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Roar",
+      "number": "39"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Mid (Boat Horn 5) + Treble (Boat Horn 4), 2 Blasts (LsLs)",
+      "goalSong": "Rock - How We Roll",
+      "winSong": "Hip Hop - Highlights",
+      "winPresentation": "Bowling"
     },
     "colors": {
       "primary": "#F14810",
@@ -87,6 +78,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#F1CB10",
       "tertiaryName": "Yellow"
+    },
+    "assets": {
+      "logo": "/teams/DEN/logo.webp",
+      "arena": "/teams/DEN/arena.webp",
+      "mascot": "/teams/DEN/mascot.webp",
+      "home": "/teams/DEN/home.webp",
+      "away": "/teams/DEN/away.webp",
+      "alt": "/teams/DEN/alt.webp"
     }
   },
   {
@@ -99,26 +98,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Walmart Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Harvey",
+      "number": "49"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Boat Horn 5) + Mid (Boat Horn 5) + Treble (Boat Horn 5), 3 Blasts (LsSsL), Flare (Hawky Hawk 2)",
+      "goalSong": "Blues Jazz - All In",
+      "winSong": "Electronic - Chase A Rainbow",
+      "winPresentation": "Chain Reaction"
     },
     "colors": {
       "primary": "#FFF200",
@@ -127,6 +115,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/HON/logo.webp",
+      "arena": "/teams/HON/arena.webp",
+      "mascot": "/teams/HON/mascot.webp",
+      "home": "/teams/HON/home.webp",
+      "away": "/teams/HON/away.webp",
+      "alt": "/teams/HON/alt.webp"
     }
   },
   {
@@ -139,26 +135,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Mr Clean Superdome",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Snake Eyes",
+      "number": "11"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Preset Horn (Vibraslap)",
+      "goalSong": "Miscellaneous - Salsa Hot",
+      "winSong": "Pop - Gameboy",
+      "winPresentation": "Board Smash"
     },
     "colors": {
       "primary": "#FFF200",
@@ -167,6 +152,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/LV/logo.webp",
+      "arena": "/teams/LV/arena.webp",
+      "mascot": "/teams/LV/mascot.webp",
+      "home": "/teams/LV/home.webp",
+      "away": "/teams/LV/away.webp",
+      "alt": "/teams/LV/alt.webp"
     }
   },
   {
@@ -179,26 +172,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Food Lion Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Golden",
+      "number": "22"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Treble (Truck 1), 2 Blasts (LsLs)",
+      "goalSong": "Hard Rock - Heist",
+      "winSong": "Pop - In The Clouds",
+      "winPresentation": "Limbo"
     },
     "colors": {
       "primary": "#F1BC10",
@@ -207,6 +189,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/MON/logo.webp",
+      "arena": "/teams/MON/arena.webp",
+      "mascot": "/teams/MON/mascot.webp",
+      "home": "/teams/MON/home.webp",
+      "away": "/teams/MON/away.webp",
+      "alt": "/teams/MON/alt.webp"
     }
   },
   {
@@ -219,26 +209,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Supercell Superdome",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Archie",
+      "number": "77"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Preset Horn (Nightingale)",
+      "goalSong": "Electronic - Money Shot",
+      "winSong": "Miscellaneous - Frente A Frente",
+      "winPresentation": "Tunnel Of Celly"
     },
     "colors": {
       "primary": "#7F10F1",
@@ -247,6 +226,14 @@ export const teams = [
       "secondaryName": "Yellow",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/NVD/logo.webp",
+      "arena": "/teams/NVD/arena.webp",
+      "mascot": "/teams/NVD/mascot.webp",
+      "home": "/teams/NVD/home.webp",
+      "away": "/teams/NVD/away.webp",
+      "alt": "/teams/NVD/alt.webp"
     }
   },
   {
@@ -259,26 +246,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Weather Tech Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Grazer",
+      "number": "20"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Boat Horn 2), 2 Blasts (MsLs)",
+      "goalSong": "Dubstep - Agitator",
+      "winSong": "Electronic - City Nights",
+      "winPresentation": "Ride 'Em"
     },
     "colors": {
       "primary": "#007236",
@@ -287,6 +263,14 @@ export const teams = [
       "secondaryName": "Gray",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/ND/logo.webp",
+      "arena": "/teams/ND/arena.webp",
+      "mascot": "/teams/ND/mascot.webp",
+      "home": "/teams/ND/home.webp",
+      "away": "/teams/ND/away.webp",
+      "alt": "/teams/ND/alt.webp"
     }
   },
   {
@@ -299,26 +283,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Kellogs Complex",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Seal",
+      "number": "96"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Truck 1), 2 Blasts (SsLs)",
+      "goalSong": "Dubstep - Sneakcharmer",
+      "winSong": "Electronic - Cloudburst",
+      "winPresentation": "Team Salute"
     },
     "colors": {
       "primary": "#2E3192",
@@ -327,6 +300,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/POR/logo.webp",
+      "arena": "/teams/POR/arena.webp",
+      "mascot": "/teams/POR/mascot.webp",
+      "home": "/teams/POR/home.webp",
+      "away": "/teams/POR/away.webp",
+      "alt": "/teams/POR/alt.webp"
     }
   },
   {
@@ -339,26 +320,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Dr Pepper Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Dragonfly",
+      "number": "45"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Treble (Car Horn 1), 3 Blasts (LlSsL), Flare (Crow)",
+      "goalSong": "Dubstep - Shake The Stratosphere",
+      "winSong": "Electronic - La Victoria",
+      "winPresentation": "Hammer Smash"
     },
     "colors": {
       "primary": "#39B54A",
@@ -367,6 +337,14 @@ export const teams = [
       "secondaryName": "Red",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/SEA/logo.webp",
+      "arena": "/teams/SEA/arena.webp",
+      "mascot": "/teams/SEA/mascot.webp",
+      "home": "/teams/SEA/home.webp",
+      "away": "/teams/SEA/away.webp",
+      "alt": "/teams/SEA/alt.webp"
     }
   },
   {
@@ -379,26 +357,15 @@ export const teams = [
     "conference": "Western",
     "division": "Pacific",
     "arena": "Navy Federal Center",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "General",
+      "number": "14"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Truck 1), 3 Blasts (LsLsL)",
+      "goalSong": "Rock - Loud And Proud",
+      "winSong": "Hard Rock - Adrenaline Rush",
+      "winPresentation": "Team Salute"
     },
     "colors": {
       "primary": "#0D004C",
@@ -407,6 +374,14 @@ export const teams = [
       "secondaryName": "Yellow",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/WSH/logo.webp",
+      "arena": "/teams/WSH/arena.webp",
+      "mascot": "/teams/WSH/mascot.webp",
+      "home": "/teams/WSH/home.webp",
+      "away": "/teams/WSH/away.webp",
+      "alt": "/teams/WSH/alt.webp"
     }
   },
   {
@@ -419,26 +394,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "Boeing Stadium",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Defender",
+      "number": "43"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Firetruck 1) + Mid (Car Horn 1), 2 Blasts (LlLs)",
+      "goalSong": "Hip Hop - Dont Quit Never Stop",
+      "winSong": "Country - Texas Holdum",
+      "winPresentation": "Bowling"
     },
     "colors": {
       "primary": "#1017EF",
@@ -447,6 +411,14 @@ export const teams = [
       "secondaryName": "Red",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/FW/logo.webp",
+      "arena": "/teams/FW/arena.webp",
+      "mascot": "/teams/FW/mascot.webp",
+      "home": "/teams/FW/home.webp",
+      "away": "/teams/FW/away.webp",
+      "alt": "/teams/FW/alt.webp"
     }
   },
   {
@@ -459,26 +431,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "GameStop Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Hammer",
+      "number": "32"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Treble (Boat Horn 2), 3 Blasts (MsSsL), Flare (Whale Spout)",
+      "goalSong": "Hard Rock - Get Rocked",
+      "winSong": "Pop - Flights Of Fancy",
+      "winPresentation": "Tunnel Of Celly"
     },
     "colors": {
       "primary": "#1A3870",
@@ -487,6 +448,14 @@ export const teams = [
       "secondaryName": "Gray",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/HOU/logo.webp",
+      "arena": "/teams/HOU/arena.webp",
+      "mascot": "/teams/HOU/mascot.webp",
+      "home": "/teams/HOU/home.webp",
+      "away": "/teams/HOU/away.webp",
+      "alt": "/teams/HOU/alt.webp"
     }
   },
   {
@@ -499,26 +468,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "Quaker Oats Complex",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Trouble",
+      "number": "17"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Truck 3), 3 Blasts (MlSsL), Flare (Glass Shatter)",
+      "goalSong": "Electronic - Let The Bass Drum",
+      "winSong": "Country - Dynamite Fishing",
+      "winPresentation": "Tunnel Of Celly"
     },
     "colors": {
       "primary": "#9E0B0F",
@@ -527,6 +485,14 @@ export const teams = [
       "secondaryName": "White",
       "tertiary": "#DA563A",
       "tertiaryName": "Salmon"
+    },
+    "assets": {
+      "logo": "/teams/IOA/logo.webp",
+      "arena": "/teams/IOA/arena.webp",
+      "mascot": "/teams/IOA/mascot.webp",
+      "home": "/teams/IOA/home.webp",
+      "away": "/teams/IOA/away.webp",
+      "alt": "/teams/IOA/alt.webp"
     }
   },
   {
@@ -539,26 +505,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "Nissan Megadome",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Goblin",
+      "number": "48"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Treble (Boat Horn 4), 2 Blasts (LsLs)",
+      "goalSong": "Electronic - Red Tribe",
+      "winSong": "Hard Rock - Crash",
+      "winPresentation": "Chain Reaction"
     },
     "colors": {
       "primary": "#005826",
@@ -567,6 +522,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/KC/logo.webp",
+      "arena": "/teams/KC/arena.webp",
+      "mascot": "/teams/KC/mascot.webp",
+      "home": "/teams/KC/home.webp",
+      "away": "/teams/KC/away.webp",
+      "alt": "/teams/KC/alt.webp"
     }
   },
   {
@@ -579,26 +542,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "Deer Park Center",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Timber",
+      "number": "98"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Fog Horn 2), 2 Blasts (MsLs)",
+      "goalSong": "Hard Rock - Rev Er Up",
+      "winSong": "Punk Rock - The Party Scene",
+      "winPresentation": "Limbo"
     },
     "colors": {
       "primary": "#C35E02",
@@ -607,6 +559,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/LIN/logo.webp",
+      "arena": "/teams/LIN/arena.webp",
+      "mascot": "/teams/LIN/mascot.webp",
+      "home": "/teams/LIN/home.webp",
+      "away": "/teams/LIN/away.webp",
+      "alt": "/teams/LIN/alt.webp"
     }
   },
   {
@@ -619,26 +579,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "Nationwide Garden",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Trooper",
+      "number": "19"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Mid (Air Horn 2), 3 Blasts (MsSsL)",
+      "goalSong": "Hip Hop - Brooklyn Fighter",
+      "winSong": "Rock - Won't Back Down",
+      "winPresentation": "Board Smash"
     },
     "colors": {
       "primary": "#1A1A1A",
@@ -647,6 +596,14 @@ export const teams = [
       "secondaryName": "Red",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/MEM/logo.webp",
+      "arena": "/teams/MEM/arena.webp",
+      "mascot": "/teams/MEM/mascot.webp",
+      "home": "/teams/MEM/home.webp",
+      "away": "/teams/MEM/away.webp",
+      "alt": "/teams/MEM/alt.webp"
     }
   },
   {
@@ -659,26 +616,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "Burger King Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Tornado",
+      "number": "46"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Treble (Boat Horn 4), 3 Blasts (MsSsL), Flare (Tribal Drums 1)",
+      "goalSong": "Hard Rock - Take To The Stage",
+      "winSong": "Miscellaneous - Welcome To Salerno",
+      "winPresentation": "Chain Reaction"
     },
     "colors": {
       "primary": "#4D2D24",
@@ -687,6 +633,14 @@ export const teams = [
       "secondaryName": "White",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/OKL/logo.webp",
+      "arena": "/teams/OKL/arena.webp",
+      "mascot": "/teams/OKL/mascot.webp",
+      "home": "/teams/OKL/home.webp",
+      "away": "/teams/OKL/away.webp",
+      "alt": "/teams/OKL/alt.webp"
     }
   },
   {
@@ -699,26 +653,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "Breyers Rink",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Thief",
+      "number": "67"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Preset Horn (Siren 1)",
+      "goalSong": "Country - No Misery",
+      "winSong": "Rock - Glory Road",
+      "winPresentation": "Ride 'Em"
     },
     "colors": {
       "primary": "#790000",
@@ -727,6 +670,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/SAN/logo.webp",
+      "arena": "/teams/SAN/arena.webp",
+      "mascot": "/teams/SAN/mascot.webp",
+      "home": "/teams/SAN/home.webp",
+      "away": "/teams/SAN/away.webp",
+      "alt": "/teams/SAN/alt.webp"
     }
   },
   {
@@ -739,26 +690,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "Behr Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Zeus",
+      "number": "1"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Boat Horn 1), 2 Blasts (MsLs)",
+      "goalSong": "Rock - Bangers And Smash",
+      "winSong": "Electronic - Challenges Ahead",
+      "winPresentation": "Board Smash"
     },
     "colors": {
       "primary": "#9E0B0F",
@@ -767,6 +707,14 @@ export const teams = [
       "secondaryName": "Gold",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/SD/logo.webp",
+      "arena": "/teams/SD/arena.webp",
+      "mascot": "/teams/SD/mascot.webp",
+      "home": "/teams/SD/home.webp",
+      "away": "/teams/SD/away.webp",
+      "alt": "/teams/SD/alt.webp"
     }
   },
   {
@@ -779,26 +727,15 @@ export const teams = [
     "conference": "Western",
     "division": "Central",
     "arena": "McDonalds Stadium",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Leonard",
+      "number": "10"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Fog Horn 1) + Mid (Air Horn 1) + Treble (Boat Horn 4), 2 Blasts (LsSs), Flare (Roar 3)",
+      "goalSong": "Hard Rock - Fisticuffs",
+      "winSong": "Miscellaneous - Unsteady Happiness",
+      "winPresentation": "Ride 'Em"
     },
     "colors": {
       "primary": "#F26610",
@@ -807,6 +744,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/STL/logo.webp",
+      "arena": "/teams/STL/arena.webp",
+      "mascot": "/teams/STL/mascot.webp",
+      "home": "/teams/STL/home.webp",
+      "away": "/teams/STL/away.webp",
+      "alt": "/teams/STL/alt.webp"
     }
   },
   {
@@ -819,26 +764,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "Trident Stadium",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Coby",
+      "number": "27"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Truck 1) + Mid (Air Horn 2), 2 Blasts (MsLs)",
+      "goalSong": "Hip Hop - Scream",
+      "winSong": "Electronic - Feeling Better",
+      "winPresentation": "Hammer Smash"
     },
     "colors": {
       "primary": "#0D004C",
@@ -847,6 +781,14 @@ export const teams = [
       "secondaryName": "Orange",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/ATL/logo.webp",
+      "arena": "/teams/ATL/arena.webp",
+      "mascot": "/teams/ATL/mascot.webp",
+      "home": "/teams/ATL/home.webp",
+      "away": "/teams/ATL/away.webp",
+      "alt": "/teams/ATL/alt.webp"
     }
   },
   {
@@ -859,26 +801,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "Minute Maid Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Rocky",
+      "number": "21"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Boat Horn 4) + Mid (Air Horn 3), 2 Blasts (LsLs)",
+      "goalSong": "Miscellaneous - Playa Dorada",
+      "winSong": "Electronic - I Need You",
+      "winPresentation": "Ride 'Em"
     },
     "colors": {
       "primary": "#EC008C",
@@ -887,6 +818,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/CHI/logo.webp",
+      "arena": "/teams/CHI/arena.webp",
+      "mascot": "/teams/CHI/mascot.webp",
+      "home": "/teams/CHI/home.webp",
+      "away": "/teams/CHI/away.webp",
+      "alt": "/teams/CHI/alt.webp"
     }
   },
   {
@@ -899,26 +838,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "Cheerios Iceplex",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Zappy",
+      "number": "94"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Mid (Boat Horn 4), 1 Blast (Ls)",
+      "goalSong": "Punk Rock - Riot Times",
+      "winSong": "Pop - 2 Good 4 You",
+      "winPresentation": "Board Smash"
     },
     "colors": {
       "primary": "#2E3192",
@@ -927,6 +855,14 @@ export const teams = [
       "secondaryName": "Yellow",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/CIN/logo.webp",
+      "arena": "/teams/CIN/arena.webp",
+      "mascot": "/teams/CIN/mascot.webp",
+      "home": "/teams/CIN/home.webp",
+      "away": "/teams/CIN/away.webp",
+      "alt": "/teams/CIN/alt.webp"
     }
   },
   {
@@ -939,26 +875,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "Home Depot Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Pumpkin",
+      "number": "9"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Boat Horn 4), 3 Blasts (MsSlL), Flare (Evil Laugh 1)",
+      "goalSong": "Electronic - Warzone",
+      "winSong": "Hard Rock - Crash Car",
+      "winPresentation": "Ride 'Em"
     },
     "colors": {
       "primary": "#E67700",
@@ -967,6 +892,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#ED1C24",
       "tertiaryName": "Red"
+    },
+    "assets": {
+      "logo": "/teams/CLE/logo.webp",
+      "arena": "/teams/CLE/arena.webp",
+      "mascot": "/teams/CLE/mascot.webp",
+      "home": "/teams/CLE/home.webp",
+      "away": "/teams/CLE/away.webp",
+      "alt": "/teams/CLE/alt.webp"
     }
   },
   {
@@ -979,26 +912,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "Liberty Mutual Center",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Cooper",
+      "number": "59"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Truck 3) + Mid (Boat Horn 6), 3 Blasts (MsSsL)",
+      "goalSong": "Classical - Entry Of The Gladiators",
+      "winSong": "Country - Devils Tricks",
+      "winPresentation": "Limbo"
     },
     "colors": {
       "primary": "#F14610",
@@ -1007,6 +929,14 @@ export const teams = [
       "secondaryName": "Silver",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/COL/logo.webp",
+      "arena": "/teams/COL/arena.webp",
+      "mascot": "/teams/COL/mascot.webp",
+      "home": "/teams/COL/home.webp",
+      "away": "/teams/COL/away.webp",
+      "alt": "/teams/COL/alt.webp"
     }
   },
   {
@@ -1019,26 +949,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "Advance Auto Parts Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Henry",
+      "number": "13"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Treble (Truck 2), 2 Blasts (MlLs), Flare (Motorcycle 1)",
+      "goalSong": "Country - Roadhouse Rules",
+      "winSong": "Electronic - Push The Volume",
+      "winPresentation": "Chain Reaction"
     },
     "colors": {
       "primary": "#9E0B0F",
@@ -1047,6 +966,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/DET/logo.webp",
+      "arena": "/teams/DET/arena.webp",
+      "mascot": "/teams/DET/mascot.webp",
+      "home": "/teams/DET/home.webp",
+      "away": "/teams/DET/away.webp",
+      "alt": "/teams/DET/alt.webp"
     }
   },
   {
@@ -1059,26 +986,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "GEICO Garden",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Spooky",
+      "number": "52"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Treble (Air Horn 1), 3 Blasts (MsMsM), Flare (Alarm 2)",
+      "goalSong": "Electronic - Light The Lamp",
+      "winSong": "Hip Hop - Tear It Down",
+      "winPresentation": "Team Salute"
     },
     "colors": {
       "primary": "#10F1C9",
@@ -1087,6 +1003,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/IND/logo.webp",
+      "arena": "/teams/IND/arena.webp",
+      "mascot": "/teams/IND/mascot.webp",
+      "home": "/teams/IND/home.webp",
+      "away": "/teams/IND/away.webp",
+      "alt": "/teams/IND/alt.webp"
     }
   },
   {
@@ -1099,26 +1023,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "Heinz Fortress",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Splash",
+      "number": "93"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Boat Horn 6), 2 Blasts (LlLs), Flare (Whale Call)",
+      "goalSong": "Hard Rock - Rupture",
+      "winSong": "Punk Rock - The Moon",
+      "winPresentation": "Bowling"
     },
     "colors": {
       "primary": "#211ED5",
@@ -1127,6 +1040,14 @@ export const teams = [
       "secondaryName": "White",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/NO/logo.webp",
+      "arena": "/teams/NO/arena.webp",
+      "mascot": "/teams/NO/mascot.webp",
+      "home": "/teams/NO/home.webp",
+      "away": "/teams/NO/away.webp",
+      "alt": "/teams/NO/alt.webp"
     }
   },
   {
@@ -1139,26 +1060,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "Estadio Xfinity",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Rico",
+      "number": "51"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Fog Horn 2) + Mid (Air Horn 3), 3 Blasts (MsMlL), Flare (Bugle 2)",
+      "goalSong": "Miscellaneous - Fiesta",
+      "winSong": "Miscellaneous - Heat Rio",
+      "winPresentation": "Bowling"
     },
     "colors": {
       "primary": "#F1B110",
@@ -1167,6 +1077,14 @@ export const teams = [
       "secondaryName": "Gray",
       "tertiary": "#C82222",
       "tertiaryName": "Red"
+    },
+    "assets": {
+      "logo": "/teams/PR/logo.webp",
+      "arena": "/teams/PR/arena.webp",
+      "mascot": "/teams/PR/mascot.webp",
+      "home": "/teams/PR/home.webp",
+      "away": "/teams/PR/away.webp",
+      "alt": "/teams/PR/alt.webp"
     }
   },
   {
@@ -1179,26 +1097,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Atlantic",
     "arena": "Applebees Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Wolfy",
+      "number": "15"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Boat Horn 5), 3 Blasts (LsSsS), Flare (Roar 1)",
+      "goalSong": "Electronic - Glitter And Glamour",
+      "winSong": "Rock - Here Come The Champions",
+      "winPresentation": "Board Smash"
     },
     "colors": {
       "primary": "#484848",
@@ -1207,6 +1114,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/TEN/logo.webp",
+      "arena": "/teams/TEN/arena.webp",
+      "mascot": "/teams/TEN/mascot.webp",
+      "home": "/teams/TEN/home.webp",
+      "away": "/teams/TEN/away.webp",
+      "alt": "/teams/TEN/alt.webp"
     }
   },
   {
@@ -1219,26 +1134,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "Progressive Center",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Titanic",
+      "number": "35"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Mid (Fog Horn 1), 3 Blasts (MsSsL), Flare (Church Bells 1)",
+      "goalSong": "Country - Gaining On You",
+      "winSong": "Electronic - True Devotion",
+      "winPresentation": "Bowling"
     },
     "colors": {
       "primary": "#0D004C",
@@ -1247,6 +1151,14 @@ export const teams = [
       "secondaryName": "Light Blue",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/BAL/logo.webp",
+      "arena": "/teams/BAL/arena.webp",
+      "mascot": "/teams/BAL/mascot.webp",
+      "home": "/teams/BAL/home.webp",
+      "away": "/teams/BAL/away.webp",
+      "alt": "/teams/BAL/alt.webp"
     }
   },
   {
@@ -1259,26 +1171,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "Powerball Garden",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Bulldozer",
+      "number": "36"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Fog Horn 2), 2 Blasts (MsLs), Flare (Roar 4)",
+      "goalSong": "Electronic - La Victoria",
+      "winSong": "Classical - William Tell Overture",
+      "winPresentation": "Board Smash"
     },
     "colors": {
       "primary": "#790000",
@@ -1287,6 +1188,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/BRO/logo.webp",
+      "arena": "/teams/BRO/arena.webp",
+      "mascot": "/teams/BRO/mascot.webp",
+      "home": "/teams/BRO/home.webp",
+      "away": "/teams/BRO/away.webp",
+      "alt": "/teams/BRO/alt.webp"
     }
   },
   {
@@ -1299,26 +1208,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "Michelin Superdome",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Wave",
+      "number": "8"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Air Horn 1) + Treble (Truck 1), 2 Blasts (MsLs), Flare (Alarm 4)",
+      "goalSong": "Dubstep - Xtra",
+      "winSong": "Dubstep - Beauty And Chaos",
+      "winPresentation": "Chain Reaction"
     },
     "colors": {
       "primary": "#0072BC",
@@ -1327,6 +1225,14 @@ export const teams = [
       "secondaryName": "Light Blue",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/CHA/logo.webp",
+      "arena": "/teams/CHA/arena.webp",
+      "mascot": "/teams/CHA/mascot.webp",
+      "home": "/teams/CHA/home.webp",
+      "away": "/teams/CHA/away.webp",
+      "alt": "/teams/CHA/alt.webp"
     }
   },
   {
@@ -1339,26 +1245,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "Truist Stadium",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Summer",
+      "number": "69"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Mid (Boat Horn 5), 3 Blasts (LsSsM), Flare (Chimes 2)",
+      "goalSong": "Electronic - Blitz Bytes",
+      "winSong": "Electronic - Remnants Of A Dream",
+      "winPresentation": "Hammer Smash"
     },
     "colors": {
       "primary": "#CCF110",
@@ -1367,6 +1262,14 @@ export const teams = [
       "secondaryName": "Orange",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/FLA/logo.webp",
+      "arena": "/teams/FLA/arena.webp",
+      "mascot": "/teams/FLA/mascot.webp",
+      "home": "/teams/FLA/home.webp",
+      "away": "/teams/FLA/away.webp",
+      "alt": "/teams/FLA/alt.webp"
     }
   },
   {
@@ -1379,26 +1282,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "Skittles Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Hound",
+      "number": "79"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Ship Horn 1), 3 Blasts (MsSsL), Flare (Growl)",
+      "goalSong": "Punk Rock - The Moon",
+      "winSong": "Rock - Raw Talent",
+      "winPresentation": "Board Smash"
     },
     "colors": {
       "primary": "#EF2310",
@@ -1407,6 +1299,14 @@ export const teams = [
       "secondaryName": "Black",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/JAX/logo.webp",
+      "arena": "/teams/JAX/arena.webp",
+      "mascot": "/teams/JAX/mascot.webp",
+      "home": "/teams/JAX/home.webp",
+      "away": "/teams/JAX/away.webp",
+      "alt": "/teams/JAX/alt.webp"
     }
   },
   {
@@ -1419,26 +1319,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "Microsoft Ice Palace",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Snowball",
+      "number": "28"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Preset Horn (Timpani Roll)",
+      "goalSong": "Hard Rock - Public Enemies",
+      "winSong": "Electronic - One Shot",
+      "winPresentation": "Team Salute"
     },
     "colors": {
       "primary": "#1EB7D5",
@@ -1447,6 +1336,14 @@ export const teams = [
       "secondaryName": "White",
       "tertiary": "#181AE9",
       "tertiaryName": "Blue"
+    },
+    "assets": {
+      "logo": "/teams/LI/logo.webp",
+      "arena": "/teams/LI/arena.webp",
+      "mascot": "/teams/LI/mascot.webp",
+      "home": "/teams/LI/home.webp",
+      "away": "/teams/LI/away.webp",
+      "alt": "/teams/LI/alt.webp"
     }
   },
   {
@@ -1459,26 +1356,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "Pepsi Center",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Roller",
+      "number": "24"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Train Horn 1) + Treble (Boat Horn 6), 3 Blasts (SsSsL), Flare (Choo Choo Train)",
+      "goalSong": "Country - Calamity Jane",
+      "winSong": "Electronic - Got That Feeling",
+      "winPresentation": "Team Salute"
     },
     "colors": {
       "primary": "#313131",
@@ -1487,6 +1373,14 @@ export const teams = [
       "secondaryName": "Red",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/NY/logo.webp",
+      "arena": "/teams/NY/arena.webp",
+      "mascot": "/teams/NY/mascot.webp",
+      "home": "/teams/NY/home.webp",
+      "away": "/teams/NY/away.webp",
+      "alt": "/teams/NY/alt.webp"
     }
   },
   {
@@ -1499,26 +1393,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "Patient First Stadium",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Benno",
+      "number": "30"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Mid (Boat Horn 8) + Treble (Firetruck 2), 2 Blasts (MlLs), Flare (Alarm 3)",
+      "goalSong": "Punk Rock - Supersoaker Summer",
+      "winSong": "Blues Jazz - Feelgood Frankie",
+      "winPresentation": "Chain Reaction"
     },
     "colors": {
       "primary": "#790000",
@@ -1527,6 +1410,14 @@ export const teams = [
       "secondaryName": "Orange",
       "tertiary": "#E8E8E8",
       "tertiaryName": "White"
+    },
+    "assets": {
+      "logo": "/teams/PHI/logo.webp",
+      "arena": "/teams/PHI/arena.webp",
+      "mascot": "/teams/PHI/mascot.webp",
+      "home": "/teams/PHI/home.webp",
+      "away": "/teams/PHI/away.webp",
+      "alt": "/teams/PHI/alt.webp"
     }
   },
   {
@@ -1539,26 +1430,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "FedEx Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Growler",
+      "number": "37"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Preset Horn (Kazoo)",
+      "goalSong": "Rock - Burn Rubber",
+      "winSong": "Pop - Delorean",
+      "winPresentation": "Limbo"
     },
     "colors": {
       "primary": "#10F132",
@@ -1567,6 +1447,14 @@ export const teams = [
       "secondaryName": "Yellow",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/RAL/logo.webp",
+      "arena": "/teams/RAL/arena.webp",
+      "mascot": "/teams/RAL/mascot.webp",
+      "home": "/teams/RAL/home.webp",
+      "away": "/teams/RAL/away.webp",
+      "alt": "/teams/RAL/alt.webp"
     }
   },
   {
@@ -1579,26 +1467,15 @@ export const teams = [
     "conference": "Eastern",
     "division": "Metropolitan",
     "arena": "Kay Jewelers Arena",
-    "prestige": "Elite",
-    "marketSize": "Large",
-    "localFanBase": "Hardcore",
-    "nationalFanBase": "Hardcore",
-    "localPopularity": "Elite",
-    "nationalPopularity": "Elite",
-    "owner": {
-      "spending": 10,
-      "success": 10,
-      "patience": 10
+    "mascot": {
+      "name": "Robert",
+      "number": "62"
     },
-    "tax": {
-      "federal": "0.0%",
-      "state": "0.0%"
-    },
-    "facilities": {
-      "concessions": 3,
-      "clubSeating": 3,
-      "teamStore": 3,
-      "parking": 3
+    "presentation": {
+      "goalHorn": "Bass (Air Horn 1) + Treble (Police Horn 1), 3 Blasts (MsSsL)",
+      "goalSong": "Electronic - Go Outside",
+      "winSong": "Dubstep - Mammoth",
+      "winPresentation": "Bowling"
     },
     "colors": {
       "primary": "#ED1C24",
@@ -1607,15 +1484,20 @@ export const teams = [
       "secondaryName": "White",
       "tertiary": "#1A1A1A",
       "tertiaryName": "Black"
+    },
+    "assets": {
+      "logo": "/teams/RCH/logo.webp",
+      "arena": "/teams/RCH/arena.webp",
+      "mascot": "/teams/RCH/mascot.webp",
+      "home": "/teams/RCH/home.webp",
+      "away": "/teams/RCH/away.webp",
+      "alt": "/teams/RCH/alt.webp"
     }
   }
 ];
 
 export const teamBySlug = Object.fromEntries(teams.map((team) => [team.slug, team]));
-
+export const teamByAbbreviation = Object.fromEntries(teams.map((team) => [team.abbreviation, team]));
 export const teamsByDivision = Object.fromEntries(
-  divisionOrder.map((division) => [
-    division,
-    teams.filter((team) => team.division === division),
-  ])
+  divisionOrder.map((division) => [division, teams.filter((team) => team.division === division)])
 );
