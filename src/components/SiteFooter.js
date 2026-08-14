@@ -14,6 +14,8 @@ export default function SiteFooter() {
           <Link href="/teams" className="hover:text-cyan-200">Teams</Link>
           <Link href="/history" className="hover:text-cyan-200">History</Link>
           <Link href="/info" className="hover:text-cyan-200">League Info</Link>
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSfIOYsVBaxI35T4YWiE0KTj3S1HSQN1mhgKqlYpbjiwsqjvWQ/viewform" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-200">Owner Application</a>
+          <a href="https://discord.com/invite/ZTqfdqwraz" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-200">Discord</a>
         </div>
       </div>
       <div className="border-t border-white/10 px-6 py-4 text-center text-xs font-bold uppercase tracking-[0.18em] text-white/35">

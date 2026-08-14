@@ -43,6 +43,33 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="border-b border-[#000B36]/10 bg-white px-6 py-8 md:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 rounded-3xl bg-[#F6F8FC] p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Get involved</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">Be part of the 2026–27 AVHL season.</h2>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfIOYsVBaxI35T4YWiE0KTj3S1HSQN1mhgKqlYpbjiwsqjvWQ/viewform"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex justify-center rounded-full bg-[#A90117] px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#880112]"
+            >
+              Apply to own a team
+            </a>
+            <a
+              href="https://discord.com/invite/ZTqfdqwraz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex justify-center rounded-full bg-[#000B36] px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#00145C]"
+            >
+              Join the AVHL Discord
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section className="border-b border-[#000B36]/10 bg-[#F6F8FC]">
         <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-[#000B36]/10 px-6 md:grid-cols-5 md:divide-y-0 md:px-8">
           {[
