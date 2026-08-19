@@ -1,5 +1,13 @@
 # 2026–27 Website Rebuild — August 13, 2026
 
+## Schedule update — August 18, 2026
+
+- Replaced the schedule placeholder with the complete 1,640-game Major League schedule.
+- Added filters for matchup search, team, division, conference, month, exact date, and selected-team venue.
+- Added individual 82-game schedule pages for all 40 Major League clubs.
+- Added team profile links to each club’s schedule.
+- Retained the official schedule CSV and added a validated schedule-data generator for future scores and overtime results.
+
 ## Team assets
 
 - Added official 2026–27 assets for all 40 Major League clubs.

@@ -73,6 +73,9 @@ export default async function TeamPage({ params }) {
               <p className="mt-5 text-sm font-black uppercase tracking-[0.26em]" style={{ color: team.colors.secondary === "#FFFFFF" ? "#DDF7FF" : team.colors.secondary }}>{team.city}</p>
               <h1 className="mt-1 text-5xl font-black uppercase leading-[0.92] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">{team.nickname}</h1>
               <p className="mt-5 max-w-xl text-base font-bold text-white/66 md:text-lg">{team.arena}</p>
+              <Link href={`/schedule/${team.slug}`} className="mt-6 inline-flex rounded-full bg-white px-6 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">
+                View 2026–27 schedule
+              </Link>
             </div>
             <div className="hidden min-w-48 rounded-3xl border border-white/15 bg-black/20 p-5 backdrop-blur lg:block">
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Returning core</p>

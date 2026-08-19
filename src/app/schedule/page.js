@@ -1,7 +1,39 @@
-import PlaceholderPage from "@/components/PlaceholderPage";
+import Link from "next/link";
+import ScheduleExplorer from "@/components/ScheduleExplorer";
 
-export const metadata = { title: "Schedule" };
+export const metadata = {
+  title: "2026–27 Schedule",
+  description: "Browse and filter the complete 1,640-game 2026–27 AVHL Major League schedule.",
+};
 
 export default function Schedule() {
-  return <PlaceholderPage eyebrow="2026–27 season" title="Schedule" description="The full Major League schedule will live here with team filters, dates, and home/away matchups." items={[["Daily slate","A clean league-wide view of games by date."],["Team filters","Jump directly to any club's schedule."],["Results ready","The same structure can display completed-game scores later in the season."]]} />;
+  return (
+    <main className="bg-[#F4F7FB] px-6 py-14 text-[#000B36] md:px-8 md:py-20">
+      <section className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-4xl">
+            <p className="text-sm font-black uppercase tracking-[0.24em] text-[#A90117]">2026–27 Major League</p>
+            <h1 className="mt-3 text-5xl font-black tracking-tight md:text-7xl">Full season schedule</h1>
+            <p className="mt-5 max-w-3xl text-lg leading-8 text-[#000B36]/58">
+              All 1,640 games across 205 days. Search matchups, filter the season, or open any club’s complete 82-game schedule.
+            </p>
+          </div>
+          <Link href="/teams" className="w-fit rounded-full border border-[#000B36]/14 bg-white px-6 py-3 text-sm font-black uppercase tracking-wide transition hover:border-[#18BDFC]">Browse teams</Link>
+        </div>
+
+        <div className="mt-9 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[["1,640", "Games"], ["205", "Season days"], ["82", "Games per team"], ["8", "Games per day"]].map(([value, label]) => (
+            <div key={label} className="rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
+              <p className="text-3xl font-black md:text-4xl">{value}</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/38">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10">
+          <ScheduleExplorer />
+        </div>
+      </section>
+    </main>
+  );
 }
