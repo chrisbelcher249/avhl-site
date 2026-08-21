@@ -12,9 +12,10 @@ export default function SiteFooter() {
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-white/60">
           <Link href="/teams" className="hover:text-cyan-200">Teams</Link>
+          <Link href="/players" className="hover:text-cyan-200">Players</Link>
+          <Link href="/schedule" className="hover:text-cyan-200">Schedule</Link>
           <Link href="/history" className="hover:text-cyan-200">History</Link>
           <Link href="/info" className="hover:text-cyan-200">League Info</Link>
-          <a href="https://docs.google.com/forms/d/e/1FAIpQLSfIOYsVBaxI35T4YWiE0KTj3S1HSQN1mhgKqlYpbjiwsqjvWQ/viewform" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-200">Owner Application</a>
           <a href="https://discord.com/invite/ZTqfdqwraz" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-200">Discord</a>
         </div>
       </div>

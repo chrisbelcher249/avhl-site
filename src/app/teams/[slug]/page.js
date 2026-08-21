@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeamMark from "@/components/TeamMark";
 import RosterSection from "@/components/RosterSection";
+import DraftPickSection from "@/components/DraftPickSection";
 import { teamBySlug, teams } from "../../../../data/teams";
 import { returningPlayersBySlug } from "../../../../data/returningPlayers";
+import { getDraftPicksForTeam } from "../../../../data/draftPicks";
 
 export function generateStaticParams() {
   return teams.map((team) => ({ slug: team.slug }));
@@ -45,6 +47,7 @@ export default async function TeamPage({ params }) {
   if (!team) notFound();
 
   const roster = returningPlayersBySlug[slug] || { count: 0, skaters: [], goalies: [] };
+  const draftPicks = getDraftPicksForTeam(slug);
   const divisionTeams = teams.filter((candidate) => candidate.division === team.division && candidate.slug !== team.slug);
   const uniforms = [
     ["Home", team.assets.home],
@@ -128,6 +131,8 @@ export default async function TeamPage({ params }) {
           </div>
         </div>
       </section>
+
+      <DraftPickSection team={team} picks={draftPicks} />
 
       <section className="mx-auto max-w-7xl px-6 pb-14 md:px-8 md:pb-20">
         <SectionHeading eyebrow="Home ice" title={team.arena} copy={`The 2026–27 home of the ${team.name}.`} />

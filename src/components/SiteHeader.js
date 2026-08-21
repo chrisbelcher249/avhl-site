@@ -3,6 +3,7 @@ import Link from "next/link";
 
 const navItems = [
   ["Teams", "/teams"],
+  ["Players", "/players"],
   ["Standings", "/standings"],
   ["Schedule", "/schedule"],
   ["Statistics", "/statistics"],

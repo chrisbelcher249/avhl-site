@@ -1,5 +1,15 @@
 # 2026–27 Website Rebuild — August 13, 2026
 
+## Player database and draft picks — August 20, 2026
+
+- Added a searchable `/players` database containing all 1,909 players.
+- Included 1,695 skaters, 214 goalies, 555 rostered players, and 1,354 unrestricted free agents.
+- Added filters for AVHL team/status, position group, pro league, minimum overall rating, and sorting.
+- Added data-driven 2027 and 2028 first-, second-, and third-round picks to every team page.
+- Added future pick-ownership overrides so completed trades can be reflected without rebuilding team pages.
+- Removed the closed owner-application link from the homepage and footer while retaining Discord.
+- Added Players navigation and updated the homepage player-database count.
+
 ## Schedule update — August 18, 2026
 
 - Replaced the schedule placeholder with the complete 1,640-game Major League schedule.

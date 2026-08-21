@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { teams } from "../../data/teams";
-import { returningPlayerCount } from "../../data/returningPlayers";
+import { playerCounts } from "../../data/players";
 
 const divisions = [
   { name: "Pacific", conference: "Western" },
@@ -46,18 +46,10 @@ export default function Home() {
       <section className="border-b border-[#000B36]/10 bg-white px-6 py-8 md:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 rounded-3xl bg-[#F6F8FC] p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Get involved</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">Be part of the 2026–27 AVHL season.</h2>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">League community</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">Follow the 2026–27 AVHL season.</h2>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLSfIOYsVBaxI35T4YWiE0KTj3S1HSQN1mhgKqlYpbjiwsqjvWQ/viewform"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex justify-center rounded-full bg-[#A90117] px-6 py-3 text-center text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#880112]"
-            >
-              Apply to own a team
-            </a>
             <a
               href="https://discord.com/invite/ZTqfdqwraz"
               target="_blank"
@@ -76,7 +68,7 @@ export default function Home() {
             [teams.length, "Major League clubs"],
             [4, "Divisions"],
             [2, "Conferences"],
-            [returningPlayerCount, "Returning players mapped"],
+            [playerCounts.total.toLocaleString(), "Players in database"],
             ["2022", "League established"],
           ].map(([value, label]) => (
             <div key={label} className="px-4 py-8 text-center md:py-10">
