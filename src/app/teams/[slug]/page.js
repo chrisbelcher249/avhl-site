@@ -135,6 +135,10 @@ export default async function TeamPage({ params }) {
 
       <SalaryCapSection roster={roster} primary={team.colors.primary} />
 
+      <section className="mx-auto max-w-7xl px-6 pb-14 md:px-8 md:pb-20">
+        <RosterSection roster={roster} primary={team.colors.primary} />
+      </section>
+
       <DraftPickSection team={team} picks={draftPicks} />
 
       <section className="mx-auto max-w-7xl px-6 pb-14 md:px-8 md:pb-20">
@@ -202,9 +206,6 @@ export default async function TeamPage({ params }) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 pb-16 md:px-8 md:pb-24">
-        <RosterSection roster={roster} primary={team.colors.primary} />
-      </section>
     </main>
   );
 }
