@@ -9,6 +9,7 @@ const PAGE_SIZE = 60;
 
 const teamByName = Object.fromEntries(teams.map((team) => [team.name, team]));
 const leagueOptions = [...new Set(players.map((player) => player.league).filter(Boolean))].sort();
+const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 function positionGroup(player) {
   if (player.role === "Goalie") return "Goalie";
@@ -26,6 +27,12 @@ function seasonLine(player) {
     return `${savePercentage(player.season.svPct)} SV% · ${player.season.sa ?? 0} SA`;
   }
   return `${player.season.g ?? 0} G · ${player.season.a ?? 0} A · ${player.season.pts ?? 0} P`;
+}
+
+function contractLine(player) {
+  if (!player.aav) return "Unsigned";
+  const term = player.yearsLeft ? `${player.yearsLeft} ${player.yearsLeft === 1 ? "year" : "years"}` : "Term unavailable";
+  return `${term} · ${currency.format(player.aav)} AAV`;
 }
 
 function PlayerCard({ player }) {
@@ -50,7 +57,7 @@ function PlayerCard({ player }) {
           <span className="mt-1 inline-flex rounded-full bg-[#A90117]/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#A90117] md:mt-0">UFA</span>
         )}
         <p className="mt-1 text-[11px] font-bold text-[#000B36]/38">
-          {player.yearsLeft ? `${player.yearsLeft} ${player.yearsLeft === 1 ? "year" : "years"} left` : "Unsigned"}
+          {contractLine(player)}
         </p>
       </div>
 
@@ -111,6 +118,7 @@ export default function PlayersExplorer() {
 
     return result.sort((a, b) => {
       if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "salary") return (b.aav || 0) - (a.aav || 0) || b.overall - a.overall;
       if (sortBy === "age-young") return a.age - b.age || b.overall - a.overall;
       if (sortBy === "age-old") return b.age - a.age || b.overall - a.overall;
       return b.overall - a.overall || a.name.localeCompare(b.name);
@@ -185,6 +193,7 @@ export default function PlayersExplorer() {
             <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">Sort</span>
             <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="mt-2 w-full rounded-xl border border-[#000B36]/12 bg-[#F6F8FC] px-3 py-3 text-sm font-bold outline-none focus:border-[#18BDFC]">
               <option value="overall">Overall rating</option>
+              <option value="salary">Salary (highest)</option>
               <option value="name">Name A–Z</option>
               <option value="age-young">Youngest first</option>
               <option value="age-old">Oldest first</option>

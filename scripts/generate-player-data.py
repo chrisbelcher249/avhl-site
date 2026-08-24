@@ -14,6 +14,8 @@ SOURCE_DIR = ROOT / "data" / "source"
 SKATERS_PATH = SOURCE_DIR / "player-ratings-skaters-2026-27.csv"
 GOALIES_PATH = SOURCE_DIR / "player-ratings-goalies-2026-27.csv"
 OUTPUT_PATH = ROOT / "data" / "players.js"
+MIN_SALARY = 900_000
+MAX_SALARY = 20_000_000
 
 
 def number(value: str, *, decimal: bool = False):
@@ -21,6 +23,13 @@ def number(value: str, *, decimal: bool = False):
     if not value:
         return None
     return float(value) if decimal else int(float(value))
+
+
+def money(value: str):
+    value = (value or "").strip().replace("$", "").replace(",", "")
+    if not value:
+        return None
+    return int(float(value))
 
 
 def iso_date(value: str):
@@ -41,6 +50,7 @@ def skater(row):
         "name": row["Full Name"].strip(),
         "currentTeam": row["Current Team"].strip() or "UFA",
         "yearsLeft": number(row["Years Left"]),
+        "aav": money(row["AAV"]),
         "overall": number(row["Overall Rating"]),
         "birthdate": iso_date(row["Birthdate"]),
         "number": number(row["Jersey #"]),
@@ -63,6 +73,20 @@ def skater(row):
             "a": number(row["Total A"]),
             "pts": number(row["Total PTS"]),
         },
+        "ratings": {
+            "Deking": number(row["Deking"]),
+            "Passing": number(row["Passing"]),
+            "Puck Control": number(row["Puck Control"]),
+            "Off. Awareness": number(row["Off. Awareness"]),
+            "Wrist Shot Acc.": number(row["Wrist Shot Accuracy"]),
+            "Def. Awareness": number(row["Def. Awareness"]),
+            "Faceoffs": number(row["Faceoffs"]),
+            "Stick Checking": number(row["Stick Checking"]),
+            "Acceleration": number(row["Acceleration"]),
+            "Speed": number(row["Speed"]),
+            "Body Checking": number(row["Body Checking"]),
+            "Strength": number(row["Strength"]),
+        },
     }
 
 
@@ -72,6 +96,7 @@ def goalie(row):
         "name": row["Full Name"].strip(),
         "currentTeam": row["Current Team"].strip() or "UFA",
         "yearsLeft": number(row["Years Left"]),
+        "aav": money(row["AAV"]),
         "overall": number(row["Overall Rating"]),
         "birthdate": iso_date(row["Birthdate"]),
         "number": number(row["Jersey #"]),
@@ -94,6 +119,20 @@ def goalie(row):
             "sv": number(row["Total SV"]),
             "svPct": number(row["Career SV%"], decimal=True),
         },
+        "ratings": {
+            "Angles": number(row["Angles"]),
+            "Breakaway": number(row["Breakaway"]),
+            "Five Hole": number(row["Five Hole"]),
+            "Glove High": number(row["Glove High"]),
+            "Glove Low": number(row["Glove Low"]),
+            "Stick High": number(row["Stick High"]),
+            "Stick Low": number(row["Stick Low"]),
+            "Rebound Control": number(row["Rebound Control"]),
+            "Recover": number(row["Recover"]),
+            "Agility": number(row["Agility"]),
+            "Speed": number(row["Speed"]),
+            "Vision": number(row["Vision"]),
+        },
     }
 
 
@@ -110,12 +149,23 @@ def main():
     if any(not player["name"] for player in players):
         raise ValueError("Every player must have a name")
 
+    rostered = [player for player in players if player["currentTeam"] != "UFA"]
+    free_agents = [player for player in players if player["currentTeam"] == "UFA"]
+    if len(rostered) != 800 or len(free_agents) != 1109:
+        raise ValueError(f"Expected 800 rostered players and 1,109 UFAs; found {len(rostered)} and {len(free_agents)}")
+    if any(player["aav"] is None for player in rostered):
+        raise ValueError("Every rostered player must have an AAV")
+    if any(player["aav"] is not None for player in free_agents):
+        raise ValueError("UFA AAV values must remain blank")
+    if any(not MIN_SALARY <= player["aav"] <= MAX_SALARY for player in rostered):
+        raise ValueError("Rostered-player AAV outside the $900,000 to $20,000,000 range")
+
     counts = {
         "total": len(players),
         "skaters": len(skaters),
         "goalies": len(goalies),
-        "ufa": sum(player["currentTeam"] == "UFA" for player in players),
-        "rostered": sum(player["currentTeam"] != "UFA" for player in players),
+        "ufa": len(free_agents),
+        "rostered": len(rostered),
     }
 
     payload = json.dumps(players, indent=2, ensure_ascii=False)

@@ -1,5 +1,17 @@
 # 2026–27 Website Rebuild — August 13, 2026
 
+## Current rosters and salary cap — August 24, 2026
+
+- Replaced the player database with the latest 1,909-player skater and goalie files.
+- Updated all 40 teams to their complete current 20-player rosters: 12 forwards, six defensemen, and two goalies.
+- Updated the `/players` counts to 800 rostered players and 1,109 unrestricted free agents.
+- Added AAV to player search results, current team rosters, and player detail panels.
+- Added salary sorting to the player database.
+- Added live cap-compliance calculations to every team page.
+- Applied a $100,000,000 salary cap, $70,000,000 floor, $20,000,000 individual maximum, and $900,000 individual minimum.
+- Added payroll, cap position, floor position, rule checks, and compliant/over-cap/below-floor status.
+- Validated that every signed player has an AAV, every UFA has a blank AAV, and all individual salaries fall within the permitted range.
+
 ## Player database and draft picks — August 20, 2026
 
 - Added a searchable `/players` database containing all 1,909 players.

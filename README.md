@@ -9,10 +9,11 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - Official Home / Away / Alternate uniform galleries
 - Official mascot imagery and mascot names/numbers
 - Team-specific colors and arena presentation details
-- 555 returning players mapped to their 2026–27 clubs
-- Skater and goalie roster views with player detail panels and key ratings
-- Searchable database of all 1,909 players, including 1,354 unrestricted free agents
-- Player filters for AVHL status/team, position group, pro league, and overall rating
+- Complete current rosters for all 40 teams: 20 players per club, including 12 forwards, six defensemen, and two goalies
+- Skater and goalie roster views with AAV, contract term, player details, production, and key ratings
+- Searchable database of all 1,909 players, including 800 signed players and 1,109 unrestricted free agents
+- Player filters for AVHL status/team, position group, pro league, and overall rating, plus salary sorting
+- Team salary-cap compliance using a $100,000,000 cap, $70,000,000 floor, $20,000,000 maximum salary, and $900,000 minimum salary
 - Complete 1,640-game Major League schedule with team, division, conference, month, date, and venue filters
 - Individual 82-game schedule pages for all 40 teams
 - Data-driven 2027 and 2028 draft-pick inventory on every team page
@@ -50,6 +51,7 @@ Generated application data lives in:
 - `data/schedule.js`
 - `data/returningPlayers.js`
 - `data/players.js`
+- `data/salaryCap.js`
 - `data/draftPicks.js`
 
 To regenerate those files, run:

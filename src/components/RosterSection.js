@@ -2,6 +2,16 @@
 
 import { useMemo, useState } from "react";
 
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
+function money(value) {
+  return value === null || value === undefined ? "—" : currency.format(value);
+}
+
 function pct(value) {
   if (value === null || value === undefined) return "—";
   return Number(value).toFixed(3).replace(/^0/, "");
@@ -34,7 +44,7 @@ function PlayerDetails({ player, type, onClose, primary }) {
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#000B36]/40">AVHL ID {player.id}</p>
               <h3 className="mt-1 text-2xl font-black md:text-3xl">{player.name}</h3>
-              <p className="mt-1 text-sm font-bold text-[#000B36]/55">{player.position} · {player.nhlTeam || "NHL club unavailable"}</p>
+              <p className="mt-1 text-sm font-bold text-[#000B36]/55">{player.position} · {player.proTeam || "Pro club unavailable"}</p>
             </div>
           </div>
           <button onClick={onClose} className="rounded-full border border-[#000B36]/10 px-3 py-2 text-sm font-black hover:bg-[#F6F8FC]" aria-label="Close player details">✕</button>
@@ -54,9 +64,10 @@ function PlayerDetails({ player, type, onClose, primary }) {
             {[
               ["Overall", player.overall],
               ["Age", player.age],
+              ["AAV", money(player.aav)],
               ["Contract", `${player.yearsLeft ?? "—"} yr${Number(player.yearsLeft) === 1 ? "" : "s"} left`],
               ["Size", [player.height, player.weight ? `${player.weight} lb` : null].filter(Boolean).join(" · ") || "—"],
-              [type === "goalies" ? "Glove" : "Shoots", player.glove || player.shot || "—"],
+              [type === "goalies" ? "Glove" : "Shoots", player.handedness || "—"],
               ["Player type", player.playerType || (type === "goalies" ? "Goaltender" : "—")],
               ["Birthdate", player.birthdate || "—"],
               ["Jersey", player.number ?? "—"],
@@ -110,8 +121,8 @@ export default function RosterSection({ roster, primary }) {
   if (!roster.count) {
     return (
       <div className="rounded-3xl border border-dashed border-[#000B36]/20 bg-white p-8 text-center md:p-12">
-        <p className="text-2xl font-black">No returning players listed.</p>
-        <p className="mt-2 text-sm font-semibold text-[#000B36]/50">This team has no returning players in the supplied 2026–27 roster workbook.</p>
+        <p className="text-2xl font-black">No current players listed.</p>
+        <p className="mt-2 text-sm font-semibold text-[#000B36]/50">This team has no assigned players in the supplied 2026–27 player database.</p>
       </div>
     );
   }
@@ -121,8 +132,8 @@ export default function RosterSection({ roster, primary }) {
     <div className="overflow-hidden rounded-3xl border border-[#000B36]/10 bg-white shadow-sm">
       <div className="flex flex-col gap-4 border-b border-[#000B36]/10 p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#A90117]">2026–27 roster foundation</p>
-          <h2 className="mt-1 text-2xl font-black md:text-3xl">Returning players</h2>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#A90117]">2026–27 active roster</p>
+          <h2 className="mt-1 text-2xl font-black md:text-3xl">Current roster</h2>
           <p className="mt-1 text-sm font-semibold text-[#000B36]/45">{roster.count} total · {roster.skaters.length} skaters · {roster.goalies.length} goalies</p>
         </div>
         <div className="flex rounded-full bg-[#F1F4F9] p-1">
@@ -132,7 +143,7 @@ export default function RosterSection({ roster, primary }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] border-collapse text-left">
+        <table className="w-full min-w-[880px] border-collapse text-left">
           <thead className="bg-[#F6F8FC] text-[10px] font-black uppercase tracking-[0.14em] text-[#000B36]/45">
             <tr>
               <th className="px-5 py-3">#</th>
@@ -141,6 +152,7 @@ export default function RosterSection({ roster, primary }) {
               <th className="px-5 py-3 text-center">OVR</th>
               <th className="px-5 py-3 text-center">Age</th>
               <th className="px-5 py-3 text-center">Years left</th>
+              <th className="px-5 py-3 text-center">AAV</th>
               <th className="px-5 py-3 text-center">{isGoalie ? "25–26 SV%" : "25–26 PTS"}</th>
               <th className="px-5 py-3 text-center">{isGoalie ? "Career SV%" : "Career PTS"}</th>
             </tr>
@@ -154,12 +166,13 @@ export default function RosterSection({ roster, primary }) {
                     {player.name}
                     <span className="ml-2 text-[10px] font-black uppercase tracking-wide text-[#A90117]">details</span>
                   </button>
-                  <p className="mt-0.5 text-xs font-semibold text-[#000B36]/40">{player.nhlTeam || `AVHL ID ${player.id}`}</p>
+                  <p className="mt-0.5 text-xs font-semibold text-[#000B36]/40">{player.proTeam || `AVHL ID ${player.id}`}</p>
                 </td>
                 <td className="px-5 py-4 text-sm font-bold">{player.position || "—"}</td>
                 <td className="px-5 py-4 text-center"><span className="inline-flex min-w-10 justify-center rounded-full px-2.5 py-1 text-sm font-black text-white" style={{ backgroundColor: primary }}>{player.overall ?? "—"}</span></td>
                 <td className="px-5 py-4 text-center text-sm font-bold">{player.age ?? "—"}</td>
                 <td className="px-5 py-4 text-center text-sm font-bold">{player.yearsLeft ?? "—"}</td>
+                <td className="px-5 py-4 text-center text-sm font-black">{money(player.aav)}</td>
                 <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? pct(player.season.svPct) : player.season.pts}</td>
                 <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? pct(player.career.svPct) : player.career.pts}</td>
               </tr>

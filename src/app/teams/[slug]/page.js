@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import TeamMark from "@/components/TeamMark";
 import RosterSection from "@/components/RosterSection";
 import DraftPickSection from "@/components/DraftPickSection";
+import SalaryCapSection from "@/components/SalaryCapSection";
 import { teamBySlug, teams } from "../../../../data/teams";
-import { returningPlayersBySlug } from "../../../../data/returningPlayers";
 import { getDraftPicksForTeam } from "../../../../data/draftPicks";
+import { teamRosterAndCapBySlug } from "../../../../data/salaryCap";
 
 export function generateStaticParams() {
   return teams.map((team) => ({ slug: team.slug }));
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }) {
   if (!team) return {};
   return {
     title: team.name,
-    description: `${team.name} — ${team.division} Division club profile, uniforms, arena, mascot, and returning players for the 2026–27 AVHL season.`,
+    description: `${team.name} — ${team.division} Division club profile, current roster, salary-cap status, draft picks, uniforms, arena, and mascot for the 2026–27 AVHL season.`,
   };
 }
 
@@ -46,7 +47,7 @@ export default async function TeamPage({ params }) {
   const team = teamBySlug[slug];
   if (!team) notFound();
 
-  const roster = returningPlayersBySlug[slug] || { count: 0, skaters: [], goalies: [] };
+  const roster = teamRosterAndCapBySlug[slug] || { count: 0, skaters: [], goalies: [] };
   const draftPicks = getDraftPicksForTeam(slug);
   const divisionTeams = teams.filter((candidate) => candidate.division === team.division && candidate.slug !== team.slug);
   const uniforms = [
@@ -81,7 +82,7 @@ export default async function TeamPage({ params }) {
               </Link>
             </div>
             <div className="hidden min-w-48 rounded-3xl border border-white/15 bg-black/20 p-5 backdrop-blur lg:block">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Returning core</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Current roster</p>
               <p className="mt-2 text-4xl font-black">{roster.count}</p>
               <p className="mt-1 text-xs font-bold text-white/50">{roster.skaters.length} skaters · {roster.goalies.length} goalies</p>
             </div>
@@ -97,7 +98,7 @@ export default async function TeamPage({ params }) {
               <Fact label="Arena" value={team.arena} />
               <Fact label="Mascot" value={team.mascot?.name} />
               <Fact label="Division" value={team.division} />
-              <Fact label="Returning players" value={String(roster.count)} />
+              <Fact label="Rostered players" value={String(roster.count)} />
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               {[
@@ -131,6 +132,8 @@ export default async function TeamPage({ params }) {
           </div>
         </div>
       </section>
+
+      <SalaryCapSection roster={roster} primary={team.colors.primary} />
 
       <DraftPickSection team={team} picks={draftPicks} />
 
