@@ -1,12 +1,16 @@
 import PlayersExplorer from "@/components/PlayersExplorer";
-import { playerCounts } from "../../../data/players";
+import { getPlayers } from "@/lib/players";
 
 export const metadata = {
   title: "Players",
-  description: "Search all 1,909 players in the 2026–27 AVHL database, including rostered players and unrestricted free agents.",
+  description: "Search all players in the 2026–27 AVHL database, including rostered players and unrestricted free agents.",
 };
 
-export default function PlayersPage() {
+export const dynamic = "force-dynamic";
+
+export default async function PlayersPage() {
+  const { players, playerCounts } = await getPlayers();
+
   return (
     <main className="min-h-screen bg-[#F4F7FB] text-[#000B36]">
       <section className="relative overflow-hidden bg-[#000B36] px-6 py-16 text-white md:px-8 md:py-20">
@@ -34,7 +38,7 @@ export default function PlayersPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-10 md:px-8 md:py-14">
-        <PlayersExplorer />
+        <PlayersExplorer players={players} playerCounts={playerCounts} />
       </section>
     </main>
   );

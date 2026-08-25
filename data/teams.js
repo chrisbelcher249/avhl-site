@@ -43,7 +43,7 @@ export const teams = [
       "tertiaryName": "Yellow"
     },
     "assets": {
-      "logo": "/teams/ARI/logo.webp",
+      "logo": "/logos/26_ARI_Logo.png",
       "arena": "/teams/ARI/arena.webp",
       "mascot": "/teams/ARI/mascot.webp",
       "home": "/teams/ARI/home.webp",
@@ -80,7 +80,7 @@ export const teams = [
       "tertiaryName": "Yellow"
     },
     "assets": {
-      "logo": "/teams/DEN/logo.webp",
+      "logo": "/logos/26_DEN_Logo.png",
       "arena": "/teams/DEN/arena.webp",
       "mascot": "/teams/DEN/mascot.webp",
       "home": "/teams/DEN/home.webp",
@@ -117,7 +117,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/HON/logo.webp",
+      "logo": "/logos/26_HON_Logo.png",
       "arena": "/teams/HON/arena.webp",
       "mascot": "/teams/HON/mascot.webp",
       "home": "/teams/HON/home.webp",
@@ -154,7 +154,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/LV/logo.webp",
+      "logo": "/logos/26_LV_Logo.png",
       "arena": "/teams/LV/arena.webp",
       "mascot": "/teams/LV/mascot.webp",
       "home": "/teams/LV/home.webp",
@@ -191,7 +191,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/MON/logo.webp",
+      "logo": "/logos/26_MON_Logo.png",
       "arena": "/teams/MON/arena.webp",
       "mascot": "/teams/MON/mascot.webp",
       "home": "/teams/MON/home.webp",
@@ -228,7 +228,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/NVD/logo.webp",
+      "logo": "/logos/26_NVD_Logo.png",
       "arena": "/teams/NVD/arena.webp",
       "mascot": "/teams/NVD/mascot.webp",
       "home": "/teams/NVD/home.webp",
@@ -265,7 +265,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/ND/logo.webp",
+      "logo": "/logos/26_ND_Logo.png",
       "arena": "/teams/ND/arena.webp",
       "mascot": "/teams/ND/mascot.webp",
       "home": "/teams/ND/home.webp",
@@ -302,7 +302,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/POR/logo.webp",
+      "logo": "/logos/26_POR_Logo.png",
       "arena": "/teams/POR/arena.webp",
       "mascot": "/teams/POR/mascot.webp",
       "home": "/teams/POR/home.webp",
@@ -339,7 +339,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/SEA/logo.webp",
+      "logo": "/logos/26_SEA_Logo.png",
       "arena": "/teams/SEA/arena.webp",
       "mascot": "/teams/SEA/mascot.webp",
       "home": "/teams/SEA/home.webp",
@@ -376,7 +376,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/WSH/logo.webp",
+      "logo": "/logos/26_WSH_Logo.png",
       "arena": "/teams/WSH/arena.webp",
       "mascot": "/teams/WSH/mascot.webp",
       "home": "/teams/WSH/home.webp",
@@ -413,7 +413,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/FW/logo.webp",
+      "logo": "/logos/26_FW_Logo.png",
       "arena": "/teams/FW/arena.webp",
       "mascot": "/teams/FW/mascot.webp",
       "home": "/teams/FW/home.webp",
@@ -450,7 +450,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/HOU/logo.webp",
+      "logo": "/logos/26_HOU_Logo.png",
       "arena": "/teams/HOU/arena.webp",
       "mascot": "/teams/HOU/mascot.webp",
       "home": "/teams/HOU/home.webp",
@@ -487,7 +487,7 @@ export const teams = [
       "tertiaryName": "Salmon"
     },
     "assets": {
-      "logo": "/teams/IOA/logo.webp",
+      "logo": "/logos/26_IOA_Logo.png",
       "arena": "/teams/IOA/arena.webp",
       "mascot": "/teams/IOA/mascot.webp",
       "home": "/teams/IOA/home.webp",
@@ -524,7 +524,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/KC/logo.webp",
+      "logo": "/logos/26_KC_Logo.png",
       "arena": "/teams/KC/arena.webp",
       "mascot": "/teams/KC/mascot.webp",
       "home": "/teams/KC/home.webp",
@@ -561,7 +561,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/LIN/logo.webp",
+      "logo": "/logos/26_LIN_Logo.png",
       "arena": "/teams/LIN/arena.webp",
       "mascot": "/teams/LIN/mascot.webp",
       "home": "/teams/LIN/home.webp",
@@ -598,7 +598,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/MEM/logo.webp",
+      "logo": "/logos/26_MEM_Logo.png",
       "arena": "/teams/MEM/arena.webp",
       "mascot": "/teams/MEM/mascot.webp",
       "home": "/teams/MEM/home.webp",
@@ -635,7 +635,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/OKL/logo.webp",
+      "logo": "/logos/26_OKL_Logo.png",
       "arena": "/teams/OKL/arena.webp",
       "mascot": "/teams/OKL/mascot.webp",
       "home": "/teams/OKL/home.webp",
@@ -672,7 +672,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/SAN/logo.webp",
+      "logo": "/logos/26_SAN_Logo.png",
       "arena": "/teams/SAN/arena.webp",
       "mascot": "/teams/SAN/mascot.webp",
       "home": "/teams/SAN/home.webp",
@@ -709,7 +709,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/SD/logo.webp",
+      "logo": "/logos/26_SD_Logo.png",
       "arena": "/teams/SD/arena.webp",
       "mascot": "/teams/SD/mascot.webp",
       "home": "/teams/SD/home.webp",
@@ -746,7 +746,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/STL/logo.webp",
+      "logo": "/logos/26_STL_Logo.png",
       "arena": "/teams/STL/arena.webp",
       "mascot": "/teams/STL/mascot.webp",
       "home": "/teams/STL/home.webp",
@@ -783,7 +783,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/ATL/logo.webp",
+      "logo": "/logos/26_ATL_Logo.png",
       "arena": "/teams/ATL/arena.webp",
       "mascot": "/teams/ATL/mascot.webp",
       "home": "/teams/ATL/home.webp",
@@ -820,7 +820,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/CHI/logo.webp",
+      "logo": "/logos/26_CHI_Logo.png",
       "arena": "/teams/CHI/arena.webp",
       "mascot": "/teams/CHI/mascot.webp",
       "home": "/teams/CHI/home.webp",
@@ -857,7 +857,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/CIN/logo.webp",
+      "logo": "/logos/26_CIN_Logo.png",
       "arena": "/teams/CIN/arena.webp",
       "mascot": "/teams/CIN/mascot.webp",
       "home": "/teams/CIN/home.webp",
@@ -894,7 +894,7 @@ export const teams = [
       "tertiaryName": "Red"
     },
     "assets": {
-      "logo": "/teams/CLE/logo.webp",
+      "logo": "/logos/26_CLE_Logo.png",
       "arena": "/teams/CLE/arena.webp",
       "mascot": "/teams/CLE/mascot.webp",
       "home": "/teams/CLE/home.webp",
@@ -931,7 +931,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/COL/logo.webp",
+      "logo": "/logos/26_COL_Logo.png",
       "arena": "/teams/COL/arena.webp",
       "mascot": "/teams/COL/mascot.webp",
       "home": "/teams/COL/home.webp",
@@ -968,7 +968,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/DET/logo.webp",
+      "logo": "/logos/26_DET_Logo.png",
       "arena": "/teams/DET/arena.webp",
       "mascot": "/teams/DET/mascot.webp",
       "home": "/teams/DET/home.webp",
@@ -1005,7 +1005,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/IND/logo.webp",
+      "logo": "/logos/26_IND_Logo.png",
       "arena": "/teams/IND/arena.webp",
       "mascot": "/teams/IND/mascot.webp",
       "home": "/teams/IND/home.webp",
@@ -1042,7 +1042,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/NO/logo.webp",
+      "logo": "/logos/26_NO_Logo.png",
       "arena": "/teams/NO/arena.webp",
       "mascot": "/teams/NO/mascot.webp",
       "home": "/teams/NO/home.webp",
@@ -1079,7 +1079,7 @@ export const teams = [
       "tertiaryName": "Red"
     },
     "assets": {
-      "logo": "/teams/PR/logo.webp",
+      "logo": "/logos/26_PR_Logo.png",
       "arena": "/teams/PR/arena.webp",
       "mascot": "/teams/PR/mascot.webp",
       "home": "/teams/PR/home.webp",
@@ -1116,7 +1116,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/TEN/logo.webp",
+      "logo": "/logos/26_TEN_Logo.png",
       "arena": "/teams/TEN/arena.webp",
       "mascot": "/teams/TEN/mascot.webp",
       "home": "/teams/TEN/home.webp",
@@ -1153,7 +1153,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/BAL/logo.webp",
+      "logo": "/logos/26_BAL_Logo.png",
       "arena": "/teams/BAL/arena.webp",
       "mascot": "/teams/BAL/mascot.webp",
       "home": "/teams/BAL/home.webp",
@@ -1190,7 +1190,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/BRO/logo.webp",
+      "logo": "/logos/26_BRO_Logo.png",
       "arena": "/teams/BRO/arena.webp",
       "mascot": "/teams/BRO/mascot.webp",
       "home": "/teams/BRO/home.webp",
@@ -1227,7 +1227,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/CHA/logo.webp",
+      "logo": "/logos/26_CHA_Logo.png",
       "arena": "/teams/CHA/arena.webp",
       "mascot": "/teams/CHA/mascot.webp",
       "home": "/teams/CHA/home.webp",
@@ -1264,7 +1264,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/FLA/logo.webp",
+      "logo": "/logos/26_FLA_Logo.png",
       "arena": "/teams/FLA/arena.webp",
       "mascot": "/teams/FLA/mascot.webp",
       "home": "/teams/FLA/home.webp",
@@ -1301,7 +1301,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/JAX/logo.webp",
+      "logo": "/logos/26_JAX_Logo.png",
       "arena": "/teams/JAX/arena.webp",
       "mascot": "/teams/JAX/mascot.webp",
       "home": "/teams/JAX/home.webp",
@@ -1338,7 +1338,7 @@ export const teams = [
       "tertiaryName": "Blue"
     },
     "assets": {
-      "logo": "/teams/LI/logo.webp",
+      "logo": "/logos/26_LI_Logo.png",
       "arena": "/teams/LI/arena.webp",
       "mascot": "/teams/LI/mascot.webp",
       "home": "/teams/LI/home.webp",
@@ -1375,7 +1375,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/NY/logo.webp",
+      "logo": "/logos/26_NY_Logo.png",
       "arena": "/teams/NY/arena.webp",
       "mascot": "/teams/NY/mascot.webp",
       "home": "/teams/NY/home.webp",
@@ -1412,7 +1412,7 @@ export const teams = [
       "tertiaryName": "White"
     },
     "assets": {
-      "logo": "/teams/PHI/logo.webp",
+      "logo": "/logos/26_PHI_Logo.png",
       "arena": "/teams/PHI/arena.webp",
       "mascot": "/teams/PHI/mascot.webp",
       "home": "/teams/PHI/home.webp",
@@ -1449,7 +1449,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/RAL/logo.webp",
+      "logo": "/logos/26_RAL_Logo.png",
       "arena": "/teams/RAL/arena.webp",
       "mascot": "/teams/RAL/mascot.webp",
       "home": "/teams/RAL/home.webp",
@@ -1486,7 +1486,7 @@ export const teams = [
       "tertiaryName": "Black"
     },
     "assets": {
-      "logo": "/teams/RCH/logo.webp",
+      "logo": "/logos/26_RCH_Logo.png",
       "arena": "/teams/RCH/arena.webp",
       "mascot": "/teams/RCH/mascot.webp",
       "home": "/teams/RCH/home.webp",

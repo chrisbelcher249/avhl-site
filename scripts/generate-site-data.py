@@ -110,7 +110,7 @@ for row in rows:
             'tertiaryName': clean(row.get('Color 3')),
         },
         'assets': {
-            'logo': f'/teams/{abbreviation}/logo.webp',
+            'logo': f'/logos/26_{abbreviation}_Logo.png',
             'arena': f'/teams/{abbreviation}/arena.webp',
             'mascot': f'/teams/{abbreviation}/mascot.webp',
             'home': f'/teams/{abbreviation}/home.webp',

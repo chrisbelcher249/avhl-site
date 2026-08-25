@@ -7,7 +7,10 @@ import DraftPickSection from "@/components/DraftPickSection";
 import SalaryCapSection from "@/components/SalaryCapSection";
 import { teamBySlug, teams } from "../../../../data/teams";
 import { getDraftPicksForTeam } from "../../../../data/draftPicks";
-import { teamRosterAndCapBySlug } from "../../../../data/salaryCap";
+import { buildTeamRosterAndCap } from "../../../../data/salaryCap";
+import { getPlayers } from "@/lib/players";
+
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return teams.map((team) => ({ slug: team.slug }));
@@ -47,7 +50,8 @@ export default async function TeamPage({ params }) {
   const team = teamBySlug[slug];
   if (!team) notFound();
 
-  const roster = teamRosterAndCapBySlug[slug] || { count: 0, skaters: [], goalies: [] };
+  const { players } = await getPlayers();
+  const roster = buildTeamRosterAndCap(players, team.name);
   const draftPicks = getDraftPicksForTeam(slug);
   const divisionTeams = teams.filter((candidate) => candidate.division === team.division && candidate.slug !== team.slug);
   const uniforms = [

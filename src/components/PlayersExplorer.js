@@ -2,23 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { playerCounts, players } from "../../data/players";
 import { teams } from "../../data/teams";
 
 const PAGE_SIZE = 60;
 
 const teamByName = Object.fromEntries(teams.map((team) => [team.name, team]));
-const leagueOptions = [...new Set(players.map((player) => player.league).filter(Boolean))].sort();
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const compactCurrency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
 
-const overallValues = players.map((player) => player.overall).filter(Number.isFinite);
-const OVERALL_MIN = Math.min(...overallValues);
-const OVERALL_MAX = Math.max(...overallValues);
-
-const salaryValues = players.map((player) => player.aav).filter((value) => Number.isFinite(value) && value > 0);
-const SALARY_MIN = Math.min(...salaryValues);
-const SALARY_MAX = Math.max(...salaryValues);
 const SALARY_STEP = 100000;
 
 function savePercentage(value) {
@@ -41,8 +32,9 @@ function contractLine(player) {
 
 function hasPosition(player, position) {
   if (position === "ALL") return true;
-  if (position === "G") return player.role === "Goalie" || player.position.split("/").includes("G");
-  return player.position.split("/").map((value) => value.trim()).includes(position);
+  const positions = String(player.position || "").split("/").map((value) => value.trim()).filter(Boolean);
+  if (position === "G") return player.role === "Goalie" || positions.includes("G");
+  return positions.includes(position);
 }
 
 function RangeFilter({ label, min, max, step, minValue, maxValue, onMinChange, onMaxChange, formatValue }) {
@@ -148,7 +140,14 @@ function PlayerCard({ player }) {
   );
 }
 
-export default function PlayersExplorer() {
+export default function PlayersExplorer({ players, playerCounts }) {
+  const leagueOptions = useMemo(() => [...new Set(players.map((player) => player.league).filter(Boolean))].sort(), [players]);
+  const overallValues = players.map((player) => player.overall).filter(Number.isFinite);
+  const salaryValues = players.map((player) => player.aav).filter((value) => Number.isFinite(value) && value > 0);
+  const OVERALL_MIN = overallValues.length ? Math.min(...overallValues) : 0;
+  const OVERALL_MAX = overallValues.length ? Math.max(...overallValues) : 100;
+  const SALARY_MIN = salaryValues.length ? Math.min(...salaryValues) : 0;
+  const SALARY_MAX = salaryValues.length ? Math.max(...salaryValues) : 20_000_000;
   const [query, setQuery] = useState("");
   const [teamFilter, setTeamFilter] = useState("ALL");
   const [positionFilter, setPositionFilter] = useState("ALL");
@@ -192,7 +191,7 @@ export default function PlayersExplorer() {
       if (sortBy === "age-old") return b.age - a.age || b.overall - a.overall;
       return b.overall - a.overall || a.name.localeCompare(b.name);
     });
-  }, [query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, salaryFilterActive, sortBy]);
+  }, [players, query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, salaryFilterActive, sortBy]);
 
   const visiblePlayers = filteredPlayers.slice(0, visibleCount);
 

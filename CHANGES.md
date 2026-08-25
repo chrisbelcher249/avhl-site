@@ -1,3 +1,13 @@
+# Live data and unified logos — August 25, 2026
+
+- Added a live `/trades` page backed by the AVHL Google Sheets trade tracker.
+- Expanded `/players` filtering to LW, C, RW, LD, RD, and G, including multi-position matching.
+- Added min/max overall-rating and AAV range controls to `/players`.
+- Wired the player database to the live Google Sheet, with the bundled 1,909-player database retained as a fallback if Google Sheets is unavailable.
+- Team rosters and salary-cap calculations now use the same live player feed as `/players`.
+- The homepage player count now uses the live database as well.
+- Centralized all 40 Major League logos under `public/logos/` using the supplied 2026–27 logo pack and updated every team logo reference to that source.
+
 # 2026–27 Website Rebuild — August 13, 2026
 
 ## Current rosters and salary cap — August 24, 2026

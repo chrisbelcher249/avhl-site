@@ -1,4 +1,4 @@
-import { players } from "./players";
+import { players as bundledPlayers } from "./players";
 import { teams } from "./teams";
 
 export const salaryCapRules = {
@@ -9,11 +9,11 @@ export const salaryCapRules = {
 };
 
 function isDefenseman(player) {
-  return player.position.includes("LD") || player.position.includes("RD");
+  return String(player.position || "").includes("LD") || String(player.position || "").includes("RD");
 }
 
-export function getTeamRosterAndCap(teamName) {
-  const rosterPlayers = players.filter((player) => player.currentTeam === teamName);
+export function buildTeamRosterAndCap(playerList, teamName) {
+  const rosterPlayers = playerList.filter((player) => player.currentTeam === teamName);
   const skaters = rosterPlayers.filter((player) => player.role === "Skater");
   const goalies = rosterPlayers.filter((player) => player.role === "Goalie");
   const forwards = skaters.filter((player) => !isDefenseman(player));
@@ -44,6 +44,10 @@ export function getTeamRosterAndCap(teamName) {
     compliant,
     status: compliant ? "Cap compliant" : overCap ? "Over salary cap" : belowFloor ? "Below cap floor" : "Contract violation",
   };
+}
+
+export function getTeamRosterAndCap(teamName) {
+  return buildTeamRosterAndCap(bundledPlayers, teamName);
 }
 
 export const teamRosterAndCapBySlug = Object.fromEntries(

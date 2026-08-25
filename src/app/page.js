@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { teams } from "../../data/teams";
-import { playerCounts } from "../../data/players";
+import { getPlayers } from "@/lib/players";
 
 const divisions = [
   { name: "Pacific", conference: "Western" },
@@ -10,7 +10,10 @@ const divisions = [
   { name: "Metropolitan", conference: "Eastern" },
 ];
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const { playerCounts } = await getPlayers();
   return (
     <main>
       <section className="relative overflow-hidden bg-[#000B36] text-white">
