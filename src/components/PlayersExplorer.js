@@ -10,12 +10,16 @@ const PAGE_SIZE = 60;
 const teamByName = Object.fromEntries(teams.map((team) => [team.name, team]));
 const leagueOptions = [...new Set(players.map((player) => player.league).filter(Boolean))].sort();
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const compactCurrency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
 
-function positionGroup(player) {
-  if (player.role === "Goalie") return "Goalie";
-  if (player.position.includes("LD") || player.position.includes("RD")) return "Defense";
-  return "Forward";
-}
+const overallValues = players.map((player) => player.overall).filter(Number.isFinite);
+const OVERALL_MIN = Math.min(...overallValues);
+const OVERALL_MAX = Math.max(...overallValues);
+
+const salaryValues = players.map((player) => player.aav).filter((value) => Number.isFinite(value) && value > 0);
+const SALARY_MIN = Math.min(...salaryValues);
+const SALARY_MAX = Math.max(...salaryValues);
+const SALARY_STEP = 100000;
 
 function savePercentage(value) {
   if (value === null || value === undefined) return "—";
@@ -33,6 +37,65 @@ function contractLine(player) {
   if (!player.aav) return "Unsigned";
   const term = player.yearsLeft ? `${player.yearsLeft} ${player.yearsLeft === 1 ? "year" : "years"}` : "Term unavailable";
   return `${term} · ${currency.format(player.aav)} AAV`;
+}
+
+function hasPosition(player, position) {
+  if (position === "ALL") return true;
+  if (position === "G") return player.role === "Goalie" || player.position.split("/").includes("G");
+  return player.position.split("/").map((value) => value.trim()).includes(position);
+}
+
+function RangeFilter({ label, min, max, step, minValue, maxValue, onMinChange, onMaxChange, formatValue }) {
+  const display = formatValue || ((value) => value.toLocaleString());
+
+  function changeMin(event) {
+    const next = Math.min(Number(event.target.value), maxValue);
+    onMinChange(next);
+  }
+
+  function changeMax(event) {
+    const next = Math.max(Number(event.target.value), minValue);
+    onMaxChange(next);
+  }
+
+  return (
+    <fieldset className="min-w-0 rounded-2xl border border-[#000B36]/10 bg-[#F6F8FC] px-4 py-3">
+      <legend className="px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">{label}</legend>
+      <div className="mt-1 flex items-center justify-between gap-3 text-sm font-black">
+        <span>{display(minValue)}</span>
+        <span className="text-[#000B36]/28">to</span>
+        <span>{display(maxValue)}</span>
+      </div>
+      <div className="mt-3 grid gap-2">
+        <label className="grid grid-cols-[2.6rem_1fr] items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[#000B36]/35">
+          <span>Min</span>
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={minValue}
+            onChange={changeMin}
+            className="w-full accent-[#A90117]"
+            aria-label={`${label} minimum`}
+          />
+        </label>
+        <label className="grid grid-cols-[2.6rem_1fr] items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[#000B36]/35">
+          <span>Max</span>
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={maxValue}
+            onChange={changeMax}
+            className="w-full accent-[#18BDFC]"
+            aria-label={`${label} maximum`}
+          />
+        </label>
+      </div>
+    </fieldset>
+  );
 }
 
 function PlayerCard({ player }) {
@@ -56,9 +119,7 @@ function PlayerCard({ player }) {
         ) : (
           <span className="mt-1 inline-flex rounded-full bg-[#A90117]/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#A90117] md:mt-0">UFA</span>
         )}
-        <p className="mt-1 text-[11px] font-bold text-[#000B36]/38">
-          {contractLine(player)}
-        </p>
+        <p className="mt-1 text-[11px] font-bold text-[#000B36]/38">{contractLine(player)}</p>
       </div>
 
       <div>
@@ -92,17 +153,21 @@ export default function PlayersExplorer() {
   const [teamFilter, setTeamFilter] = useState("ALL");
   const [positionFilter, setPositionFilter] = useState("ALL");
   const [leagueFilter, setLeagueFilter] = useState("ALL");
-  const [minimumOverall, setMinimumOverall] = useState("ALL");
+  const [minimumOverall, setMinimumOverall] = useState(OVERALL_MIN);
+  const [maximumOverall, setMaximumOverall] = useState(OVERALL_MAX);
+  const [minimumSalary, setMinimumSalary] = useState(SALARY_MIN);
+  const [maximumSalary, setMaximumSalary] = useState(SALARY_MAX);
   const [sortBy, setSortBy] = useState("overall");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
+  const salaryFilterActive = minimumSalary !== SALARY_MIN || maximumSalary !== SALARY_MAX;
+
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [query, teamFilter, positionFilter, leagueFilter, minimumOverall, sortBy]);
+  }, [query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, sortBy]);
 
   const filteredPlayers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    const minimum = minimumOverall === "ALL" ? 0 : Number(minimumOverall);
 
     const result = players.filter((player) => {
       const searchable = `${player.name} ${player.id} ${player.currentTeam} ${player.proTeam} ${player.position}`.toLowerCase();
@@ -110,9 +175,13 @@ export default function PlayersExplorer() {
       if (teamFilter === "UFA" && player.currentTeam !== "UFA") return false;
       if (teamFilter === "ROSTERED" && player.currentTeam === "UFA") return false;
       if (!["ALL", "UFA", "ROSTERED"].includes(teamFilter) && player.currentTeam !== teamFilter) return false;
-      if (positionFilter !== "ALL" && positionGroup(player) !== positionFilter) return false;
+      if (!hasPosition(player, positionFilter)) return false;
       if (leagueFilter !== "ALL" && player.league !== leagueFilter) return false;
-      if (player.overall < minimum) return false;
+      if (player.overall < minimumOverall || player.overall > maximumOverall) return false;
+      if (salaryFilterActive) {
+        if (!player.aav) return false;
+        if (player.aav < minimumSalary || player.aav > maximumSalary) return false;
+      }
       return true;
     });
 
@@ -123,7 +192,7 @@ export default function PlayersExplorer() {
       if (sortBy === "age-old") return b.age - a.age || b.overall - a.overall;
       return b.overall - a.overall || a.name.localeCompare(b.name);
     });
-  }, [query, teamFilter, positionFilter, leagueFilter, minimumOverall, sortBy]);
+  }, [query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, salaryFilterActive, sortBy]);
 
   const visiblePlayers = filteredPlayers.slice(0, visibleCount);
 
@@ -132,15 +201,18 @@ export default function PlayersExplorer() {
     setTeamFilter("ALL");
     setPositionFilter("ALL");
     setLeagueFilter("ALL");
-    setMinimumOverall("ALL");
+    setMinimumOverall(OVERALL_MIN);
+    setMaximumOverall(OVERALL_MAX);
+    setMinimumSalary(SALARY_MIN);
+    setMaximumSalary(SALARY_MAX);
     setSortBy("overall");
   }
 
   return (
     <div>
       <div className="rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm md:p-7">
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[1.35fr_1fr_0.8fr_0.75fr_0.7fr_0.8fr]">
-          <label className="lg:col-span-2 xl:col-span-1">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <label className="md:col-span-2 xl:col-span-2">
             <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">Search players</span>
             <input
               type="search"
@@ -165,9 +237,12 @@ export default function PlayersExplorer() {
             <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">Position</span>
             <select value={positionFilter} onChange={(event) => setPositionFilter(event.target.value)} className="mt-2 w-full rounded-xl border border-[#000B36]/12 bg-[#F6F8FC] px-3 py-3 text-sm font-bold outline-none focus:border-[#18BDFC]">
               <option value="ALL">All positions</option>
-              <option value="Forward">Forwards</option>
-              <option value="Defense">Defense</option>
-              <option value="Goalie">Goalies</option>
+              <option value="LW">Left wing (LW)</option>
+              <option value="C">Center (C)</option>
+              <option value="RW">Right wing (RW)</option>
+              <option value="LD">Left defense (LD)</option>
+              <option value="RD">Right defense (RD)</option>
+              <option value="G">Goalie (G)</option>
             </select>
           </label>
 
@@ -176,16 +251,6 @@ export default function PlayersExplorer() {
             <select value={leagueFilter} onChange={(event) => setLeagueFilter(event.target.value)} className="mt-2 w-full rounded-xl border border-[#000B36]/12 bg-[#F6F8FC] px-3 py-3 text-sm font-bold outline-none focus:border-[#18BDFC]">
               <option value="ALL">All leagues</option>
               {leagueOptions.map((league) => <option key={league} value={league}>{league}</option>)}
-            </select>
-          </label>
-
-          <label>
-            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">Minimum OVR</span>
-            <select value={minimumOverall} onChange={(event) => setMinimumOverall(event.target.value)} className="mt-2 w-full rounded-xl border border-[#000B36]/12 bg-[#F6F8FC] px-3 py-3 text-sm font-bold outline-none focus:border-[#18BDFC]">
-              <option value="ALL">Any rating</option>
-              <option value="80">80+</option>
-              <option value="85">85+</option>
-              <option value="90">90+</option>
             </select>
           </label>
 
@@ -199,12 +264,38 @@ export default function PlayersExplorer() {
               <option value="age-old">Oldest first</option>
             </select>
           </label>
+
+          <RangeFilter
+            label="Overall rating"
+            min={OVERALL_MIN}
+            max={OVERALL_MAX}
+            step={1}
+            minValue={minimumOverall}
+            maxValue={maximumOverall}
+            onMinChange={setMinimumOverall}
+            onMaxChange={setMaximumOverall}
+          />
+
+          <RangeFilter
+            label="AAV"
+            min={SALARY_MIN}
+            max={SALARY_MAX}
+            step={SALARY_STEP}
+            minValue={minimumSalary}
+            maxValue={maximumSalary}
+            onMinChange={setMinimumSalary}
+            onMaxChange={setMaximumSalary}
+            formatValue={(value) => compactCurrency.format(value)}
+          />
         </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#000B36]/8 pt-5">
-          <p className="text-sm font-black">
-            {filteredPlayers.length.toLocaleString()} <span className="font-bold text-[#000B36]/42">of {playerCounts.total.toLocaleString()} players</span>
-          </p>
+          <div>
+            <p className="text-sm font-black">
+              {filteredPlayers.length.toLocaleString()} <span className="font-bold text-[#000B36]/42">of {playerCounts.total.toLocaleString()} players</span>
+            </p>
+            {salaryFilterActive ? <p className="mt-1 text-[11px] font-bold text-[#000B36]/40">Unsigned UFAs are excluded while an AAV range is active.</p> : null}
+          </div>
           <button type="button" onClick={clearFilters} className="rounded-full border border-[#000B36]/12 px-4 py-2 text-xs font-black uppercase tracking-wide transition hover:border-[#A90117] hover:text-[#A90117]">
             Clear filters
           </button>
