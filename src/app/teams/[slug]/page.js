@@ -6,7 +6,7 @@ import RosterSection from "@/components/RosterSection";
 import DraftPickSection from "@/components/DraftPickSection";
 import SalaryCapSection from "@/components/SalaryCapSection";
 import { teamBySlug, teams } from "../../../../data/teams";
-import { getDraftPicksForTeam } from "../../../../data/draftPicks";
+import { getDraftPicksForTeam } from "@/lib/draftPicks";
 import { buildTeamRosterAndCap } from "../../../../data/salaryCap";
 import { getPlayers } from "@/lib/players";
 
@@ -52,7 +52,7 @@ export default async function TeamPage({ params }) {
 
   const { players } = await getPlayers();
   const roster = buildTeamRosterAndCap(players, team.name);
-  const draftPicks = getDraftPicksForTeam(slug);
+  const { picks: draftPicks, error: draftPickError } = await getDraftPicksForTeam(team.abbreviation);
   const divisionTeams = teams.filter((candidate) => candidate.division === team.division && candidate.slug !== team.slug);
   const uniforms = [
     ["Home", team.assets.home],
@@ -143,7 +143,7 @@ export default async function TeamPage({ params }) {
         <RosterSection roster={roster} primary={team.colors.primary} />
       </section>
 
-      <DraftPickSection team={team} picks={draftPicks} />
+      <DraftPickSection team={team} picks={draftPicks} error={draftPickError} />
 
       <section className="mx-auto max-w-7xl px-6 pb-14 md:px-8 md:pb-20">
         <SectionHeading eyebrow="Home ice" title={team.arena} copy={`The 2026–27 home of the ${team.name}.`} />

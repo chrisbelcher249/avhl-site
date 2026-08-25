@@ -1,6 +1,5 @@
-import Link from "next/link";
-import TeamMark from "@/components/TeamMark";
-import { getTrades, teamByAbbreviation } from "@/lib/trades";
+import TradesExplorer from "@/components/TradesExplorer";
+import { getTrades } from "@/lib/trades";
 
 export const metadata = {
   title: "Trades",
@@ -9,45 +8,8 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-function assetsList(value) {
-  return String(value || "").split(",").map((asset) => asset.trim()).filter(Boolean);
-}
-
-function TeamSide({ abbreviation, receives }) {
-  const team = teamByAbbreviation[abbreviation];
-  const assets = assetsList(receives);
-
-  return (
-    <div className="min-w-0 rounded-2xl border border-[#000B36]/8 bg-[#F7F9FC] p-4 md:p-5">
-      <div className="flex items-center gap-3">
-        {team ? <TeamMark team={team} size="sm" framed={false} /> : (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#000B36] text-sm font-black text-white">{abbreviation}</div>
-        )}
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/35">Receives</p>
-          {team ? (
-            <Link href={`/teams/${team.slug}`} className="mt-1 block truncate text-base font-black hover:text-[#A90117] md:text-lg">{team.name}</Link>
-          ) : (
-            <p className="mt-1 text-base font-black md:text-lg">{abbreviation}</p>
-          )}
-        </div>
-      </div>
-      <ul className="mt-4 grid gap-2">
-        {assets.map((asset) => (
-          <li key={asset} className="rounded-xl border border-[#000B36]/8 bg-white px-3 py-2.5 text-sm font-extrabold leading-5">{asset}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export default async function TradesPage() {
   const { trades, error } = await getTrades();
-  const grouped = trades.reduce((groups, trade) => {
-    if (!groups[trade.date]) groups[trade.date] = [];
-    groups[trade.date].push(trade);
-    return groups;
-  }, {});
 
   return (
     <main className="min-h-screen bg-[#F4F7FB] text-[#000B36]">
@@ -81,32 +43,7 @@ export default async function TradesPage() {
             <p className="mt-2 text-sm font-semibold text-[#000B36]/48">Approved trades will appear here as they are added to the league tracker.</p>
           </div>
         ) : (
-          <div className="grid gap-10">
-            {Object.entries(grouped).map(([date, dateTrades]) => (
-              <section key={date}>
-                <div className="mb-4 flex items-center gap-4">
-                  <h2 className="shrink-0 text-xl font-black md:text-2xl">{date}</h2>
-                  <div className="h-px flex-1 bg-[#000B36]/10" />
-                  <span className="shrink-0 text-xs font-black uppercase tracking-wide text-[#000B36]/35">{dateTrades.length} {dateTrades.length === 1 ? "trade" : "trades"}</span>
-                </div>
-
-                <div className="grid gap-4">
-                  {dateTrades.map((trade) => (
-                    <article key={trade.number} className="rounded-3xl border border-[#000B36]/10 bg-white p-4 shadow-sm md:p-5">
-                      <div className="mb-4 flex items-center justify-between gap-4 px-1">
-                        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#000B36]/35">Trade #{trade.number}</span>
-                        <span className="rounded-full bg-[#000B36] px-3 py-1 text-[10px] font-black uppercase tracking-[0.13em] text-white">Official</span>
-                      </div>
-                      <div className="grid gap-3 lg:grid-cols-2">
-                        <TeamSide abbreviation={trade.teamA} receives={trade.teamAReceives} />
-                        <TeamSide abbreviation={trade.teamB} receives={trade.teamBReceives} />
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
+          <TradesExplorer trades={trades} />
         )}
       </section>
     </main>

@@ -84,3 +84,8 @@
 - 40 matching roster workbook tabs.
 - 555 returning players.
 - 240 web image assets (six per team).
+
+## Live draft picks + trade search
+- Team draft-pick sections now read current ownership from the live AVHL Pick Tracker Google Sheet (`164tLcxUsyzzylju4QzVNpDL6Abt7OMGk0VZT29MUYW0`).
+- Draft-pick ownership updates on team pages without a code/deploy change when the Google Sheet is edited.
+- `/trades` now has an instant search field that matches team names, abbreviations, cities, and player names/assets.
