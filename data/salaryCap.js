@@ -34,6 +34,14 @@ function isForward(player) {
   return !isDefenseman(player);
 }
 
+function averageOverall(players) {
+  const ratings = players
+    .map((player) => Number(player.overall))
+    .filter((overall) => Number.isFinite(overall));
+  if (!ratings.length) return null;
+  return ratings.reduce((total, overall) => total + overall, 0) / ratings.length;
+}
+
 export function buildTeamRosterAndCap(playerList, teamName) {
   const rosterPlayers = playerList.filter((player) => player.currentTeam === teamName);
   const skaters = rosterPlayers.filter((player) => player.role === "Skater");
@@ -73,8 +81,14 @@ export function buildTeamRosterAndCap(playerList, teamName) {
     count: rosterPlayers.length,
     skaters,
     goalies,
+    forwards,
+    defensemen,
     forwardsCount: forwards.length,
     defensemenCount: defensemen.length,
+    averageOverall: averageOverall(rosterPlayers),
+    forwardAverageOverall: averageOverall(forwards),
+    defenseAverageOverall: averageOverall(defensemen),
+    goalieAverageOverall: averageOverall(goalies),
     payroll,
     capSpace: salaryCapRules.cap - payroll,
     floorPosition: payroll - salaryCapRules.floor,

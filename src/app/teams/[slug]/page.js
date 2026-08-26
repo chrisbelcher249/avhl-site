@@ -45,6 +45,15 @@ function SectionHeading({ eyebrow, title, copy }) {
   );
 }
 
+function OvrStat({ label, value, emphasized = false }) {
+  return (
+    <div className={`rounded-2xl border p-4 ${emphasized ? "border-[#000B36] bg-[#000B36] text-white" : "border-[#000B36]/10 bg-white"}`}>
+      <p className={`text-[10px] font-black uppercase tracking-[0.15em] ${emphasized ? "text-white/65" : "text-[#000B36]/38"}`}>{label}</p>
+      <p className="mt-1 text-2xl font-black tabular-nums">{Number.isFinite(value) ? value.toFixed(1) : "—"}</p>
+    </div>
+  );
+}
+
 export default async function TeamPage({ params }) {
   const { slug } = await params;
   const team = teamBySlug[slug];
@@ -118,6 +127,22 @@ export default async function TeamPage({ params }) {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-6 rounded-2xl bg-[#F6F8FC] p-4 md:p-5">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#A90117]">Roster ratings</p>
+                  <h3 className="mt-1 text-xl font-black">Average OVR</h3>
+                </div>
+                <p className="text-[10px] font-bold text-[#000B36]/35">Live roster · one decimal</p>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                <OvrStat label="Overall" value={roster.averageOverall} emphasized />
+                <OvrStat label="Forwards" value={roster.forwardAverageOverall} />
+                <OvrStat label="Defense" value={roster.defenseAverageOverall} />
+                <OvrStat label="Goalies" value={roster.goalieAverageOverall} />
+              </div>
             </div>
           </div>
 
