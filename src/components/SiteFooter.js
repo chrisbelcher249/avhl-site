@@ -13,6 +13,7 @@ export default function SiteFooter() {
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-white/60">
           <Link href="/teams" className="hover:text-cyan-200">Teams</Link>
           <Link href="/players" className="hover:text-cyan-200">Players</Link>
+          <Link href="/cap" className="hover:text-cyan-200">Cap</Link>
           <Link href="/trades" className="hover:text-cyan-200">Trades</Link>
           <Link href="/schedule" className="hover:text-cyan-200">Schedule</Link>
           <Link href="/history" className="hover:text-cyan-200">History</Link>

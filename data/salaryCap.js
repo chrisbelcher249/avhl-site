@@ -8,15 +8,37 @@ export const salaryCapRules = {
   minimumSalary: 900_000,
 };
 
+export const rosterRules = {
+  minimumForwards: 13,
+  minimumDefensemen: 7,
+  minimumGoalies: 3,
+  maximumPlayers: 26,
+};
+
+function positionTokens(player) {
+  return String(player.position || "")
+    .toUpperCase()
+    .split(/[\s/,]+/)
+    .filter(Boolean);
+}
+
 function isDefenseman(player) {
-  return String(player.position || "").includes("LD") || String(player.position || "").includes("RD");
+  const positions = positionTokens(player);
+  return positions.includes("LD") || positions.includes("RD") || positions.includes("D");
+}
+
+function isForward(player) {
+  if (player.role !== "Skater") return false;
+  const positions = positionTokens(player);
+  if (positions.some((position) => ["LW", "C", "RW", "F"].includes(position))) return true;
+  return !isDefenseman(player);
 }
 
 export function buildTeamRosterAndCap(playerList, teamName) {
   const rosterPlayers = playerList.filter((player) => player.currentTeam === teamName);
   const skaters = rosterPlayers.filter((player) => player.role === "Skater");
   const goalies = rosterPlayers.filter((player) => player.role === "Goalie");
-  const forwards = skaters.filter((player) => !isDefenseman(player));
+  const forwards = skaters.filter(isForward);
   const defensemen = skaters.filter(isDefenseman);
   const payroll = rosterPlayers.reduce((total, player) => total + (player.aav || 0), 0);
   const contractViolations = rosterPlayers.filter(
@@ -24,9 +46,27 @@ export function buildTeamRosterAndCap(playerList, teamName) {
       || player.aav < salaryCapRules.minimumSalary
       || player.aav > salaryCapRules.maximumSalary
   );
+
   const overCap = payroll > salaryCapRules.cap;
   const belowFloor = payroll < salaryCapRules.floor;
-  const compliant = !overCap && !belowFloor && contractViolations.length === 0;
+  const contractsCompliant = contractViolations.length === 0;
+  const salaryCompliant = !overCap && !belowFloor && contractsCompliant;
+
+  const forwardsCompliant = forwards.length >= rosterRules.minimumForwards;
+  const defensemenCompliant = defensemen.length >= rosterRules.minimumDefensemen;
+  const goaliesCompliant = goalies.length >= rosterRules.minimumGoalies;
+  const rosterSizeCompliant = rosterPlayers.length <= rosterRules.maximumPlayers;
+  const rosterCompliant = forwardsCompliant && defensemenCompliant && goaliesCompliant && rosterSizeCompliant;
+  const compliant = salaryCompliant && rosterCompliant;
+
+  const issues = [];
+  if (overCap) issues.push(`$${Math.round((payroll - salaryCapRules.cap) / 100_000) / 10}M over cap`);
+  if (belowFloor) issues.push(`$${Math.round((salaryCapRules.floor - payroll) / 100_000) / 10}M below floor`);
+  if (!contractsCompliant) issues.push("Contract salary violation");
+  if (!forwardsCompliant) issues.push(`Need ${rosterRules.minimumForwards - forwards.length} F`);
+  if (!defensemenCompliant) issues.push(`Need ${rosterRules.minimumDefensemen - defensemen.length} D`);
+  if (!goaliesCompliant) issues.push(`Need ${rosterRules.minimumGoalies - goalies.length} G`);
+  if (!rosterSizeCompliant) issues.push(`${rosterPlayers.length - rosterRules.maximumPlayers} over roster max`);
 
   return {
     teamName,
@@ -39,10 +79,18 @@ export function buildTeamRosterAndCap(playerList, teamName) {
     capSpace: salaryCapRules.cap - payroll,
     floorPosition: payroll - salaryCapRules.floor,
     contractViolations,
+    contractsCompliant,
+    salaryCompliant,
     overCap,
     belowFloor,
+    forwardsCompliant,
+    defensemenCompliant,
+    goaliesCompliant,
+    rosterSizeCompliant,
+    rosterCompliant,
     compliant,
-    status: compliant ? "Cap compliant" : overCap ? "Over salary cap" : belowFloor ? "Below cap floor" : "Contract violation",
+    issues,
+    status: compliant ? "Fully compliant" : "Needs attention",
   };
 }
 
@@ -58,4 +106,5 @@ export const leagueCapSummary = {
   compliant: Object.values(teamRosterAndCapBySlug).filter((team) => team.compliant).length,
   overCap: Object.values(teamRosterAndCapBySlug).filter((team) => team.overCap).length,
   belowFloor: Object.values(teamRosterAndCapBySlug).filter((team) => team.belowFloor).length,
+  rosterIssues: Object.values(teamRosterAndCapBySlug).filter((team) => !team.rosterCompliant).length,
 };

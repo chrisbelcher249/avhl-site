@@ -4,6 +4,7 @@ import Link from "next/link";
 const navItems = [
   ["Teams", "/teams"],
   ["Players", "/players"],
+  ["Cap", "/cap"],
   ["Trades", "/trades"],
   ["Standings", "/standings"],
   ["Schedule", "/schedule"],
