@@ -144,10 +144,13 @@ export default function PlayersExplorer({ players, playerCounts }) {
   const leagueOptions = useMemo(() => [...new Set(players.map((player) => player.league).filter(Boolean))].sort(), [players]);
   const overallValues = players.map((player) => player.overall).filter(Number.isFinite);
   const salaryValues = players.map((player) => player.aav).filter((value) => Number.isFinite(value) && value > 0);
+  const ageValues = players.map((player) => player.age).filter(Number.isFinite);
   const OVERALL_MIN = overallValues.length ? Math.min(...overallValues) : 0;
   const OVERALL_MAX = overallValues.length ? Math.max(...overallValues) : 100;
   const SALARY_MIN = salaryValues.length ? Math.min(...salaryValues) : 0;
   const SALARY_MAX = salaryValues.length ? Math.max(...salaryValues) : 20_000_000;
+  const AGE_MIN = ageValues.length ? Math.min(...ageValues) : 17;
+  const AGE_MAX = ageValues.length ? Math.max(...ageValues) : 45;
   const [query, setQuery] = useState("");
   const [teamFilter, setTeamFilter] = useState("ALL");
   const [positionFilter, setPositionFilter] = useState("ALL");
@@ -156,6 +159,8 @@ export default function PlayersExplorer({ players, playerCounts }) {
   const [maximumOverall, setMaximumOverall] = useState(OVERALL_MAX);
   const [minimumSalary, setMinimumSalary] = useState(SALARY_MIN);
   const [maximumSalary, setMaximumSalary] = useState(SALARY_MAX);
+  const [minimumAge, setMinimumAge] = useState(AGE_MIN);
+  const [maximumAge, setMaximumAge] = useState(AGE_MAX);
   const [sortBy, setSortBy] = useState("overall");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -163,7 +168,7 @@ export default function PlayersExplorer({ players, playerCounts }) {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, sortBy]);
+  }, [query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, minimumAge, maximumAge, sortBy]);
 
   const filteredPlayers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -177,6 +182,7 @@ export default function PlayersExplorer({ players, playerCounts }) {
       if (!hasPosition(player, positionFilter)) return false;
       if (leagueFilter !== "ALL" && player.league !== leagueFilter) return false;
       if (player.overall < minimumOverall || player.overall > maximumOverall) return false;
+      if (!Number.isFinite(player.age) || player.age < minimumAge || player.age > maximumAge) return false;
       if (salaryFilterActive) {
         if (!player.aav) return false;
         if (player.aav < minimumSalary || player.aav > maximumSalary) return false;
@@ -191,7 +197,7 @@ export default function PlayersExplorer({ players, playerCounts }) {
       if (sortBy === "age-old") return b.age - a.age || b.overall - a.overall;
       return b.overall - a.overall || a.name.localeCompare(b.name);
     });
-  }, [players, query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, salaryFilterActive, sortBy]);
+  }, [players, query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, minimumAge, maximumAge, salaryFilterActive, sortBy]);
 
   const visiblePlayers = filteredPlayers.slice(0, visibleCount);
 
@@ -204,6 +210,8 @@ export default function PlayersExplorer({ players, playerCounts }) {
     setMaximumOverall(OVERALL_MAX);
     setMinimumSalary(SALARY_MIN);
     setMaximumSalary(SALARY_MAX);
+    setMinimumAge(AGE_MIN);
+    setMaximumAge(AGE_MAX);
     setSortBy("overall");
   }
 
@@ -285,6 +293,17 @@ export default function PlayersExplorer({ players, playerCounts }) {
             onMinChange={setMinimumSalary}
             onMaxChange={setMaximumSalary}
             formatValue={(value) => compactCurrency.format(value)}
+          />
+
+          <RangeFilter
+            label="Age"
+            min={AGE_MIN}
+            max={AGE_MAX}
+            step={1}
+            minValue={minimumAge}
+            maxValue={maximumAge}
+            onMinChange={setMinimumAge}
+            onMaxChange={setMaximumAge}
           />
         </div>
 
