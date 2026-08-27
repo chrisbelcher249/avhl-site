@@ -87,7 +87,7 @@ export default async function TeamPage({ params }) {
                 <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-white/80 backdrop-blur">{team.division} Division</span>
                 <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-white/80 backdrop-blur">{team.abbreviation}</span>
               </div>
-              <p className="mt-5 text-sm font-black uppercase tracking-[0.26em]" style={{ color: team.colors.secondary === "#FFFFFF" ? "#DDF7FF" : team.colors.secondary }}>{team.city}</p>
+              <p className="mt-5 text-sm font-black uppercase tracking-[0.26em] text-white">{team.city}</p>
               <h1 className="mt-1 text-5xl font-black uppercase leading-[0.92] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">{team.nickname}</h1>
               <p className="mt-5 max-w-xl text-base font-bold text-white/66 md:text-lg">{team.arena}</p>
               <Link href={`/schedule/${team.slug}`} className="mt-6 inline-flex rounded-full bg-white px-6 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">

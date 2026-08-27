@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import ScheduleGameCard from "@/components/ScheduleGameCard";
-import { schedule, seasonMonths } from "../../data/schedule";
 import { divisionOrder, teams } from "../../data/teams";
 import { formatScheduleDate, formatScheduleMonth } from "@/lib/scheduleFormat";
 
 const INITIAL_DATE_COUNT = 14;
 
-export default function ScheduleExplorer() {
+export default function ScheduleExplorer({ schedule }) {
   const [query, setQuery] = useState("");
   const [teamSlug, setTeamSlug] = useState("");
   const [division, setDivision] = useState("");
@@ -20,6 +19,7 @@ export default function ScheduleExplorer() {
   const [visibleDateCount, setVisibleDateCount] = useState(INITIAL_DATE_COUNT);
 
   const teamLookup = useMemo(() => Object.fromEntries(teams.map((team) => [team.slug, team])), []);
+  const seasonMonths = useMemo(() => [...new Set(schedule.map((game) => game.date.slice(0, 7)))].sort(), [schedule]);
 
   const filteredGames = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();

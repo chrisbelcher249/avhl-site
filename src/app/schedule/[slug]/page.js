@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeamScheduleExplorer from "@/components/TeamScheduleExplorer";
-import { scheduleByTeam } from "../../../../data/schedule";
+import { getSchedule } from "@/lib/schedule";
 import { teamBySlug, teams } from "../../../../data/teams";
+
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return teams.map((team) => ({ slug: team.slug }));
@@ -15,15 +17,18 @@ export async function generateMetadata({ params }) {
   if (!team) return {};
   return {
     title: `${team.name} Schedule`,
-    description: `Complete 82-game 2026–27 AVHL schedule for the ${team.name}.`,
+    description: `Complete live 2026–27 AVHL schedule and results for the ${team.name}.`,
   };
 }
 
 export default async function TeamSchedulePage({ params }) {
   const { slug } = await params;
   const team = teamBySlug[slug];
-  const games = scheduleByTeam[slug];
-  if (!team || !games) notFound();
+  if (!team) notFound();
+
+  const { schedule, error } = await getSchedule();
+  const games = schedule.filter((game) => game.away === slug || game.home === slug);
+  if (!games.length) notFound();
 
   const homeGames = games.filter((game) => game.home === slug).length;
   const awayGames = games.filter((game) => game.away === slug).length;
@@ -42,7 +47,7 @@ export default async function TeamSchedulePage({ params }) {
             <div className="flex-1">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">{team.division} Division · {team.abbreviation}</p>
               <h1 className="mt-3 text-4xl font-black uppercase leading-none tracking-tight sm:text-5xl md:text-7xl">{team.name}</h1>
-              <p className="mt-4 text-lg font-bold text-white/58">Official 2026–27 Major League schedule</p>
+              <p className="mt-4 text-lg font-bold text-white/58">Live 2026–27 Major League schedule & results</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link href={`/teams/${team.slug}`} className="rounded-full bg-white px-5 py-2.5 text-sm font-black text-[#000B36] transition hover:bg-cyan-100">Team profile</Link>
                 <span className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-black text-white/76">{team.arena}</span>
@@ -61,6 +66,7 @@ export default async function TeamSchedulePage({ params }) {
             </div>
           ))}
         </div>
+        {error ? <p className="mb-5 rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{error}</p> : null}
         <TeamScheduleExplorer teamSlug={team.slug} primary={team.colors.primary} games={games} />
       </section>
     </main>

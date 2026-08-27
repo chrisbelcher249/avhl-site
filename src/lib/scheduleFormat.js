@@ -28,5 +28,5 @@ export function formatScheduleMonth(month) {
 }
 
 export function gameHasResult(game) {
-  return Number.isFinite(game.awayScore) && Number.isFinite(game.homeScore);
+  return Number.isFinite(game.awayScore) && Number.isFinite(game.homeScore) && game.awayScore !== game.homeScore;
 }

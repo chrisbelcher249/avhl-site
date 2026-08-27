@@ -34,6 +34,14 @@ function isForward(player) {
   return !isDefenseman(player);
 }
 
+
+function sumOverall(players) {
+  return players
+    .map((player) => Number(player.overall))
+    .filter((overall) => Number.isFinite(overall))
+    .reduce((total, overall) => total + overall, 0);
+}
+
 function averageOverall(players) {
   const ratings = players
     .map((player) => Number(player.overall))
@@ -89,6 +97,10 @@ export function buildTeamRosterAndCap(playerList, teamName) {
     forwardAverageOverall: averageOverall(forwards),
     defenseAverageOverall: averageOverall(defensemen),
     goalieAverageOverall: averageOverall(goalies),
+    overallSum: sumOverall(rosterPlayers),
+    forwardOverallSum: sumOverall(forwards),
+    defenseOverallSum: sumOverall(defensemen),
+    goalieOverallSum: sumOverall(goalies),
     payroll,
     capSpace: salaryCapRules.cap - payroll,
     floorPosition: payroll - salaryCapRules.floor,
