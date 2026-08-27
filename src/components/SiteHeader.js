@@ -10,6 +10,7 @@ const navItems = [
   ["Schedule", "/schedule"],
   ["Statistics", "/statistics"],
   ["History", "/history"],
+  ["Champions", "/champions"],
   ["League Info", "/info"],
 ];
 
@@ -29,19 +30,19 @@ export default function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
+        <nav className="hidden items-center gap-1 xl:flex" aria-label="Main navigation">
           {navItems.map(([label, href]) => (
             <Link
               key={href}
               href={href}
-              className="rounded-full px-3.5 py-2 text-sm font-extrabold text-white/75 transition hover:bg-white/10 hover:text-white"
+              className="rounded-full px-3 py-2 text-sm font-extrabold text-white/75 transition hover:bg-white/10 hover:text-white"
             >
               {label}
             </Link>
           ))}
         </nav>
 
-        <details className="relative lg:hidden">
+        <details className="relative xl:hidden">
           <summary className="cursor-pointer list-none rounded-full border border-white/20 px-4 py-2 text-sm font-black uppercase tracking-wide">
             Menu
           </summary>

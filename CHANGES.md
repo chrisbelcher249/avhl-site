@@ -89,3 +89,9 @@
 - Team draft-pick sections now read current ownership from the live AVHL Pick Tracker Google Sheet (`164tLcxUsyzzylju4QzVNpDL6Abt7OMGk0VZT29MUYW0`).
 - Draft-pick ownership updates on team pages without a code/deploy change when the Google Sheet is edited.
 - `/trades` now has an instant search field that matches team names, abbreviations, cities, and player names/assets.
+
+## Historical archive + champions
+- Replaced the History placeholder with the completed 2022-23 through 2025-26 regular-season archive.
+- Added sortable season standings, season leaders, and franchise-lineage notes.
+- Added franchise-history tables to current Major League team profiles using stable franchise codes.
+- Added `/champions` with championship teams, captains, and 20-player rosters for 2022-23 through 2025-26.

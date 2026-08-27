@@ -5,10 +5,12 @@ import TeamMark from "@/components/TeamMark";
 import RosterSection from "@/components/RosterSection";
 import DraftPickSection from "@/components/DraftPickSection";
 import SalaryCapSection from "@/components/SalaryCapSection";
+import FranchiseHistorySection from "@/components/FranchiseHistorySection";
 import { teamBySlug, teams } from "../../../../data/teams";
 import { getDraftPicksForTeam } from "@/lib/draftPicks";
 import { buildTeamRosterAndCap } from "../../../../data/salaryCap";
 import { getPlayers } from "@/lib/players";
+import { getFranchiseHistory, getFranchiseSummary } from "@/lib/history";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +65,8 @@ export default async function TeamPage({ params }) {
   const roster = buildTeamRosterAndCap(players, team.name);
   const { picks: draftPicks, error: draftPickError } = await getDraftPicksForTeam(team.abbreviation);
   const divisionTeams = teams.filter((candidate) => candidate.division === team.division && candidate.slug !== team.slug);
+  const franchiseHistory = getFranchiseHistory(team.abbreviation);
+  const franchiseSummary = getFranchiseSummary(team.abbreviation);
   const uniforms = [
     ["Home", team.assets.home],
     ["Away", team.assets.away],
@@ -170,7 +174,9 @@ export default async function TeamPage({ params }) {
 
       <DraftPickSection team={team} picks={draftPicks} error={draftPickError} />
 
-      <section className="mx-auto max-w-7xl px-6 pb-14 md:px-8 md:pb-20">
+      <FranchiseHistorySection team={team} history={franchiseHistory} summary={franchiseSummary} />
+
+      <section className="mx-auto max-w-7xl px-6 pb-14 pt-14 md:px-8 md:pb-20 md:pt-20">
         <SectionHeading eyebrow="Home ice" title={team.arena} copy={`The 2026–27 home of the ${team.name}.`} />
         <div className="mt-6 overflow-hidden rounded-[2rem] border border-[#000B36]/10 bg-[#000B36] shadow-lg">
           <div className="relative aspect-[16/9] w-full">
