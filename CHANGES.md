@@ -95,3 +95,8 @@
 - Added sortable season standings, season leaders, and franchise-lineage notes.
 - Added franchise-history tables to current Major League team profiles using stable franchise codes.
 - Added `/champions` with championship teams, captains, and 20-player rosters for 2022-23 through 2025-26.
+
+## Historical game archive
+- Added the full 6,608-game regular-season archive from 2022-23 through 2025-26 to `/history`.
+- Added filters for season, team, opponent, and source date plus oldest/newest ordering and pagination.
+- Preserves historical team names and OT/SO labels from the historical workbook.

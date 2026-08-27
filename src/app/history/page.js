@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HistoryExplorer from "@/components/HistoryExplorer";
+import HistoryGamesExplorer from "@/components/HistoryGamesExplorer";
 import { franchiseLineage, historySeasons, historySummary, regularSeasonHistory } from "../../../data/history";
 
 export const metadata = {
@@ -28,9 +29,14 @@ export default function HistoryPage() {
                 Four seasons of reconstructed AVHL team results, preserving the team names used at the time while following each franchise through a stable franchise code.
               </p>
             </div>
-            <Link href="/champions" className="inline-flex w-fit rounded-full bg-white px-6 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">
-              View champions
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <a href="#historical-games" className="inline-flex w-fit rounded-full bg-[#18BDFC] px-6 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-200">
+                Browse games
+              </a>
+              <Link href="/champions" className="inline-flex w-fit rounded-full bg-white px-6 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">
+                View champions
+              </Link>
+            </div>
           </div>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
@@ -80,15 +86,27 @@ export default function HistoryPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-12 md:px-8 md:py-16">
+      <section id="historical-games" className="mx-auto max-w-7xl scroll-mt-24 px-6 py-12 md:px-8 md:py-16">
         <div className="max-w-3xl">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#A90117]">Franchise lineage</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#A90117]">Historical games</p>
+          <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">Every regular-season result.</h2>
+          <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/52 md:text-base">Browse all 6,608 completed regular-season games from 2022–23 through 2025–26. Filter by season, team, opponent, or the date recorded in the historical source.</p>
+        </div>
+        <div className="mt-7">
+          <HistoryGamesExplorer seasons={historySeasons} expectedCount={historySummary.games} />
+        </div>
+      </section>
+
+      <section className="border-t border-[#000B36]/8 bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-12 md:px-8 md:py-16">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#A90117]">Franchise lineage</p>
           <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">Names change. Franchises continue.</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/52 md:text-base">Historical results stay with the same franchise when a club relocates or changes its identity.</p>
         </div>
-        <div className="mt-7 grid gap-4 lg:grid-cols-3">
+          <div className="mt-7 grid gap-4 lg:grid-cols-3">
           {franchiseLineage.map((item) => (
-            <div key={`${item.franchiseCode}-${item.historicalTeamName}`} className="rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
+            <div key={`${item.franchiseCode}-${item.historicalTeamName}`} className="rounded-3xl border border-[#000B36]/10 bg-[#F8FAFD] p-5 shadow-sm">
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/38">Franchise {item.franchiseCode}</p>
               <p className="mt-3 text-lg font-black">{item.historicalTeamName}</p>
               <p className="my-2 text-sm font-black text-[#18BDFC]">↓</p>
@@ -96,6 +114,7 @@ export default function HistoryPage() {
               <p className="mt-3 text-xs font-semibold leading-5 text-[#000B36]/46">{item.notes}</p>
             </div>
           ))}
+          </div>
         </div>
       </section>
     </main>
