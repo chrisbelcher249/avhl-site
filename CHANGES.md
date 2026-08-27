@@ -100,3 +100,14 @@
 - Added the full 6,608-game regular-season archive from 2022-23 through 2025-26 to `/history`.
 - Added filters for season, team, opponent, and source date plus oldest/newest ordering and pagination.
 - Preserves historical team names and OT/SO labels from the historical workbook.
+## Historical standings explorer update
+- Historical team-season table can now display one, multiple, or all seasons at once.
+- Added Season, GF, and GA columns while preserving each club's within-season rank.
+- Added a searchable statistic range filter for PTS, PTS%, W, RW, GF, GA, GD, GF/G, GA/G, and GP.
+- All historical table columns remain clickable/sortable across the selected seasons.
+
+
+## Team year-by-year history
+- Expanded every current team page's Franchise History section into a full Year-by-Year Results table.
+- Added RW, GF/G, GA/G, GF, GA, and GD alongside GP, W, L, OTL, PTS, and PTS%.
+- Historical franchise identities remain linked by franchise code and labeled on the team page.

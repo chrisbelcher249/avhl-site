@@ -78,7 +78,7 @@ export default function HistoryPage() {
           <div className="max-w-3xl">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#A90117]">Historical standings</p>
             <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">Every completed season</h2>
-            <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/52 md:text-base">Select a season, search a club, or sort any statistic. Historical names remain attached to the season in which they were used.</p>
+            <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/52 md:text-base">Compare one season, several seasons, or the full archive at once. Search clubs, filter by a statistical range, or sort any column; historical names remain attached to the season in which they were used.</p>
           </div>
           <div className="mt-7">
             <HistoryExplorer seasons={historySeasons} rows={regularSeasonHistory} />
