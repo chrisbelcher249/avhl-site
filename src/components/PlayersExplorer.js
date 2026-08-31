@@ -11,6 +11,15 @@ const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "
 const compactCurrency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
 
 const SALARY_STEP = 100000;
+const POSITION_OPTIONS = [
+  ["LW", "Left wing"],
+  ["C", "Center"],
+  ["RW", "Right wing"],
+  ["LD", "Left defense"],
+  ["RD", "Right defense"],
+  ["G", "Goalie"],
+];
+const ALL_POSITIONS = POSITION_OPTIONS.map(([value]) => value);
 
 function savePercentage(value) {
   if (value === null || value === undefined) return "—";
@@ -153,7 +162,7 @@ export default function PlayersExplorer({ players, playerCounts }) {
   const AGE_MAX = ageValues.length ? Math.max(...ageValues) : 45;
   const [query, setQuery] = useState("");
   const [teamFilter, setTeamFilter] = useState("ALL");
-  const [positionFilter, setPositionFilter] = useState("ALL");
+  const [selectedPositions, setSelectedPositions] = useState(() => [...ALL_POSITIONS]);
   const [leagueFilter, setLeagueFilter] = useState("ALL");
   const [minimumOverall, setMinimumOverall] = useState(OVERALL_MIN);
   const [maximumOverall, setMaximumOverall] = useState(OVERALL_MAX);
@@ -168,7 +177,7 @@ export default function PlayersExplorer({ players, playerCounts }) {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, minimumAge, maximumAge, sortBy]);
+  }, [query, teamFilter, selectedPositions, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, minimumAge, maximumAge, sortBy]);
 
   const filteredPlayers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -179,7 +188,7 @@ export default function PlayersExplorer({ players, playerCounts }) {
       if (teamFilter === "UFA" && player.currentTeam !== "UFA") return false;
       if (teamFilter === "ROSTERED" && player.currentTeam === "UFA") return false;
       if (!["ALL", "UFA", "ROSTERED"].includes(teamFilter) && player.currentTeam !== teamFilter) return false;
-      if (!hasPosition(player, positionFilter)) return false;
+      if (!selectedPositions.some((position) => hasPosition(player, position))) return false;
       if (leagueFilter !== "ALL" && player.league !== leagueFilter) return false;
       if (player.overall < minimumOverall || player.overall > maximumOverall) return false;
       if (!Number.isFinite(player.age) || player.age < minimumAge || player.age > maximumAge) return false;
@@ -197,14 +206,22 @@ export default function PlayersExplorer({ players, playerCounts }) {
       if (sortBy === "age-old") return b.age - a.age || b.overall - a.overall;
       return b.overall - a.overall || a.name.localeCompare(b.name);
     });
-  }, [players, query, teamFilter, positionFilter, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, minimumAge, maximumAge, salaryFilterActive, sortBy]);
+  }, [players, query, teamFilter, selectedPositions, leagueFilter, minimumOverall, maximumOverall, minimumSalary, maximumSalary, minimumAge, maximumAge, salaryFilterActive, sortBy]);
 
   const visiblePlayers = filteredPlayers.slice(0, visibleCount);
+
+  function togglePosition(position) {
+    setSelectedPositions((current) =>
+      current.includes(position)
+        ? current.filter((value) => value !== position)
+        : [...current, position]
+    );
+  }
 
   function clearFilters() {
     setQuery("");
     setTeamFilter("ALL");
-    setPositionFilter("ALL");
+    setSelectedPositions([...ALL_POSITIONS]);
     setLeagueFilter("ALL");
     setMinimumOverall(OVERALL_MIN);
     setMaximumOverall(OVERALL_MAX);
@@ -240,18 +257,48 @@ export default function PlayersExplorer({ players, playerCounts }) {
             </select>
           </label>
 
-          <label>
-            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">Position</span>
-            <select value={positionFilter} onChange={(event) => setPositionFilter(event.target.value)} className="mt-2 w-full rounded-xl border border-[#000B36]/12 bg-[#F6F8FC] px-3 py-3 text-sm font-bold outline-none focus:border-[#18BDFC]">
-              <option value="ALL">All positions</option>
-              <option value="LW">Left wing (LW)</option>
-              <option value="C">Center (C)</option>
-              <option value="RW">Right wing (RW)</option>
-              <option value="LD">Left defense (LD)</option>
-              <option value="RD">Right defense (RD)</option>
-              <option value="G">Goalie (G)</option>
-            </select>
-          </label>
+          <fieldset className="rounded-2xl border border-[#000B36]/10 bg-[#F6F8FC] px-4 py-3 md:col-span-2 xl:col-span-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">Position · select all that apply</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPositions([...ALL_POSITIONS])}
+                  className="text-[10px] font-black uppercase tracking-wide text-[#A90117] hover:text-[#000B36]"
+                >
+                  Select all
+                </button>
+                <span className="text-[#000B36]/20">•</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPositions([])}
+                  className="text-[10px] font-black uppercase tracking-wide text-[#000B36]/45 hover:text-[#A90117]"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {POSITION_OPTIONS.map(([value, label]) => {
+                const checked = selectedPositions.includes(value);
+                return (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-black transition ${checked ? "border-[#18BDFC]/70 bg-white text-[#000B36] shadow-sm" : "border-[#000B36]/8 bg-white/45 text-[#000B36]/40 hover:border-[#000B36]/20"}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => togglePosition(value)}
+                      className="h-4 w-4 accent-[#A90117]"
+                    />
+                    <span>{value}</span>
+                    <span className="truncate font-bold text-[#000B36]/38">{label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
 
           <label>
             <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">Pro league</span>

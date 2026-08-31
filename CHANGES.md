@@ -1,3 +1,12 @@
+# Minor League directory + multi-position filtering — August 31, 2026
+
+- Added `/minor-league` with all 40 Minor League clubs, official 2026–27 logos, team colors, arenas, and Major League affiliate relationships.
+- Organized the Minor League directory by the affiliate’s Major League conference/division and added team/city/affiliate search.
+- Minor League cards are intentionally non-clickable until full club asset/detail pages are available.
+- Expanded the centralized logo set to all 80 AVHL team logos and refreshed the AVHL league logo from the supplied 81-file pack.
+- Changed `/players` position filtering from single-select to multi-select checkboxes for LW, C, RW, LD, RD, and G, with Select All/Clear controls.
+- Multi-position players match any selected applicable position.
+
 # Live data and unified logos — August 25, 2026
 
 - Added a live `/trades` page backed by the AVHL Google Sheets trade tracker.

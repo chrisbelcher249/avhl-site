@@ -3,6 +3,7 @@ import Link from "next/link";
 
 const navItems = [
   ["Teams", "/teams"],
+  ["Minor League", "/minor-league"],
   ["Players", "/players"],
   ["Cap", "/cap"],
   ["Trades", "/trades"],
@@ -35,7 +36,7 @@ export default function SiteHeader() {
             <Link
               key={href}
               href={href}
-              className="rounded-full px-3 py-2 text-sm font-extrabold text-white/75 transition hover:bg-white/10 hover:text-white"
+              className="rounded-full px-2 py-2 text-xs font-extrabold text-white/75 transition hover:bg-white/10 hover:text-white"
             >
               {label}
             </Link>
