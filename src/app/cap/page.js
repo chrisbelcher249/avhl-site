@@ -34,9 +34,6 @@ export default async function CapPage() {
           forwardsCount: roster.forwardsCount,
           defensemenCount: roster.defensemenCount,
           goaliesCount: roster.goalies.length,
-          forwardOverallSum: roster.forwardOverallSum,
-          defenseOverallSum: roster.defenseOverallSum,
-          goalieOverallSum: roster.goalieOverallSum,
           overallSum: roster.overallSum,
           salaryCompliant: roster.salaryCompliant,
           overCap: roster.overCap,
@@ -94,7 +91,7 @@ export default async function CapPage() {
         <CapComplianceTable rows={teamRows} rosterRules={rosterRules} />
 
         <p className="mt-5 text-xs font-semibold leading-5 text-[#000B36]/42">
-          Salary figures, roster counts, and OVR sums are calculated from the live AVHL player database. OVR Sum is the simple total of current player OVRs in that position group. Team pages use the same compliance rules and update from the same source.
+          Salary figures, roster counts, and Team OVR Sum are calculated from the live AVHL player database. Team OVR Sum is the simple total of all current player OVRs on the roster. Team pages use the same compliance rules and update from the same source.
         </p>
       </section>
     </main>

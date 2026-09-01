@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { champions } from "../../../data/champions";
 import { teams } from "../../../data/teams";
+import { minorTeams } from "../../../data/minorTeams";
 
 export const metadata = {
   title: "Champions",
@@ -38,7 +39,8 @@ export default function ChampionsPage() {
       <section className="mx-auto max-w-7xl px-6 py-12 md:px-8 md:py-16">
         <div className="grid gap-8">
           {champions.map((champion) => {
-            const currentTeam = teams.find((team) => team.name === champion.team);
+            const majorTeam = teams.find((team) => team.name === champion.team);
+            const currentTeam = majorTeam || minorTeams.find((team) => team.name === champion.team);
             const captain = champion.roster.find((player) => player.captain);
             return (
               <article key={champion.season} className="overflow-hidden rounded-[2rem] border border-[#000B36]/10 bg-white shadow-sm">
@@ -69,8 +71,8 @@ export default function ChampionsPage() {
                         <p className="mt-1 text-lg font-black">{champion.roster.length} players</p>
                       </div>
                     </div>
-                    {currentTeam ? (
-                      <Link href={`/teams/${currentTeam.slug}`} className="mt-7 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white transition hover:bg-white hover:text-[#000B36]">
+                    {majorTeam ? (
+                      <Link href={`/teams/${majorTeam.slug}`} className="mt-7 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white transition hover:bg-white hover:text-[#000B36]">
                         Current team profile
                       </Link>
                     ) : null}

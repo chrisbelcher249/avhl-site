@@ -31,9 +31,6 @@ const columns = [
   { key: "forwardsCount", label: "F", align: "center" },
   { key: "defensemenCount", label: "D", align: "center" },
   { key: "goaliesCount", label: "G", align: "center" },
-  { key: "forwardOverallSum", label: "F OVR Sum", align: "center" },
-  { key: "defenseOverallSum", label: "D OVR Sum", align: "center" },
-  { key: "goalieOverallSum", label: "G OVR Sum", align: "center" },
   { key: "overallSum", label: "Team OVR Sum", align: "center" },
   { key: "status", label: "Status", align: "left" },
 ];
@@ -70,7 +67,7 @@ export default function CapComplianceTable({ rows, rosterRules }) {
   return (
     <div className="overflow-hidden rounded-[2rem] border border-[#000B36]/10 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="min-w-[1500px] w-full border-collapse text-left">
+        <table className="min-w-[1120px] w-full border-collapse text-left">
           <thead className="bg-[#000B36] text-white">
             <tr className="text-[10px] font-black uppercase tracking-[0.14em]">
               {columns.map((column) => {
@@ -125,9 +122,6 @@ export default function CapComplianceTable({ rows, rosterRules }) {
                   <td className="px-4 py-4 text-center"><CountCell value={roster.forwardsCount} required={rosterRules.minimumForwards} /></td>
                   <td className="px-4 py-4 text-center"><CountCell value={roster.defensemenCount} required={rosterRules.minimumDefensemen} /></td>
                   <td className="px-4 py-4 text-center"><CountCell value={roster.goaliesCount} required={rosterRules.minimumGoalies} /></td>
-                  <td className="px-4 py-4 text-center text-sm font-black">{roster.forwardOverallSum}</td>
-                  <td className="px-4 py-4 text-center text-sm font-black">{roster.defenseOverallSum}</td>
-                  <td className="px-4 py-4 text-center text-sm font-black">{roster.goalieOverallSum}</td>
                   <td className="px-4 py-4 text-center text-sm font-black">{roster.overallSum}</td>
                   <td className="px-5 py-4">
                     {roster.compliant ? (

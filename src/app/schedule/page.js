@@ -1,7 +1,9 @@
 import Link from "next/link";
 import ScheduleExplorer from "@/components/ScheduleExplorer";
+import SaturdayNightShowdowns from "@/components/SaturdayNightShowdowns";
 import { getSchedule } from "@/lib/schedule";
 import { gameHasResult } from "@/lib/scheduleFormat";
+import { saturdayNightShowdowns } from "../../../data/saturdayNightShowdowns";
 
 export const metadata = {
   title: "2026–27 Schedule",
@@ -39,6 +41,8 @@ export default async function Schedule() {
         </div>
 
         {error ? <p className="mt-4 rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{error}</p> : null}
+
+        <SaturdayNightShowdowns games={saturdayNightShowdowns} />
 
         <div className="mt-10">
           <ScheduleExplorer schedule={schedule} />
