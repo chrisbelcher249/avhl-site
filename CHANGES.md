@@ -1,3 +1,11 @@
+# V5.2 simulator integration — September 3, 2026
+
+- Added the AVHL Game Simulator at `/sim`.
+- Added `Sim` to the desktop and mobile site navigation.
+- Embedded the supplied V5.2 Game Center without changing the simulation or replay engine.
+- Reused the website’s existing 40 Major League logos, jerseys, arena images, and mascots instead of duplicating the simulator asset pack.
+- Preserved simulator seed history, replay controls, game statistics, and official-export prototype behavior.
+
 # Minor League directory + multi-position filtering — August 31, 2026
 
 - Added `/minor-league` with all 40 Minor League clubs, official 2026–27 logos, team colors, arenas, and Major League affiliate relationships.

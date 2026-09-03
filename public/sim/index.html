@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000b36" />
+  <title>AVHL Game Simulator V5.2</title>
+  <link rel="stylesheet" href="styles.css?v=5.2" />
+  <script src="rink.js?v=5.2" defer></script>
+  <script src="team-metadata.js?v=5.2" defer></script>
+  <script src="data.js?v=5.2" defer></script>
+  <script src="simulator.js?v=5.2" defer></script>
+  <script src="official-config.js?v=5.2" defer></script>
+  <script src="app.js?v=5.2" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="site-header">
+      <div class="league-brand">
+        <div class="league-logo-wrap">
+          <img id="league-logo" class="league-logo" alt="AVHL logo" hidden />
+          <span id="league-logo-fallback" class="league-logo-fallback">AVHL</span>
+        </div>
+        <div>
+          <p class="eyebrow">American Virtual Hockey League</p>
+          <h1>Game Center <span class="version-tag">V5.2</span></h1>
+          <p class="header-subtitle">Chronological simulation · spatial events · full-rink goal replays</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="season-chip">2026–27 MAJOR LEAGUE</span>
+        <span id="asset-status" class="asset-chip">AVHL website branding loading</span>
+      </div>
+    </header>
+
+    <section class="matchup-builder" aria-label="Choose game matchup">
+      <div class="matchup-builder-title">
+        <span class="matchup-kicker">Matchup setup</span>
+        <strong>Choose any AVHL Major League matchup</strong>
+      </div>
+      <label class="team-select-field away-select-field">
+        <span>Away Team</span>
+        <select id="away-team-select" aria-label="Away team"></select>
+      </label>
+      <div class="matchup-at" aria-hidden="true">AT</div>
+      <label class="team-select-field home-select-field">
+        <span>Home Team</span>
+        <select id="home-team-select" aria-label="Home team"></select>
+      </label>
+    </section>
+
+    <section class="broadcast-stage" aria-label="Game scoreboard">
+      <article class="team-score away-panel" id="away-panel">
+        <span class="team-role">AWAY</span>
+        <div class="team-identity away-identity">
+          <div class="team-logo-shell">
+            <img id="away-logo" class="team-logo" alt="Away team logo" hidden />
+            <span id="away-logo-fallback" class="team-logo-fallback">ATL</span>
+          </div>
+          <div class="team-copy">
+            <span class="team-city" id="away-city">Atlanta</span>
+            <span class="team-name" id="away-name">Cobalts</span>
+            <span class="team-abbr" id="away-abbr">ATL</span>
+          </div>
+        </div>
+        <div class="jersey-feature" aria-label="Away team jersey presentation">
+          <div class="jersey-feature-head">
+            <span>JERSEY</span>
+            <select id="away-jersey-select" aria-label="Away team jersey">
+              <option value="Home">Home</option>
+              <option value="Away" selected>Away</option>
+              <option value="Alt">Alternate</option>
+            </select>
+          </div>
+          <div class="jersey-display">
+            <img id="away-jersey" class="team-jersey away-jersey" alt="Away team jersey" hidden />
+            <span id="away-jersey-fallback" class="jersey-fallback">JERSEY</span>
+          </div>
+        </div>
+        <div class="score-stack">
+          <strong class="score" id="away-score">0</strong>
+          <span class="team-stat" id="away-shots">0 shots</span>
+        </div>
+      </article>
+
+      <article class="clock-panel">
+        <div class="broadcast-live"><span class="live-dot"></span> AVHL LIVE SIM</div>
+        <span class="period" id="period">1st</span>
+        <strong class="clock" id="clock">20:00</strong>
+        <span class="strength" id="strength">5-on-5</span>
+        <div class="venue-chip">
+          <span class="venue-kicker">HOME ICE</span>
+          <strong id="arena-name">Domino's Center</strong>
+        </div>
+        <div class="arena-line">
+          <span id="matchup-label">ATL at ARI</span>
+        </div>
+      </article>
+
+      <article class="team-score home-panel" id="home-panel">
+        <span class="team-role">HOME</span>
+        <div class="score-stack">
+          <strong class="score" id="home-score">0</strong>
+          <span class="team-stat" id="home-shots">0 shots</span>
+        </div>
+        <div class="jersey-feature" aria-label="Home team jersey presentation">
+          <div class="jersey-feature-head">
+            <span>JERSEY</span>
+            <select id="home-jersey-select" aria-label="Home team jersey">
+              <option value="Home" selected>Home</option>
+              <option value="Away">Away</option>
+              <option value="Alt">Alternate</option>
+            </select>
+          </div>
+          <div class="jersey-display">
+            <img id="home-jersey" class="team-jersey home-jersey" alt="Home team jersey" hidden />
+            <span id="home-jersey-fallback" class="jersey-fallback">JERSEY</span>
+          </div>
+        </div>
+        <div class="team-identity home-identity">
+          <div class="team-copy">
+            <span class="team-city" id="home-city">Arizona</span>
+            <span class="team-name" id="home-name">Heat</span>
+            <span class="team-abbr" id="home-abbr">ARI</span>
+          </div>
+          <div class="team-logo-shell">
+            <img id="home-logo" class="team-logo" alt="Home team logo" hidden />
+            <span id="home-logo-fallback" class="team-logo-fallback">ARI</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="controls" aria-label="Simulation controls">
+      <button type="button" id="play-button" class="primary">Play</button>
+
+      <label class="control-field">
+        Playback speed
+        <select id="speed-select">
+          <option value="800">1×</option>
+          <option value="360">2×</option>
+          <option value="145">5×</option>
+          <option value="68" selected>10×</option>
+          <option value="12">Fast</option>
+        </select>
+      </label>
+
+      <button type="button" id="next-goal-button">Next goal</button>
+      <button type="button" id="period-button">Sim period</button>
+      <button type="button" id="end-button">Sim to end</button>
+      <button type="button" id="new-game-button">New game</button>
+
+      <label class="control-field seed-field">
+        Seed
+        <input id="seed-input" type="number" inputmode="numeric" aria-label="Simulation seed" />
+      </label>
+
+      <label class="control-field history-field">
+        Recent games
+        <select id="recent-games-select" aria-label="Recent games">
+          <option value="">No completed games yet</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="workspace">
+      <div class="left-column">
+        <article class="panel feed-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Broadcast feed</p>
+              <h2>Live play-by-play</h2>
+              <p class="panel-subtitle" id="event-count">0 events shown</p>
+            </div>
+            <span class="live-pill" id="status-pill">Ready</span>
+          </div>
+          <div id="feed" class="feed" aria-live="polite">
+            <div class="feed-empty">Press Play to start at the opening faceoff.</div>
+          </div>
+        </article>
+
+        <article class="panel stats-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Game data</p>
+              <h2>Live game totals</h2>
+              <p class="panel-subtitle">Generated directly from the chronological event log</p>
+            </div>
+          </div>
+
+          <div class="team-stat-grid">
+            <div class="stat-label"></div>
+            <strong id="stats-away-name">Cobalts</strong>
+            <strong id="stats-home-name">Heat</strong>
+
+            <span class="stat-label">Shots on goal</span>
+            <span id="stats-away-shots">0</span>
+            <span id="stats-home-shots">0</span>
+
+            <span class="stat-label">Shot attempts</span>
+            <span id="stats-away-attempts">0</span>
+            <span id="stats-home-attempts">0</span>
+
+            <span class="stat-label">Hits</span>
+            <span id="stats-away-hits">0</span>
+            <span id="stats-home-hits">0</span>
+
+            <span class="stat-label">Faceoffs won</span>
+            <span id="stats-away-faceoffs">0</span>
+            <span id="stats-home-faceoffs">0</span>
+
+            <span class="stat-label">PIM</span>
+            <span id="stats-away-pim">0</span>
+            <span id="stats-home-pim">0</span>
+          </div>
+
+          <div id="summary" class="summary-card">
+            A final box-score summary will appear here when the game ends.
+          </div>
+        </article>
+      </div>
+
+      <aside class="right-column" aria-label="Rink visualizations">
+        <article class="panel rink-panel replay-panel">
+          <div class="panel-heading rink-heading">
+            <div>
+              <p class="panel-kicker">Replay center</p>
+              <h2>Goal replay</h2>
+              <p class="panel-subtitle">Full rink · 6 seconds of buildup + 2 seconds after</p>
+            </div>
+          </div>
+
+          <div class="rink-controls replay-controls aligned-control-row">
+            <label>
+              Goal
+              <select id="goal-select" disabled>
+                <option value="">No goals yet</option>
+              </select>
+            </label>
+            <button type="button" id="replay-button" disabled>Play</button>
+          </div>
+
+          <div class="arena-rink-shell rink-svg-shell">
+            <div class="arena-rink-banner">
+              <span class="arena-light"></span>
+              <strong data-home-arena-name>Domino's Center</strong>
+              <span class="arena-home-tag">HOME ICE</span>
+            </div>
+            <div class="rink-svg-stage">
+              <svg id="replay-rink" class="vertical-rink unified-rink" viewBox="0 0 410 720" role="img" aria-label="Vertical top-down goal replay rink">
+                <defs>
+                  <clipPath id="replay-rink-clip">
+                    <rect x="42" y="8" width="326" height="704" rx="72" />
+                  </clipPath>
+                </defs>
+                <g class="arena-base"></g>
+                <g class="rink-base"></g>
+                <image id="replay-center-logo" class="rink-center-logo" x="174" y="329" width="62" height="62" preserveAspectRatio="xMidYMid meet" clip-path="url(#replay-rink-clip)" />
+                <g id="replay-trails" clip-path="url(#replay-rink-clip)"></g>
+                <g id="replay-players" clip-path="url(#replay-rink-clip)"></g>
+                <circle id="replay-puck" class="puck" r="5" opacity="0" clip-path="url(#replay-rink-clip)" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="replay-timeline" aria-label="Goal replay timeline">
+            <div class="timeline-labels" aria-hidden="true">
+              <span>−6.0s</span>
+              <span>GOAL</span>
+              <span>+2.0s</span>
+            </div>
+            <input id="replay-progress" type="range" min="0" max="8" step="0.01" value="0" disabled aria-label="Scrub goal replay" />
+            <div class="replay-time-row">
+              <span id="replay-time">−6.0s</span>
+              <span id="replay-state">Paused</span>
+            </div>
+          </div>
+
+          <p id="replay-caption" class="caption">The first completed goal will appear here.</p>
+        </article>
+
+        <article class="panel rink-panel map-panel">
+          <div class="panel-heading rink-heading">
+            <div>
+              <p class="panel-kicker">Spatial tracker</p>
+              <h2>Live event map</h2>
+              <p class="panel-subtitle">Exact 200 × 85 rink coordinates · filter any period</p>
+            </div>
+          </div>
+
+          <div class="rink-controls map-controls aligned-control-row">
+            <label>
+              Period
+              <select id="period-filter">
+                <option value="all" selected>All</option>
+                <option value="1">1st</option>
+                <option value="2">2nd</option>
+                <option value="3">3rd</option>
+                <option value="4">OT</option>
+                <option value="SO">SO</option>
+              </select>
+            </label>
+            <span class="control-row-spacer" aria-hidden="true"></span>
+          </div>
+
+          <div class="arena-rink-shell rink-svg-shell">
+            <div class="arena-rink-banner">
+              <span class="arena-light"></span>
+              <strong data-home-arena-name>Domino's Center</strong>
+              <span class="arena-home-tag">HOME ICE</span>
+            </div>
+            <div class="rink-svg-stage map-wrap">
+              <svg id="event-rink" class="vertical-rink unified-rink" viewBox="0 0 410 720" role="img" aria-label="Vertical rink showing live event locations">
+                <defs>
+                  <clipPath id="event-rink-clip">
+                    <rect x="42" y="8" width="326" height="704" rx="72" />
+                  </clipPath>
+                </defs>
+                <g class="arena-base"></g>
+                <g class="rink-base"></g>
+                <image id="event-center-logo" class="rink-center-logo" x="174" y="329" width="62" height="62" preserveAspectRatio="xMidYMid meet" clip-path="url(#event-rink-clip)" />
+                <g id="event-markers" clip-path="url(#event-rink-clip)"></g>
+              </svg>
+              <div id="map-tooltip" class="map-tooltip" hidden></div>
+            </div>
+          </div>
+
+          <fieldset class="event-toggle-grid">
+            <legend>Map layers</legend>
+            <label><input type="checkbox" data-map-type="shot" checked /> Shots</label>
+            <label><input type="checkbox" data-map-type="attempt" checked /> Attempts</label>
+            <label><input type="checkbox" data-map-type="hit" checked /> Hits</label>
+            <label><input type="checkbox" data-map-type="penalty" /> Penalties</label>
+            <label><input type="checkbox" data-map-type="faceoff" /> Faceoffs</label>
+          </fieldset>
+
+          <div class="map-legend" aria-label="Event map legend">
+            <span><i class="legend-mark shot"></i> Save</span>
+            <span><i class="legend-mark goal"></i> Goal</span>
+            <span><i class="legend-mark miss"></i> Miss</span>
+            <span><i class="legend-mark block"></i> Block</span>
+            <span><i class="legend-mark post"></i> Post</span>
+            <span><i class="legend-mark hit"></i> Hit</span>
+            <span><i class="legend-mark penalty">P</i> Penalty</span>
+            <span><i class="legend-mark faceoff"></i> Faceoff</span>
+          </div>
+        </article>
+      </aside>
+    </section>
+
+
+
+    <section class="panel full-boxscore-panel" id="box-score-panel" aria-label="Full game box score">
+      <div class="panel-heading boxscore-heading">
+        <div>
+          <p class="panel-kicker">Official game record</p>
+          <h2>Full Game Stats</h2>
+          <p class="panel-subtitle">NHL 26-style team, skater and goalie output · available when the game is final</p>
+        </div>
+        <div class="official-game-actions">
+          <span id="official-status" class="official-status">Sandbox game</span>
+          <button type="button" id="official-export-button" class="official-export-button" disabled>Verify Official Game</button>
+        </div>
+      </div>
+
+      <div class="boxscore-tabs" role="tablist" aria-label="Game statistic views">
+        <button type="button" class="boxscore-tab active" data-box-tab="team" role="tab" aria-selected="true">Team Stats</button>
+        <button type="button" class="boxscore-tab" data-box-tab="away-skaters" role="tab">Away Skaters</button>
+        <button type="button" class="boxscore-tab" data-box-tab="away-goalies" role="tab">Away Goalies</button>
+        <button type="button" class="boxscore-tab" data-box-tab="home-skaters" role="tab">Home Skaters</button>
+        <button type="button" class="boxscore-tab" data-box-tab="home-goalies" role="tab">Home Goalies</button>
+      </div>
+
+      <div id="box-score-content" class="box-score-content">
+        <div class="boxscore-empty">Finish the game to unlock the complete box score.</div>
+      </div>
+    </section>
+
+    <div id="official-modal" class="official-modal" hidden>
+      <div class="official-modal-backdrop" data-official-close></div>
+      <section class="official-modal-card" role="dialog" aria-modal="true" aria-labelledby="official-modal-title">
+        <p class="panel-kicker">AVHL administrator</p>
+        <h2 id="official-modal-title">Verify Official Game</h2>
+        <p>This V5.2 prototype validates the administrator password locally, then saves a signed-style JSON game packet. Spreadsheet/database submission comes next.</p>
+        <form id="official-form">
+          <label class="official-password-field">
+            Administrator password
+            <input id="official-password" type="password" autocomplete="current-password" required />
+          </label>
+          <p id="official-error" class="official-error" aria-live="polite"></p>
+          <div class="official-modal-buttons">
+            <button type="button" data-official-close>Cancel</button>
+            <button type="submit" class="primary">Verify &amp; Save Packet</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <footer class="site-footer">
+      <span>AVHL Game Simulator V5.2</span>
+      <span>Away left · Home right · selectable sweaters · V2.2 chronological event engine preserved</span>
+    </footer>
+  </main>
+</body>
+</html>
