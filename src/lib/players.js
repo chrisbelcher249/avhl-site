@@ -2,9 +2,20 @@ import { playerCounts as fallbackCounts, players as fallbackPlayers } from "../.
 
 export const PLAYER_SHEET_ID = "1TK2gNvYwXGb_eoVyITBjsgVqZ5m6QnQje6qQtZtxv64";
 
+const SKATER_SHEET_NAMES = [
+  "Skaters",
+  "AVHL 2026-27 Player Ratings - Skaters",
+  "AVHL 2026-27 Player Ratings - Skaters (10)",
+  "AVHL 2026-27 Player Ratings - Skaters (11)",
+  "AVHL 2026-27 Player Ratings - Skaters (12)",
+  "AVHL 2026-27 Player Ratings - Skaters (13)",
+];
+
 const SKATER_URLS = [
   `https://docs.google.com/spreadsheets/d/${PLAYER_SHEET_ID}/export?format=csv&gid=0`,
-  `https://docs.google.com/spreadsheets/d/${PLAYER_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Skaters`,
+  ...SKATER_SHEET_NAMES.map(
+    (name) => `https://docs.google.com/spreadsheets/d/${PLAYER_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`,
+  ),
 ];
 
 const GOALIE_SHEET_NAMES = [
@@ -14,6 +25,10 @@ const GOALIE_SHEET_NAMES = [
   "Goalies (10)",
   "AVHL 2026-27 Player Ratings - Goalies",
   "AVHL 2026-27 Player Ratings - Goalies (10)",
+  "AVHL 2026-27 Player Ratings - Goalies (11)",
+  "AVHL 2026-27 Player Ratings - Goalies (12)",
+  "AVHL 2026-27 Player Ratings - Goalies (13)",
+  "AVHL 2026-27 Player Ratings - Goalies (14)",
 ];
 
 const GOALIE_URLS = GOALIE_SHEET_NAMES.map(
@@ -118,16 +133,30 @@ function skater(row) {
     },
     ratings: {
       Deking: number(row.Deking),
+      "Hand Eye": number(row["Hand Eye"]),
       Passing: number(row.Passing),
       "Puck Control": number(row["Puck Control"]),
+      Discipline: number(row.Discipline),
       "Off. Awareness": number(row["Off. Awareness"]),
+      Poise: number(row.Poise),
+      "Slap Shot Accuracy": number(row["Slap Shot Accuracy"]),
+      "Slap Shot Power": number(row["Slap Shot Power"]),
+      "Wrist Shot Accuracy": number(row["Wrist Shot Accuracy"]),
       "Wrist Shot Acc.": number(row["Wrist Shot Accuracy"]),
+      "Wrist Shot Power": number(row["Wrist Shot Power"]),
       "Def. Awareness": number(row["Def. Awareness"]),
       Faceoffs: number(row.Faceoffs),
+      "Shot Blocking": number(row["Shot Blocking"]),
       "Stick Checking": number(row["Stick Checking"]),
       Acceleration: number(row.Acceleration),
+      Agility: number(row.Agility),
+      Balance: number(row.Balance),
+      Endurance: number(row.Endurance),
       Speed: number(row.Speed),
+      Aggressiveness: number(row.Aggressiveness),
       "Body Checking": number(row["Body Checking"]),
+      Durability: number(row.Durability),
+      "Fighting Skill": number(row["Fighting Skill"]),
       Strength: number(row.Strength),
     },
   };
@@ -170,9 +199,16 @@ function goalie(row) {
       "Glove Low": number(row["Glove Low"]),
       "Stick High": number(row["Stick High"]),
       "Stick Low": number(row["Stick Low"]),
+      Passing: number(row.Passing),
+      Poise: number(row.Poise),
+      "Poke Check": number(row["Poke Check"]),
+      "Puck Playing Freq.": number(row["Puck Playing Freq."]),
       "Rebound Control": number(row["Rebound Control"]),
       Recover: number(row.Recover),
+      Aggressiveness: number(row.Aggressiveness),
       Agility: number(row.Agility),
+      Durability: number(row.Durability),
+      Endurance: number(row.Endurance),
       Speed: number(row.Speed),
       Vision: number(row.Vision),
     },

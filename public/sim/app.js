@@ -333,6 +333,20 @@
     }
   }
 
+
+  async function loadLiveRosters() {
+    try {
+      const response = await fetch("/api/sim-rosters", { cache: "no-store" });
+      if (!response.ok) throw new Error(`Live roster endpoint returned ${response.status}`);
+      const payload = await response.json();
+      window.AVHL_SET_LIVE_ROSTERS?.(payload.rosters ?? {});
+      console.info(`[AVHL Simulator] Live rosters loaded (${payload.source || "unknown source"}).`);
+      return true;
+    } catch (error) {
+      console.error("[AVHL Simulator] Unable to load live rosters; demo rosters remain available.", error);
+      return false;
+    }
+  }
   function selectedMatchupData() {
     const homeCode = elements.homeTeamSelect?.value || "ARI";
     const awayCode = elements.awayTeamSelect?.value || "ATL";
@@ -1392,9 +1406,14 @@
     renderReplayFrame,
     loadGoalReplay
   };
-  initializeLeagueBranding();
-  populateTeamSelectors();
-  loadRecentGames();
-  renderRecentGames();
-  createNewGame({ freshSeed: true });
+  async function bootstrapSimulator() {
+    initializeLeagueBranding();
+    populateTeamSelectors();
+    loadRecentGames();
+    renderRecentGames();
+    await loadLiveRosters();
+    createNewGame({ freshSeed: true });
+  }
+
+  bootstrapSimulator();
 })();

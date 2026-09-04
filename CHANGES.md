@@ -1,3 +1,12 @@
+# Live roster + schedule/cap refinements — September 3, 2026
+
+- Added opponent search to each club’s 2026–27 team schedule page.
+- Enforced the 23-player roster minimum in cap compliance, so the Players indicator is red below 23 and above 26.
+- Added `/api/sim-rosters` to feed the simulator from the same live AVHL player database used by the website.
+- Expanded the live player parser so the simulator can receive the full skater and goalie rating sets.
+- Replaced synthetic simulator ratings with real live ratings whenever a live value is available; synthetic values now remain only as an emergency fallback for missing data.
+- Until owner-submitted lines are available, the simulator automatically dresses the top 12 forwards, six defensemen, and two goalies by OVR, assigns temporary lines/pairs, and prefers natural C/LW/RW and LD/RD roles within each unit.
+
 # V5.2 simulator integration — September 3, 2026
 
 - Added the AVHL Game Simulator at `/sim`.

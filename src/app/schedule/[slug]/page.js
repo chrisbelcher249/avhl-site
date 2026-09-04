@@ -32,6 +32,11 @@ export default async function TeamSchedulePage({ params }) {
 
   const homeGames = games.filter((game) => game.home === slug).length;
   const awayGames = games.filter((game) => game.away === slug).length;
+  const opponentOptions = [...new Set(games.map((game) => game.home === slug ? game.away : game.home))]
+    .map((opponentSlug) => teamBySlug[opponentSlug])
+    .filter(Boolean)
+    .map((opponent) => ({ slug: opponent.slug, name: opponent.name, abbreviation: opponent.abbreviation }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <main className="bg-[#F4F7FB] text-[#000B36]">
@@ -67,7 +72,7 @@ export default async function TeamSchedulePage({ params }) {
           ))}
         </div>
         {error ? <p className="mb-5 rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{error}</p> : null}
-        <TeamScheduleExplorer teamSlug={team.slug} primary={team.colors.primary} games={games} />
+        <TeamScheduleExplorer teamSlug={team.slug} primary={team.colors.primary} games={games} opponentOptions={opponentOptions} />
       </section>
     </main>
   );

@@ -96,10 +96,10 @@ window.AVHL_DATA = {
 };
 
 /*
-  V3.1 matchup branding layer.
-  Until the full 40-team player database is connected, the two demo player
-  pools remain the simulation rosters while any Major League team can supply
-  the team identity, colors, arena, logo, and jerseys.
+  Matchup branding + live-roster layer. The website supplies current AVHL
+  rosters through /api/sim-rosters. Until owner-submitted lines are available,
+  the simulator automatically selects 12 F, 6 D, and 2 G from each live roster.
+  The original demo pools remain only as an emergency fallback.
 */
 (() => {
   const clone = (value) => {
@@ -126,11 +126,110 @@ window.AVHL_DATA = {
     return team;
   }
 
+  const ratingValue = (player, key, fallback = 0) => {
+    const value = Number(player?.[key]);
+    return Number.isFinite(value) ? value : fallback;
+  };
+
+  const positionTokens = (player) => String(player?.listedPositions ?? "")
+    .toUpperCase()
+    .split(/[\s/,]+/)
+    .filter(Boolean);
+
+  const isDefenseman = (player) => {
+    const positions = positionTokens(player);
+    return positions.includes("LD") || positions.includes("RD") || positions.includes("D");
+  };
+
+  const hasPosition = (player, position) => positionTokens(player).includes(position);
+
+  const byOverall = (a, b) => ratingValue(b, "overall") - ratingValue(a, "overall") || a.name.localeCompare(b.name);
+
+  function assignWingSides(leftCandidate, rightCandidate) {
+    if (hasPosition(leftCandidate, "LW") && hasPosition(rightCandidate, "RW")) return [[leftCandidate, "LW"], [rightCandidate, "RW"]];
+    if (hasPosition(leftCandidate, "RW") && hasPosition(rightCandidate, "LW")) return [[rightCandidate, "LW"], [leftCandidate, "RW"]];
+    if (hasPosition(leftCandidate, "LW") && !hasPosition(rightCandidate, "LW")) return [[leftCandidate, "LW"], [rightCandidate, "RW"]];
+    if (hasPosition(rightCandidate, "LW") && !hasPosition(leftCandidate, "LW")) return [[rightCandidate, "LW"], [leftCandidate, "RW"]];
+    return [[leftCandidate, "LW"], [rightCandidate, "RW"]];
+  }
+
+  function assignDefenseSides(leftCandidate, rightCandidate) {
+    if (hasPosition(leftCandidate, "LD") && hasPosition(rightCandidate, "RD")) return [[leftCandidate, "LD"], [rightCandidate, "RD"]];
+    if (hasPosition(leftCandidate, "RD") && hasPosition(rightCandidate, "LD")) return [[rightCandidate, "LD"], [leftCandidate, "RD"]];
+    if (hasPosition(leftCandidate, "LD") && !hasPosition(rightCandidate, "LD")) return [[leftCandidate, "LD"], [rightCandidate, "RD"]];
+    if (hasPosition(rightCandidate, "LD") && !hasPosition(leftCandidate, "LD")) return [[rightCandidate, "LD"], [leftCandidate, "RD"]];
+    return [[leftCandidate, "LD"], [rightCandidate, "RD"]];
+  }
+
+  function buildAutomaticLiveLineup(roster) {
+    const skaters = Array.isArray(roster?.skaters) ? roster.skaters.slice() : [];
+    const goalies = Array.isArray(roster?.goalies) ? roster.goalies.slice().sort(byOverall) : [];
+    const forwards = skaters.filter((player) => !isDefenseman(player));
+    const defensemen = skaters.filter(isDefenseman).sort(byOverall);
+
+    if (forwards.length < 12 || defensemen.length < 6 || goalies.length < 2) return null;
+
+    const activeForwards = forwards.sort(byOverall).slice(0, 12);
+    const lineupForwards = [];
+    for (let line = 1; line <= 4; line += 1) {
+      const linePlayers = activeForwards.slice((line - 1) * 3, line * 3);
+      if (linePlayers.length < 3) return null;
+      const naturalCenters = linePlayers
+        .filter((player) => hasPosition(player, "C"))
+        .sort((a, b) => ratingValue(b, "faceoffs") - ratingValue(a, "faceoffs") || byOverall(a, b));
+      const center = naturalCenters[0] ?? linePlayers.slice().sort((a, b) => ratingValue(b, "faceoffs") - ratingValue(a, "faceoffs") || byOverall(a, b))[0];
+      const wings = linePlayers.filter((player) => player.id !== center.id);
+      const wingAssignments = assignWingSides(wings[0], wings[1]);
+      lineupForwards.push(
+        { ...wingAssignments[0][0], position: wingAssignments[0][1], line },
+        { ...center, position: "C", line },
+        { ...wingAssignments[1][0], position: wingAssignments[1][1], line },
+      );
+    }
+
+    const lineupDefense = [];
+    const activeDefense = defensemen.slice(0, 6);
+    for (let pair = 1; pair <= 3; pair += 1) {
+      const first = activeDefense[(pair - 1) * 2];
+      const second = activeDefense[(pair - 1) * 2 + 1];
+      const assignments = assignDefenseSides(first, second);
+      lineupDefense.push(
+        { ...assignments[0][0], position: assignments[0][1], pair },
+        { ...assignments[1][0], position: assignments[1][1], pair },
+      );
+    }
+
+    return {
+      forwards: lineupForwards,
+      defense: lineupDefense,
+      goalies: goalies.slice(0, 2).map((goalie, index) => ({ ...goalie, starter: index === 0 })),
+      shootoutOrder: [],
+    };
+  }
+
+  function applyLiveRoster(team, roster) {
+    const lineup = buildAutomaticLiveLineup(roster);
+    if (!lineup) return false;
+    team.forwards = lineup.forwards;
+    team.defense = lineup.defense;
+    team.goalies = lineup.goalies;
+    team.shootoutOrder = lineup.shootoutOrder;
+    team.rosterSource = "live";
+    return true;
+  }
+
+  window.AVHL_LIVE_ROSTERS = window.AVHL_LIVE_ROSTERS ?? {};
+  window.AVHL_SET_LIVE_ROSTERS = (rosters = {}) => {
+    window.AVHL_LIVE_ROSTERS = rosters && typeof rosters === "object" ? rosters : {};
+  };
+
   window.AVHL_CREATE_MATCHUP_DATA = (homeAbbreviation = "ARI", awayAbbreviation = "ATL") => {
     const catalog = window.AVHL_TEAM_CATALOG ?? {};
     const data = clone(baseData);
     applyMetadata(data.home, catalog[homeAbbreviation] ?? catalog.ARI, "home");
     applyMetadata(data.away, catalog[awayAbbreviation] ?? catalog.ATL, "away");
+    applyLiveRoster(data.home, window.AVHL_LIVE_ROSTERS?.[homeAbbreviation]);
+    applyLiveRoster(data.away, window.AVHL_LIVE_ROSTERS?.[awayAbbreviation]);
     return data;
   };
 

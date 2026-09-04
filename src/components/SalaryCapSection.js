@@ -47,7 +47,7 @@ export default function SalaryCapSection({ roster, primary }) {
             <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">2026–27 roster rules</p>
             <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">Roster & cap compliance</h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-white/55">
-              A team must satisfy the salary rules and carry at least {rosterRules.minimumForwards} forwards, {rosterRules.minimumDefensemen} defensemen, and {rosterRules.minimumGoalies} goalies while staying at or below {rosterRules.maximumPlayers} total players.
+              A team must satisfy the salary rules and carry at least {rosterRules.minimumForwards} forwards, {rosterRules.minimumDefensemen} defensemen, and {rosterRules.minimumGoalies} goalies while carrying between {rosterRules.minimumPlayers} and {rosterRules.maximumPlayers} total players.
             </p>
           </div>
           <div className="w-fit rounded-full px-5 py-3 text-sm font-black uppercase tracking-wide text-white" style={{ backgroundColor: statusColor }}>
@@ -93,7 +93,7 @@ export default function SalaryCapSection({ roster, primary }) {
             <Check passed={!roster.overCap}>Payroll is at or below the {formatMoney(salaryCapRules.cap)} salary cap.</Check>
             <Check passed={!roster.belowFloor}>Payroll meets the {formatMoney(salaryCapRules.floor)} salary floor.</Check>
             <Check passed={roster.contractsCompliant}>Every salary is between {formatMoney(salaryCapRules.minimumSalary)} and {formatMoney(salaryCapRules.maximumSalary)}.</Check>
-            <Check passed={roster.rosterSizeCompliant}>Roster has no more than {rosterRules.maximumPlayers} total players.</Check>
+            <Check passed={roster.rosterSizeCompliant}>Roster has between {rosterRules.minimumPlayers} and {rosterRules.maximumPlayers} total players.</Check>
             <Check passed={roster.forwardsCompliant}>At least {rosterRules.minimumForwards} forwards ({roster.forwardsCount} currently).</Check>
             <Check passed={roster.defensemenCompliant}>At least {rosterRules.minimumDefensemen} defensemen ({roster.defensemenCount} currently).</Check>
             <Check passed={roster.goaliesCompliant}>At least {rosterRules.minimumGoalies} goalies ({roster.goalies.length} currently).</Check>

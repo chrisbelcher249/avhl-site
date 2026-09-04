@@ -9,6 +9,7 @@ export const salaryCapRules = {
 };
 
 export const rosterRules = {
+  minimumPlayers: 23,
   minimumForwards: 13,
   minimumDefensemen: 7,
   minimumGoalies: 3,
@@ -71,7 +72,9 @@ export function buildTeamRosterAndCap(playerList, teamName) {
   const forwardsCompliant = forwards.length >= rosterRules.minimumForwards;
   const defensemenCompliant = defensemen.length >= rosterRules.minimumDefensemen;
   const goaliesCompliant = goalies.length >= rosterRules.minimumGoalies;
-  const rosterSizeCompliant = rosterPlayers.length <= rosterRules.maximumPlayers;
+  const minimumRosterSizeCompliant = rosterPlayers.length >= rosterRules.minimumPlayers;
+  const maximumRosterSizeCompliant = rosterPlayers.length <= rosterRules.maximumPlayers;
+  const rosterSizeCompliant = minimumRosterSizeCompliant && maximumRosterSizeCompliant;
   const rosterCompliant = forwardsCompliant && defensemenCompliant && goaliesCompliant && rosterSizeCompliant;
   const compliant = salaryCompliant && rosterCompliant;
 
@@ -82,7 +85,8 @@ export function buildTeamRosterAndCap(playerList, teamName) {
   if (!forwardsCompliant) issues.push(`Need ${rosterRules.minimumForwards - forwards.length} F`);
   if (!defensemenCompliant) issues.push(`Need ${rosterRules.minimumDefensemen - defensemen.length} D`);
   if (!goaliesCompliant) issues.push(`Need ${rosterRules.minimumGoalies - goalies.length} G`);
-  if (!rosterSizeCompliant) issues.push(`${rosterPlayers.length - rosterRules.maximumPlayers} over roster max`);
+  if (!minimumRosterSizeCompliant) issues.push(`Need ${rosterRules.minimumPlayers - rosterPlayers.length} player${rosterRules.minimumPlayers - rosterPlayers.length === 1 ? "" : "s"} for roster minimum`);
+  if (!maximumRosterSizeCompliant) issues.push(`${rosterPlayers.length - rosterRules.maximumPlayers} over roster max`);
 
   return {
     teamName,
@@ -112,6 +116,8 @@ export function buildTeamRosterAndCap(playerList, teamName) {
     forwardsCompliant,
     defensemenCompliant,
     goaliesCompliant,
+    minimumRosterSizeCompliant,
+    maximumRosterSizeCompliant,
     rosterSizeCompliant,
     rosterCompliant,
     compliant,
