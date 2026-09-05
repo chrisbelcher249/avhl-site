@@ -5,6 +5,10 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 ## Included in this build
 
 - 40 Major League team directory with official logos
+- 40-team Minor League directory nested under `/teams/minor-league`
+- Official rivalry system with four designated rivals per Major League team, rivalry levels, Top 10 rivalries, and named rivalry groups
+- Integrated V5.2 simulator at `/sim`
+- Updated Saturday Night Showdown schedule
 - Fully branded team pages with arena hero imagery
 - Official Home / Away / Alternate uniform galleries
 - Official mascot imagery and mascot names/numbers

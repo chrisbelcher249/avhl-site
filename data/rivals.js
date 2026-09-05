@@ -1,5 +1,12 @@
 // Official AVHL rivalry matrix and named rivalry groups for 2026-27.
-// The numeric code attached to each rival is preserved exactly from the league rivalry sheet.
+// Each rival entry preserves the rivalry level assigned in the league rivalry sheet.
+
+export const rivalryLevels = {
+  1: { name: "Archrival", color: "#A90117" },
+  2: { name: "Major Rival", color: "#F97316" },
+  3: { name: "Divisional Rival", color: "#EAB308" },
+  4: { name: "Cross-Division Rival", color: "#18BDFC" },
+};
 
 export const rivalsByTeam = {
   "arizona-heat": [

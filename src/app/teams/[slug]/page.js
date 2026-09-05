@@ -11,7 +11,7 @@ import { getDraftPicksForTeam } from "@/lib/draftPicks";
 import { buildTeamRosterAndCap } from "../../../../data/salaryCap";
 import { getPlayers } from "@/lib/players";
 import { getFranchiseHistory, getFranchiseSummary } from "@/lib/history";
-import { getRivalsForTeam } from "../../../../data/rivals";
+import { getRivalsForTeam, rivalryLevels } from "../../../../data/rivals";
 
 export const dynamic = "force-dynamic";
 
@@ -151,27 +151,45 @@ export default async function TeamPage({ params }) {
             </div>
           </div>
 
-          <div className="rounded-3xl bg-[#000B36] p-6 text-white shadow-sm md:p-8">
+          <div className="self-start rounded-3xl bg-[#000B36] p-5 text-white shadow-sm md:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Official rivals</p>
-                <h2 className="mt-2 text-2xl font-black">Four designated rivals</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200">Official rivals</p>
+                <h2 className="mt-1.5 text-2xl font-black">Rivals</h2>
+                <p className="mt-1 text-xs font-bold text-white/42">Four designated opponents</p>
               </div>
               <Link href="/rivals" className="rounded-full border border-white/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/55 transition hover:bg-white hover:text-[#000B36]">
                 All rivals
               </Link>
             </div>
-            <div className="mt-5 grid gap-2">
-              {rivals.map((rival) => (
-                <Link key={rival.slug} href={`/teams/${rival.slug}`} className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-sm font-bold text-white/72 transition hover:bg-white/10 hover:text-white">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.08] text-[10px] font-black text-cyan-200">{rival.index + 1}</span>
-                  <Image src={rival.team.assets.logo} alt="" width={40} height={40} className="h-8 w-8 object-contain" />
-                  <span className="min-w-0 flex-1 truncate">{rival.team.name}</span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-white/42" title="Number from the league rivalry sheet">
-                    {rival.code}
-                  </span>
-                </Link>
-              ))}
+            <div className="mt-4 grid gap-2">
+              {rivals.map((rival) => {
+                const level = rivalryLevels[rival.code];
+                return (
+                  <Link key={rival.slug} href={`/teams/${rival.slug}`} className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2 text-sm font-bold text-white/75 transition hover:bg-white/10 hover:text-white">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.08] text-[10px] font-black text-cyan-200">{rival.index + 1}</span>
+                    <Image src={rival.team.assets.logo} alt="" width={40} height={40} className="h-8 w-8 object-contain" />
+                    <span className="min-w-0 flex-1 truncate">{rival.team.name}</span>
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/10"
+                      style={{ backgroundColor: level?.color }}
+                      title={`Level ${rival.code} — ${level?.name || "Rival"}`}
+                      aria-label={`Level ${rival.code}: ${level?.name || "Rival"}`}
+                    />
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="mt-4 border-t border-white/10 pt-3">
+              <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/32">Rivalry levels</p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                {Object.entries(rivalryLevels).map(([number, level]) => (
+                  <div key={number} className="flex items-center gap-2 text-[9px] font-bold text-white/48">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: level.color }} />
+                    <span><span className="text-white/68">{number}</span> — {level.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

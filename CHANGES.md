@@ -146,3 +146,11 @@
 - Replaced the old nine-team divisional-rivals card on every Major League team page with that club's four designated rivals.
 - Added a Rivals link to the site footer.
 - Simulator files and simulation/replay logic were not changed in this update.
+
+## Site 15 — Rivals UI + Teams navigation cleanup
+- Added named rivalry levels: Archrival, Major Rival, Divisional Rival, and Cross-Division Rival.
+- Team-page rivals cards now use compact colored level dots and a small legend; removed the duplicate numeric level chips and prevented the card from stretching vertically.
+- Simplified the /rivals matrix so Rival 1–4 is communicated by column position and rivalry intensity by colored dot only.
+- Removed Minor League from the main header navigation.
+- Moved the Minor League directory to /teams/minor-league and added a prominent Minor League Teams button near the top of /teams.
+- Kept /minor-league as a redirect for compatibility and updated the footer link.

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { teams, teamBySlug } from "../../../data/teams";
-import { namedRivalryGroups, rivalsByTeam, topRivalries } from "../../../data/rivals";
+import { namedRivalryGroups, rivalsByTeam, rivalryLevels, topRivalries } from "../../../data/rivals";
 
 export const metadata = {
   title: "Rivals",
@@ -16,20 +16,40 @@ function TeamLogo({ team, size = 44 }) {
   );
 }
 
-function RivalCell({ rival, index }) {
+function RivalryLevelDot({ value, className = "h-2.5 w-2.5" }) {
+  const level = rivalryLevels[value];
+  return (
+    <span
+      className={`${className} inline-block shrink-0 rounded-full ring-1 ring-[#000B36]/10`}
+      style={{ backgroundColor: level?.color }}
+      title={`Level ${value} — ${level?.name || "Rival"}`}
+      aria-label={`Level ${value}: ${level?.name || "Rival"}`}
+    />
+  );
+}
+
+function RivalryLevelLegend({ dark = false }) {
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-2">
+      {Object.entries(rivalryLevels).map(([number, level]) => (
+        <div key={number} className={`flex items-center gap-2 text-[10px] font-black ${dark ? "text-white/58" : "text-[#000B36]/52"}`}>
+          <RivalryLevelDot value={Number(number)} className="h-2 w-2" />
+          <span>{number} — {level.name}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RivalCell({ rival }) {
   const team = teamBySlug[rival.slug];
   if (!team) return <span className="text-[#000B36]/35">—</span>;
 
   return (
-    <Link href={`/teams/${team.slug}`} className="group flex min-w-[190px] items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-[#F1F7FB]">
+    <Link href={`/teams/${team.slug}`} className="group flex min-w-[175px] items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-[#F1F7FB]">
       <TeamLogo team={team} size={34} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-black text-[#000B36] group-hover:text-[#A90117]">{team.name}</p>
-        <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#000B36]/35">Rival {index + 1}</p>
-      </div>
-      <span className="rounded-full bg-[#000B36] px-2 py-1 text-[9px] font-black text-white" title="Number from the league rivalry sheet">
-        {rival.code}
-      </span>
+      <p className="min-w-0 flex-1 truncate text-xs font-black text-[#000B36] group-hover:text-[#A90117]">{team.name}</p>
+      <RivalryLevelDot value={rival.code} />
     </Link>
   );
 }
@@ -61,6 +81,13 @@ export default function RivalsPage() {
                 <p className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/42">{label}</p>
               </div>
             ))}
+          </div>
+
+          <div className="mt-5 max-w-4xl rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 backdrop-blur">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">Rivalry levels</p>
+              <RivalryLevelLegend dark />
+            </div>
           </div>
         </div>
       </section>
@@ -137,13 +164,15 @@ export default function RivalsPage() {
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Complete league matrix</p>
               <h2 className="mt-2 text-3xl font-black md:text-4xl">Every team&apos;s four rivals</h2>
             </div>
-            <p className="max-w-lg text-xs font-bold leading-5 text-[#000B36]/42">
-              Rivals are shown in the official Rival 1–4 order. The numbered chip preserves the numeric value from the league rivalry sheet.
-            </p>
+            <div className="max-w-xl">
+              <p className="text-xs font-bold leading-5 text-[#000B36]/42">
+                Columns show the official Rival 1–4 order. The small colored dot shows the rivalry level.
+              </p>
+            </div>
           </div>
 
           <div className="mt-7 overflow-x-auto rounded-3xl border border-[#000B36]/10 shadow-sm">
-            <table className="w-full min-w-[1060px] border-collapse bg-white text-left">
+            <table className="w-full min-w-[980px] border-collapse bg-white text-left">
               <thead className="bg-[#000B36] text-white">
                 <tr>
                   <th className="px-5 py-4 text-[10px] font-black uppercase tracking-[0.16em]">Team</th>
@@ -157,7 +186,7 @@ export default function RivalsPage() {
                   const rivals = rivalsByTeam[team.slug] || [];
                   return (
                     <tr key={team.slug} className="align-middle hover:bg-[#FAFBFD]">
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-2">
                         <Link href={`/teams/${team.slug}`} className="flex min-w-[210px] items-center gap-3 rounded-xl p-1.5 transition hover:bg-[#F1F7FB]">
                           <TeamLogo team={team} size={38} />
                           <div>
@@ -167,8 +196,8 @@ export default function RivalsPage() {
                         </Link>
                       </td>
                       {[0, 1, 2, 3].map((index) => (
-                        <td key={index} className="px-1.5 py-1.5">
-                          {rivals[index] ? <RivalCell rival={rivals[index]} index={index} /> : <span className="px-3 text-[#000B36]/30">—</span>}
+                        <td key={index} className="px-1.5 py-1">
+                          {rivals[index] ? <RivalCell rival={rivals[index]} /> : <span className="px-3 text-[#000B36]/30">—</span>}
                         </td>
                       ))}
                     </tr>
