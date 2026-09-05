@@ -291,11 +291,6 @@ export const namedRivalryGroups = [
     teams: ["chicago-rockets", "indianapolis-ghosts", "detroit-motors"],
   },
   {
-    name: "Southeast Skirmish",
-    type: "Trio rivalry",
-    teams: ["new-orleans-whalers", "puerto-rico-toros", "tennessee-wolverines"],
-  },
-  {
     name: "Desert Duels",
     type: "Trio rivalry",
     teams: ["nevada-archers", "las-vegas-vipers", "arizona-heat"],

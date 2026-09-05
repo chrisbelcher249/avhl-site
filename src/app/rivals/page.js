@@ -83,12 +83,6 @@ export default function RivalsPage() {
             ))}
           </div>
 
-          <div className="mt-5 max-w-4xl rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 backdrop-blur">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">Rivalry levels</p>
-              <RivalryLevelLegend dark />
-            </div>
-          </div>
         </div>
       </section>
 
@@ -125,7 +119,7 @@ export default function RivalsPage() {
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Named rivalry series</p>
             <h2 className="mt-2 text-3xl font-black">Trios & quads</h2>
             <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#000B36]/50">
-              Seven multi-team rivalry groups have their own league identity.
+              {namedRivalryGroups.length} multi-team rivalry groups have their own league identity.
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -136,7 +130,7 @@ export default function RivalsPage() {
                       <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#A90117]">{group.type}</p>
                       <h3 className="mt-1 text-xl font-black leading-tight">{group.name}</h3>
                     </div>
-                    <span className="rounded-full bg-[#000B36] px-2.5 py-1 text-[9px] font-black text-white">{group.teams.length} teams</span>
+                    <span className="shrink-0 whitespace-nowrap rounded-full bg-[#000B36] px-2.5 py-1 text-[9px] font-black text-white">{group.teams.length} teams</span>
                   </div>
                   <div className="mt-4 space-y-1">
                     {group.teams.map((slug) => {
@@ -171,7 +165,14 @@ export default function RivalsPage() {
             </div>
           </div>
 
-          <div className="mt-7 overflow-x-auto rounded-3xl border border-[#000B36]/10 shadow-sm">
+          <div className="mt-5 flex justify-start md:justify-end">
+            <div className="rounded-xl border border-[#000B36]/8 bg-[#F7F9FC] px-3 py-2.5">
+              <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-[#000B36]/36">Rivalry levels</p>
+              <RivalryLevelLegend />
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-x-auto rounded-3xl border border-[#000B36]/10 shadow-sm">
             <table className="w-full min-w-[980px] border-collapse bg-white text-left">
               <thead className="bg-[#000B36] text-white">
                 <tr>

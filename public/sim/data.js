@@ -96,10 +96,11 @@ window.AVHL_DATA = {
 };
 
 /*
-  V3.1 matchup branding layer.
-  Until the full 40-team player database is connected, the two demo player
-  pools remain the simulation rosters while any Major League team can supply
-  the team identity, colors, arena, logo, and jerseys.
+  V5.2 website integration layer.
+  Team identity still comes from the bundled 40-team catalog, while player
+  rosters are loaded from the same live AVHL player database used by the site.
+  If that request fails, the original Arizona/Atlanta demo pools remain a safe
+  fallback so the simulator can still run.
 */
 (() => {
   const clone = (value) => {
@@ -110,6 +111,9 @@ window.AVHL_DATA = {
   const baseData = clone(window.AVHL_DATA);
   window.AVHL_BASE_DATA = baseData;
 
+  let liveRosterByTeam = null;
+  let liveRosterSource = "demo";
+
   function applyMetadata(team, meta, side) {
     const abbreviation = meta?.abbreviation ?? (side === "home" ? "ARI" : "ATL");
     team.id = `${side}-${abbreviation.toLowerCase()}`;
@@ -118,6 +122,7 @@ window.AVHL_DATA = {
     team.fullName = meta?.fullName ?? `${team.city} ${team.name}`;
     team.abbreviation = abbreviation;
     team.arenaName = meta?.arenaName ?? "AVHL Arena";
+    team.mascotName = meta?.mascotName ?? "";
     team.primaryColor = meta?.primaryColor ?? team.primaryColor;
     team.secondaryColor = meta?.secondaryColor ?? team.secondaryColor;
     team.tertiaryColor = meta?.tertiaryColor ?? team.tertiaryColor;
@@ -126,11 +131,165 @@ window.AVHL_DATA = {
     return team;
   }
 
+  function overall(player) {
+    return Number.isFinite(Number(player?.overall)) ? Number(player.overall) : 0;
+  }
+
+  function positionTokens(player) {
+    return String(player?.position || "")
+      .toUpperCase()
+      .split(/[\\/,\s-]+/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  function hasPosition(player, value) {
+    return positionTokens(player).includes(value);
+  }
+
+  function isDefense(player) {
+    const tokens = positionTokens(player);
+    return tokens.some((value) => value === "D" || value === "LD" || value === "RD");
+  }
+
+  function simPlayer(player, abbreviation, extra = {}) {
+    return {
+      id: `${abbreviation.toLowerCase()}-${player.id}`,
+      avhlId: player.id,
+      name: player.name,
+      number: Number.isFinite(Number(player.number)) ? Number(player.number) : null,
+      listedPosition: player.position || "",
+      overall: overall(player) || null,
+      ratings: player.ratings || {},
+      ...extra,
+    };
+  }
+
+  function takeBest(pool, predicate = () => true) {
+    const candidates = pool.filter(predicate).sort((a, b) => overall(b) - overall(a));
+    const selected = candidates[0] || pool.slice().sort((a, b) => overall(b) - overall(a))[0];
+    if (!selected) return null;
+    const index = pool.indexOf(selected);
+    if (index >= 0) pool.splice(index, 1);
+    return selected;
+  }
+
+  function buildForwardLines(players, abbreviation) {
+    const forwards = players.filter((player) => player.role === "Skater" && !isDefense(player));
+    const remaining = forwards.slice();
+    const centers = [];
+
+    for (let line = 1; line <= 4; line += 1) {
+      centers.push(takeBest(remaining, (player) => hasPosition(player, "C")));
+    }
+
+    const output = [];
+    for (let line = 1; line <= 4; line += 1) {
+      const center = centers[line - 1];
+      const left = takeBest(remaining, (player) => hasPosition(player, "LW"));
+      const right = takeBest(remaining, (player) => hasPosition(player, "RW"));
+      if (left) output.push(simPlayer(left, abbreviation, { position: "LW", line }));
+      if (center) output.push(simPlayer(center, abbreviation, { position: "C", line }));
+      if (right) output.push(simPlayer(right, abbreviation, { position: "RW", line }));
+    }
+
+    // Current AVHL rosters are 12F/6D/2G. This keeps the simulator resilient if
+    // a temporary live roster ever arrives with an unusual positional mix.
+    while (remaining.length && output.length < 12) {
+      const player = takeBest(remaining);
+      const line = Math.floor(output.length / 3) + 1;
+      const slot = output.length % 3;
+      output.push(simPlayer(player, abbreviation, { position: ["LW", "C", "RW"][slot], line: Math.min(line, 4) }));
+    }
+
+    return output.slice(0, 12);
+  }
+
+  function buildDefensePairs(players, abbreviation) {
+    const remaining = players
+      .filter((player) => player.role === "Skater" && isDefense(player))
+      .slice();
+    const output = [];
+
+    for (let pair = 1; pair <= 3; pair += 1) {
+      const left = takeBest(remaining, (player) => hasPosition(player, "LD"));
+      const right = takeBest(remaining, (player) => hasPosition(player, "RD"));
+      if (left) output.push(simPlayer(left, abbreviation, { position: "LD", pair }));
+      if (right) output.push(simPlayer(right, abbreviation, { position: "RD", pair }));
+    }
+
+    while (remaining.length && output.length < 6) {
+      const player = takeBest(remaining);
+      const pair = Math.floor(output.length / 2) + 1;
+      const slot = output.length % 2;
+      output.push(simPlayer(player, abbreviation, { position: slot === 0 ? "LD" : "RD", pair: Math.min(pair, 3) }));
+    }
+
+    return output.slice(0, 6);
+  }
+
+  function buildGoalies(players, abbreviation) {
+    return players
+      .filter((player) => player.role === "Goalie")
+      .slice()
+      .sort((a, b) => overall(b) - overall(a))
+      .slice(0, 2)
+      .map((player, index) => simPlayer(player, abbreviation, { position: "G", starter: index === 0 }));
+  }
+
+  function applyLiveRoster(team, meta) {
+    const roster = liveRosterByTeam?.[meta?.fullName];
+    if (!Array.isArray(roster) || roster.length < 18) return team;
+
+    const forwards = buildForwardLines(roster, meta.abbreviation);
+    const defense = buildDefensePairs(roster, meta.abbreviation);
+    const goalies = buildGoalies(roster, meta.abbreviation);
+
+    if (forwards.length < 12 || defense.length < 6 || goalies.length < 2) return team;
+
+    team.forwards = forwards;
+    team.defense = defense;
+    team.goalies = goalies;
+    team.shootoutOrder = forwards
+      .slice()
+      .sort((a, b) => (b.overall || 0) - (a.overall || 0))
+      .slice(0, 5)
+      .map((player) => player.id);
+    team.rosterSource = liveRosterSource;
+    return team;
+  }
+
+  window.AVHL_LOAD_LIVE_ROSTERS = async () => {
+    const response = await fetch("/api/sim-rosters", { cache: "no-store" });
+    if (!response.ok) throw new Error(`Live roster request returned ${response.status}`);
+    const payload = await response.json();
+    if (!payload?.ok || !Array.isArray(payload.players)) throw new Error("Live roster response was invalid");
+
+    const grouped = {};
+    for (const player of payload.players) {
+      if (!player?.currentTeam) continue;
+      (grouped[player.currentTeam] ||= []).push(player);
+    }
+
+    liveRosterByTeam = grouped;
+    liveRosterSource = payload.source || "live";
+    window.AVHL_LIVE_ROSTER_STATUS = {
+      source: liveRosterSource,
+      playerCount: payload.playerCount || payload.players.length,
+      teamCount: Object.keys(grouped).length,
+    };
+    return window.AVHL_LIVE_ROSTER_STATUS;
+  };
+
   window.AVHL_CREATE_MATCHUP_DATA = (homeAbbreviation = "ARI", awayAbbreviation = "ATL") => {
     const catalog = window.AVHL_TEAM_CATALOG ?? {};
     const data = clone(baseData);
-    applyMetadata(data.home, catalog[homeAbbreviation] ?? catalog.ARI, "home");
-    applyMetadata(data.away, catalog[awayAbbreviation] ?? catalog.ATL, "away");
+    const homeMeta = catalog[homeAbbreviation] ?? catalog.ARI;
+    const awayMeta = catalog[awayAbbreviation] ?? catalog.ATL;
+    applyMetadata(data.home, homeMeta, "home");
+    applyMetadata(data.away, awayMeta, "away");
+    applyLiveRoster(data.home, homeMeta);
+    applyLiveRoster(data.away, awayMeta);
     return data;
   };
 

@@ -1,4 +1,4 @@
-(() => {
+(async () => {
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
@@ -1396,5 +1396,16 @@
   populateTeamSelectors();
   loadRecentGames();
   renderRecentGames();
+
+  if (window.AVHL_LOAD_LIVE_ROSTERS) {
+    setStatus("Loading rosters…", "ready");
+    try {
+      const rosterStatus = await window.AVHL_LOAD_LIVE_ROSTERS();
+      console.info(`AVHL simulator rosters: ${rosterStatus.playerCount} players across ${rosterStatus.teamCount} teams (${rosterStatus.source})`);
+    } catch (error) {
+      console.warn("Live AVHL rosters unavailable; using bundled simulator rosters.", error);
+    }
+  }
+
   createNewGame({ freshSeed: true });
 })();

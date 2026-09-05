@@ -94,3 +94,11 @@ The full-resolution master ZIPs should remain archived separately. The site copi
 ## Team-page data policy
 
 The site intentionally excludes repetitive franchise-management fields that are identical across teams, including owner spending/success/patience ratings, prestige, taxes, and facility levels. Team pages focus on information that differentiates clubs and is useful to visitors.
+
+## Site 16 updates
+
+- Named rivalry team-count pills are locked to one line.
+- Southeast Skirmish was removed, leaving six named trio/quad rivalry groups.
+- The rivalry-level legend now sits with the full four-rival matrix where the colored dots are used.
+- `/sim` now loads matchup rosters through `/api/sim-rosters`, backed by the same live Google Sheets player loader used by Players and Cap. If Google Sheets is temporarily unavailable, the site's bundled player database is used by that loader; the simulator's original two demo pools remain the last-resort fallback only if the API route itself fails.
+- The V5.2 simulation engine is unchanged by the roster hookup.

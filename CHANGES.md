@@ -154,3 +154,10 @@
 - Removed Minor League from the main header navigation.
 - Moved the Minor League directory to /teams/minor-league and added a prominent Minor League Teams button near the top of /teams.
 - Kept /minor-league as a redirect for compatibility and updated the footer link.
+## Site 16
+- Forced every named-rivalry `3 teams` / `4 teams` pill onto one line.
+- Removed Southeast Skirmish, leaving six named rivalry groups and a balanced 2×3 layout.
+- Moved the rivalry-level key down beside the complete rival matrix where the colored level dots are actually used.
+- Restored simulator live-roster initialization. `/sim` now waits for `/api/sim-rosters`, which uses the same live player-sheet loader as the Players/Cap pages, before creating its first game. Current team assignments, names, numbers, and roster composition therefore follow the live AVHL player database when available.
+- The V5.2 simulation engine itself remains unchanged; only its matchup roster input is refreshed.
+
