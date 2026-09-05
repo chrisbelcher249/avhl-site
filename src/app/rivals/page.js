@@ -46,10 +46,10 @@ function RivalCell({ rival }) {
   if (!team) return <span className="text-[#000B36]/35">—</span>;
 
   return (
-    <Link href={`/teams/${team.slug}`} className="group flex min-w-[175px] items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-[#F1F7FB]">
-      <TeamLogo team={team} size={34} />
-      <p className="min-w-0 flex-1 truncate text-xs font-black text-[#000B36] group-hover:text-[#A90117]">{team.name}</p>
-      <RivalryLevelDot value={rival.code} />
+    <Link href={`/teams/${team.slug}`} className="group flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-2 transition hover:bg-[#F1F7FB]">
+      <TeamLogo team={team} size={32} />
+      <p className="min-w-0 flex-1 truncate text-[11px] font-black text-[#000B36] group-hover:text-[#A90117] xl:text-xs">{team.name}</p>
+      <RivalryLevelDot value={rival.code} className="h-2 w-2" />
     </Link>
   );
 }
@@ -88,17 +88,17 @@ export default function RivalsPage() {
 
       <section className="mx-auto max-w-7xl px-6 py-12 md:px-8 md:py-16">
         <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
-          <div className="overflow-hidden rounded-[2rem] bg-[#000B36] text-white shadow-sm">
+          <div className="flex h-full flex-col overflow-hidden rounded-[2rem] bg-[#000B36] text-white shadow-sm">
             <div className="border-b border-white/10 px-6 py-6 md:px-7">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">League ranking</p>
               <h2 className="mt-2 text-3xl font-black">Top 10 rivalries</h2>
             </div>
-            <div className="divide-y divide-white/[0.08] px-4 py-2 md:px-5">
+            <div className="grid flex-1 grid-rows-10 divide-y divide-white/[0.08] px-4 py-2 md:px-5">
               {topRivalries.map((rivalry) => {
                 const left = teamBySlug[rivalry.teams[0]];
                 const right = teamBySlug[rivalry.teams[1]];
                 return (
-                  <div key={rivalry.rank} className="grid grid-cols-[36px_1fr_auto_1fr] items-center gap-2 py-3.5 md:gap-3">
+                  <div key={rivalry.rank} className="grid min-h-0 grid-cols-[36px_1fr_auto_1fr] items-center gap-2 py-2 md:gap-3">
                     <span className="text-center text-lg font-black text-cyan-200">{rivalry.rank}</span>
                     <Link href={`/teams/${left.slug}`} className="flex min-w-0 items-center gap-2 rounded-xl p-1.5 transition hover:bg-white/[0.08]">
                       <TeamLogo team={left} size={38} />
@@ -172,13 +172,13 @@ export default function RivalsPage() {
             </div>
           </div>
 
-          <div className="mt-4 overflow-x-auto rounded-3xl border border-[#000B36]/10 shadow-sm">
-            <table className="w-full min-w-[980px] border-collapse bg-white text-left">
+          <div className="mt-4 overflow-x-auto rounded-3xl border border-[#000B36]/10 shadow-sm xl:overflow-x-hidden">
+            <table className="w-full min-w-[820px] table-fixed border-collapse bg-white text-left xl:min-w-0">
               <thead className="bg-[#000B36] text-white">
                 <tr>
-                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-[0.16em]">Team</th>
+                  <th className="w-[19%] px-4 py-4 text-[10px] font-black uppercase tracking-[0.16em]">Team</th>
                   {[1, 2, 3, 4].map((number) => (
-                    <th key={number} className="px-3 py-4 text-[10px] font-black uppercase tracking-[0.16em]">Rival {number}</th>
+                    <th key={number} className="w-[20.25%] px-2 py-4 text-[10px] font-black uppercase tracking-[0.16em]">Rival {number}</th>
                   ))}
                 </tr>
               </thead>
@@ -188,16 +188,16 @@ export default function RivalsPage() {
                   return (
                     <tr key={team.slug} className="align-middle hover:bg-[#FAFBFD]">
                       <td className="px-4 py-2">
-                        <Link href={`/teams/${team.slug}`} className="flex min-w-[210px] items-center gap-3 rounded-xl p-1.5 transition hover:bg-[#F1F7FB]">
-                          <TeamLogo team={team} size={38} />
-                          <div>
-                            <p className="text-sm font-black">{team.name}</p>
+                        <Link href={`/teams/${team.slug}`} className="flex min-w-0 items-center gap-2.5 rounded-xl p-1.5 transition hover:bg-[#F1F7FB]">
+                          <TeamLogo team={team} size={34} />
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-black xl:text-sm">{team.name}</p>
                             <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#000B36]/35">{team.abbreviation}</p>
                           </div>
                         </Link>
                       </td>
                       {[0, 1, 2, 3].map((index) => (
-                        <td key={index} className="px-1.5 py-1">
+                        <td key={index} className="min-w-0 px-1 py-1">
                           {rivals[index] ? <RivalCell rival={rivals[index]} /> : <span className="px-3 text-[#000B36]/30">—</span>}
                         </td>
                       ))}

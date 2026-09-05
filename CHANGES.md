@@ -161,3 +161,9 @@
 - Restored simulator live-roster initialization. `/sim` now waits for `/api/sim-rosters`, which uses the same live player-sheet loader as the Players/Cap pages, before creating its first game. Current team assignments, names, numbers, and roster composition therefore follow the live AVHL player database when available.
 - The V5.2 simulation engine itself remains unchanged; only its matchup roster input is refreshed.
 
+
+## Site 17 — Rivals layout polish
+- Top 10 rivalry rows now distribute evenly through the full height of the ranking card.
+- Tightened the complete rivalry matrix so all five columns fit standard desktop widths without a nuisance horizontal scrollbar.
+- Reduced rival-cell logo/text spacing slightly while preserving all rivalry data and level dots.
+- No simulator or live-roster logic changed from Site 16.
