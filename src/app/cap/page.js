@@ -61,7 +61,7 @@ export default async function CapPage() {
           <p className="text-sm font-black uppercase tracking-[0.26em] text-cyan-200">2026–27 League Operations</p>
           <h1 className="mt-3 text-5xl font-black uppercase tracking-tight md:text-7xl">Cap Compliance</h1>
           <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-white/65 md:text-lg">
-            Live salary and roster compliance for every AVHL team. A compliant roster must remain between {compactMoney(salaryCapRules.floor)} and {compactMoney(salaryCapRules.cap)}, carry at least {rosterRules.minimumForwards} F, {rosterRules.minimumDefensemen} D, and {rosterRules.minimumGoalies} G, and contain between {rosterRules.minimumPlayers} and {rosterRules.maximumPlayers} players.
+            Live salary and roster compliance for every AVHL team. A compliant roster must remain between {compactMoney(salaryCapRules.floor)} and {compactMoney(salaryCapRules.cap)}, carry at least {rosterRules.minimumForwards} F, {rosterRules.minimumDefensemen} D, and {rosterRules.minimumGoalies} G, and contain no more than {rosterRules.maximumPlayers} players.
           </p>
           <div className="mt-8 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[

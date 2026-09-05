@@ -1,12 +1,3 @@
-# Live roster + schedule/cap refinements — September 3, 2026
-
-- Added opponent search to each club’s 2026–27 team schedule page.
-- Enforced the 23-player roster minimum in cap compliance, so the Players indicator is red below 23 and above 26.
-- Added `/api/sim-rosters` to feed the simulator from the same live AVHL player database used by the website.
-- Expanded the live player parser so the simulator can receive the full skater and goalie rating sets.
-- Replaced synthetic simulator ratings with real live ratings whenever a live value is available; synthetic values now remain only as an emergency fallback for missing data.
-- Until owner-submitted lines are available, the simulator automatically dresses the top 12 forwards, six defensemen, and two goalies by OVR, assigns temporary lines/pairs, and prefers natural C/LW/RW and LD/RD roles within each unit.
-
 # V5.2 simulator integration — September 3, 2026
 
 - Added the AVHL Game Simulator at `/sim`.
@@ -137,3 +128,21 @@
 - Expanded every current team page's Franchise History section into a full Year-by-Year Results table.
 - Added RW, GF/G, GA/G, GF, GA, and GD alongside GP, W, L, OTL, PTS, and PTS%.
 - Historical franchise identities remain linked by franchise code and labeled on the team page.
+
+## 2026-09-04 — Rivals + Saturday Night Showdown update
+
+- Updated the 2026–27 Saturday Night Showdowns to the latest league sheet (31 games across 29 Saturdays, including two-game slates on April 3 and April 10).
+- Added a new `/rivals` page and a **Rivals** item to desktop/mobile site navigation.
+- Added the full 40-team rivalry matrix with four designated rivals per team, preserving the sheet's Rival 1–4 order and numeric values.
+- Added the official Top 10 rivalries ranking.
+- Added all seven named multi-team rivalry groups:
+  - Rainier Rivalry
+  - Big Apple Brawl
+  - Southern Scramble
+  - Ohio Throwdown
+  - Great Lakes Gauntlet
+  - Southeast Skirmish
+  - Desert Duels
+- Replaced the old nine-team divisional-rivals card on every Major League team page with that club's four designated rivals.
+- Added a Rivals link to the site footer.
+- Simulator files and simulation/replay logic were not changed in this update.

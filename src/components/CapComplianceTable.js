@@ -13,10 +13,8 @@ function StatusDot({ passed }) {
   return <span className={`inline-block h-2.5 w-2.5 rounded-full ${passed ? "bg-emerald-600" : "bg-[#A90117]"}`} aria-hidden="true" />;
 }
 
-function CountCell({ value, required, minimum = null, maximum = false }) {
-  const passed = minimum !== null
-    ? value >= minimum && value <= required
-    : maximum ? value <= required : value >= required;
+function CountCell({ value, required, maximum = false }) {
+  const passed = maximum ? value <= required : value >= required;
   return (
     <div className="flex items-center justify-center gap-2 font-black">
       <StatusDot passed={passed} />
@@ -120,7 +118,7 @@ export default function CapComplianceTable({ rows, rosterRules }) {
                   <td className={`px-4 py-4 text-right text-sm font-black ${roster.capSpace < 0 ? "text-[#A90117]" : "text-[#000B36]/65"}`}>
                     {compactMoney(roster.capSpace)}
                   </td>
-                  <td className="px-4 py-4 text-center"><CountCell value={roster.count} required={rosterRules.maximumPlayers} minimum={rosterRules.minimumPlayers} /></td>
+                  <td className="px-4 py-4 text-center"><CountCell value={roster.count} required={rosterRules.maximumPlayers} maximum /></td>
                   <td className="px-4 py-4 text-center"><CountCell value={roster.forwardsCount} required={rosterRules.minimumForwards} /></td>
                   <td className="px-4 py-4 text-center"><CountCell value={roster.defensemenCount} required={rosterRules.minimumDefensemen} /></td>
                   <td className="px-4 py-4 text-center"><CountCell value={roster.goaliesCount} required={rosterRules.minimumGoalies} /></td>

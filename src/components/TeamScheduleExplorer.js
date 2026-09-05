@@ -4,29 +4,17 @@ import { useMemo, useState } from "react";
 import ScheduleGameCard from "@/components/ScheduleGameCard";
 import { formatScheduleDate, formatScheduleMonth } from "@/lib/scheduleFormat";
 
-export default function TeamScheduleExplorer({ teamSlug, primary, games, opponentOptions = [] }) {
+export default function TeamScheduleExplorer({ teamSlug, primary, games }) {
   const months = useMemo(() => [...new Set(games.map((game) => game.date.slice(0, 7)))], [games]);
   const [month, setMonth] = useState("");
   const [venue, setVenue] = useState("");
-  const [opponent, setOpponent] = useState("");
-
-  const opponentBySlug = useMemo(
-    () => Object.fromEntries(opponentOptions.map((team) => [team.slug, team])),
-    [opponentOptions]
-  );
 
   const filteredGames = useMemo(() => games.filter((game) => {
     if (month && !game.date.startsWith(month)) return false;
     if (venue === "home" && game.home !== teamSlug) return false;
     if (venue === "away" && game.away !== teamSlug) return false;
-    if (opponent.trim()) {
-      const opponentSlug = game.home === teamSlug ? game.away : game.home;
-      const opponentTeam = opponentBySlug[opponentSlug];
-      const haystack = `${opponentTeam?.name || opponentSlug} ${opponentTeam?.abbreviation || ""}`.toLowerCase();
-      if (!haystack.includes(opponent.trim().toLowerCase())) return false;
-    }
     return true;
-  }), [games, month, opponent, opponentBySlug, teamSlug, venue]);
+  }), [games, month, teamSlug, venue]);
 
   const selectClass = "rounded-full border border-[#000B36]/12 bg-white px-4 py-2.5 text-sm font-black outline-none transition focus:border-[#18BDFC] focus:ring-4 focus:ring-[#18BDFC]/15";
 
@@ -37,21 +25,7 @@ export default function TeamScheduleExplorer({ teamSlug, primary, games, opponen
           <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#000B36]/38">Schedule filters</p>
           <p className="mt-1 text-lg font-black">Showing {filteredGames.length} of {games.length} games</p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-          <div>
-            <input
-              type="search"
-              list={`opponents-${teamSlug}`}
-              value={opponent}
-              onChange={(event) => setOpponent(event.target.value)}
-              placeholder="Search opponent..."
-              className={`${selectClass} min-w-[190px]`}
-              aria-label="Search by opponent"
-            />
-            <datalist id={`opponents-${teamSlug}`}>
-              {opponentOptions.map((team) => <option key={team.slug} value={team.name}>{team.abbreviation}</option>)}
-            </datalist>
-          </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
           <select value={month} onChange={(event) => setMonth(event.target.value)} className={selectClass} aria-label="Filter by month">
             <option value="">All months</option>
             {months.map((value) => <option key={value} value={value}>{formatScheduleMonth(value)}</option>)}
@@ -61,7 +35,7 @@ export default function TeamScheduleExplorer({ teamSlug, primary, games, opponen
             <option value="home">Home only</option>
             <option value="away">Away only</option>
           </select>
-          {(month || venue || opponent) ? <button onClick={() => { setMonth(""); setVenue(""); setOpponent(""); }} className="rounded-full px-4 py-2.5 text-sm font-black text-white" style={{ backgroundColor: primary }}>Reset</button> : null}
+          {(month || venue) ? <button onClick={() => { setMonth(""); setVenue(""); }} className="rounded-full px-4 py-2.5 text-sm font-black text-white" style={{ backgroundColor: primary }}>Reset</button> : null}
         </div>
       </div>
 

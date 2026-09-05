@@ -11,6 +11,7 @@ import { getDraftPicksForTeam } from "@/lib/draftPicks";
 import { buildTeamRosterAndCap } from "../../../../data/salaryCap";
 import { getPlayers } from "@/lib/players";
 import { getFranchiseHistory, getFranchiseSummary } from "@/lib/history";
+import { getRivalsForTeam } from "../../../../data/rivals";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export default async function TeamPage({ params }) {
   const { players } = await getPlayers();
   const roster = buildTeamRosterAndCap(players, team.name);
   const { picks: draftPicks, error: draftPickError } = await getDraftPicksForTeam(team.abbreviation);
-  const divisionTeams = teams.filter((candidate) => candidate.division === team.division && candidate.slug !== team.slug);
+  const rivals = getRivalsForTeam(team.slug).map((rival, index) => ({ ...rival, index, team: teamBySlug[rival.slug] })).filter((rival) => rival.team);
   const franchiseHistory = getFranchiseHistory(team.abbreviation);
   const franchiseSummary = getFranchiseSummary(team.abbreviation);
   const uniforms = [
@@ -151,14 +152,24 @@ export default async function TeamPage({ params }) {
           </div>
 
           <div className="rounded-3xl bg-[#000B36] p-6 text-white shadow-sm md:p-8">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Division rivals</p>
-            <h2 className="mt-2 text-2xl font-black">{team.division}</h2>
-            <div className="mt-5 grid gap-1.5">
-              {divisionTeams.map((rival) => (
-                <Link key={rival.slug} href={`/teams/${rival.slug}`} className="flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-bold text-white/68 transition hover:bg-white/10 hover:text-white">
-                  <Image src={rival.assets.logo} alt="" width={40} height={40} className="h-8 w-8 object-contain" />
-                  <span className="flex-1">{rival.name}</span>
-                  <span className="text-[10px] text-white/32">{rival.abbreviation}</span>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Official rivals</p>
+                <h2 className="mt-2 text-2xl font-black">Four designated rivals</h2>
+              </div>
+              <Link href="/rivals" className="rounded-full border border-white/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/55 transition hover:bg-white hover:text-[#000B36]">
+                All rivals
+              </Link>
+            </div>
+            <div className="mt-5 grid gap-2">
+              {rivals.map((rival) => (
+                <Link key={rival.slug} href={`/teams/${rival.slug}`} className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2.5 text-sm font-bold text-white/72 transition hover:bg-white/10 hover:text-white">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.08] text-[10px] font-black text-cyan-200">{rival.index + 1}</span>
+                  <Image src={rival.team.assets.logo} alt="" width={40} height={40} className="h-8 w-8 object-contain" />
+                  <span className="min-w-0 flex-1 truncate">{rival.team.name}</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-white/42" title="Number from the league rivalry sheet">
+                    {rival.code}
+                  </span>
                 </Link>
               ))}
             </div>

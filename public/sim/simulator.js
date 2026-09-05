@@ -219,43 +219,37 @@ class AVHLGameSimulator {
     const baseOverall = 89 - (tier - 1) * 2.7 - (player.position.includes("D") ? 0.4 : 0);
     const rating = (offset = 0, spread = 9) =>
       Math.round(this.clamp(baseOverall + offset + localRandom.normal(0, spread / 3), 65, 96));
-    const provided = (key, fallback) => {
-      const raw = player?.[key];
-      if (raw === null || raw === undefined || raw === "") return fallback();
-      const value = Number(raw);
-      return Number.isFinite(value) ? value : fallback();
-    };
 
     return {
       ...player,
       teamId,
       usageTier: tier,
-      overall: provided("overall", () => rating()),
-      deking: provided("deking", () => rating()),
-      handEye: provided("handEye", () => rating()),
-      passing: provided("passing", () => rating()),
-      puckControl: provided("puckControl", () => rating()),
-      discipline: provided("discipline", () => rating(2)),
-      offensiveAwareness: provided("offensiveAwareness", () => rating()),
-      poise: provided("poise", () => rating()),
-      slapShotAccuracy: provided("slapShotAccuracy", () => rating(player.position.includes("D") ? 2 : -1)),
-      slapShotPower: provided("slapShotPower", () => rating(player.position.includes("D") ? 3 : 0)),
-      wristShotAccuracy: provided("wristShotAccuracy", () => rating(player.position.includes("D") ? -2 : 2)),
-      wristShotPower: provided("wristShotPower", () => rating()),
-      defensiveAwareness: provided("defensiveAwareness", () => rating(player.position.includes("D") ? 3 : 0)),
-      faceoffs: provided("faceoffs", () => player.position === "C" ? rating(6) : rating(-17)),
-      shotBlocking: provided("shotBlocking", () => rating(player.position.includes("D") ? 4 : -1)),
-      stickChecking: provided("stickChecking", () => rating(player.position.includes("D") ? 3 : 0)),
-      acceleration: provided("acceleration", () => rating()),
-      agility: provided("agility", () => rating()),
-      balance: provided("balance", () => rating()),
-      endurance: provided("endurance", () => rating(1)),
-      speed: provided("speed", () => rating()),
-      aggressiveness: provided("aggressiveness", () => rating()),
-      bodyChecking: provided("bodyChecking", () => rating(player.position.includes("D") ? 2 : 0)),
-      durability: provided("durability", () => rating()),
-      fightingSkill: provided("fightingSkill", () => rating(-5)),
-      strength: provided("strength", () => rating()),
+      overall: rating(),
+      deking: rating(),
+      handEye: rating(),
+      passing: rating(),
+      puckControl: rating(),
+      discipline: rating(2),
+      offensiveAwareness: rating(),
+      poise: rating(),
+      slapShotAccuracy: rating(player.position.includes("D") ? 2 : -1),
+      slapShotPower: rating(player.position.includes("D") ? 3 : 0),
+      wristShotAccuracy: rating(player.position.includes("D") ? -2 : 2),
+      wristShotPower: rating(),
+      defensiveAwareness: rating(player.position.includes("D") ? 3 : 0),
+      faceoffs: player.position === "C" ? rating(6) : rating(-17),
+      shotBlocking: rating(player.position.includes("D") ? 4 : -1),
+      stickChecking: rating(player.position.includes("D") ? 3 : 0),
+      acceleration: rating(),
+      agility: rating(),
+      balance: rating(),
+      endurance: rating(1),
+      speed: rating(),
+      aggressiveness: rating(),
+      bodyChecking: rating(player.position.includes("D") ? 2 : 0),
+      durability: rating(),
+      fightingSkill: rating(-5),
+      strength: rating(),
       fatigue: 0,
       stats: this.blankSkaterStats()
     };
@@ -267,37 +261,31 @@ class AVHLGameSimulator {
     const base = 88 + nameBoost;
     const rating = (offset = 0, spread = 7) =>
       Math.round(this.clamp(base + offset + localRandom.normal(0, spread / 3), 72, 96));
-    const provided = (key, fallback) => {
-      const raw = goalie?.[key];
-      if (raw === null || raw === undefined || raw === "") return fallback();
-      const value = Number(raw);
-      return Number.isFinite(value) ? value : fallback();
-    };
 
     return {
       ...goalie,
       teamId,
       position: "G",
-      overall: provided("overall", () => rating()),
-      angles: provided("angles", () => rating()),
-      breakaway: provided("breakaway", () => rating()),
-      fiveHole: provided("fiveHole", () => rating()),
-      gloveHigh: provided("gloveHigh", () => rating()),
-      gloveLow: provided("gloveLow", () => rating()),
-      stickHigh: provided("stickHigh", () => rating()),
-      stickLow: provided("stickLow", () => rating()),
-      passing: provided("passing", () => rating(-2)),
-      poise: provided("poise", () => rating()),
-      pokeCheck: provided("pokeCheck", () => rating()),
-      puckPlayingFrequency: provided("puckPlayingFrequency", () => rating(-4)),
-      reboundControl: provided("reboundControl", () => rating()),
-      recover: provided("recover", () => rating()),
-      aggressiveness: provided("aggressiveness", () => rating(-4)),
-      agility: provided("agility", () => rating()),
-      durability: provided("durability", () => rating()),
-      endurance: provided("endurance", () => rating()),
-      speed: provided("speed", () => rating()),
-      vision: provided("vision", () => rating()),
+      overall: rating(),
+      angles: rating(),
+      breakaway: rating(),
+      fiveHole: rating(),
+      gloveHigh: rating(),
+      gloveLow: rating(),
+      stickHigh: rating(),
+      stickLow: rating(),
+      passing: rating(-2),
+      poise: rating(),
+      pokeCheck: rating(),
+      puckPlayingFrequency: rating(-4),
+      reboundControl: rating(),
+      recover: rating(),
+      aggressiveness: rating(-4),
+      agility: rating(),
+      durability: rating(),
+      endurance: rating(),
+      speed: rating(),
+      vision: rating(),
       fatigue: 0,
       stats: this.blankGoalieStats()
     };

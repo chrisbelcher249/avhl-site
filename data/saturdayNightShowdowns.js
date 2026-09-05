@@ -3,8 +3,8 @@
 export const saturdayNightShowdowns = [
   {
     "date": "2026-09-26",
-    "away": "north-dakota-bison",
-    "home": "arizona-heat"
+    "away": "chicago-rockets",
+    "home": "st-louis-leopards"
   },
   {
     "date": "2026-10-03",
@@ -18,8 +18,8 @@ export const saturdayNightShowdowns = [
   },
   {
     "date": "2026-10-17",
-    "away": "st-louis-leopards",
-    "home": "oklahoma-twisters"
+    "away": "new-york-steamrollers",
+    "home": "florida-sunshine"
   },
   {
     "date": "2026-10-24",
@@ -38,8 +38,8 @@ export const saturdayNightShowdowns = [
   },
   {
     "date": "2026-11-14",
-    "away": "atlanta-cobalts",
-    "home": "chicago-rockets"
+    "away": "cleveland-demons",
+    "home": "indianapolis-ghosts"
   },
   {
     "date": "2026-11-21",
@@ -68,8 +68,8 @@ export const saturdayNightShowdowns = [
   },
   {
     "date": "2026-12-26",
-    "away": "new-orleans-whalers",
-    "home": "honolulu-hawks"
+    "away": "honolulu-hawks",
+    "home": "new-orleans-whalers"
   },
   {
     "date": "2027-01-02",
@@ -108,8 +108,8 @@ export const saturdayNightShowdowns = [
   },
   {
     "date": "2027-02-20",
-    "away": "cleveland-demons",
-    "home": "columbus-cougars"
+    "away": "chicago-rockets",
+    "home": "fort-worth-defenders"
   },
   {
     "date": "2027-02-27",
@@ -143,13 +143,13 @@ export const saturdayNightShowdowns = [
   },
   {
     "date": "2027-04-03",
-    "away": "st-louis-leopards",
-    "home": "kansas-city-metrostars"
+    "away": "jacksonville-blood-hounds",
+    "home": "columbus-cougars"
   },
   {
     "date": "2027-04-10",
-    "away": "puerto-rico-toros",
-    "home": "columbus-cougars"
+    "away": "memphis-cannons",
+    "home": "houston-hammerheads"
   },
   {
     "date": "2027-04-10",
