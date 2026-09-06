@@ -18,6 +18,36 @@ export default function InfoPage() {
         </div>
       </section>
 
+      <section className="border-b border-[#000B36]/8 bg-[#F4F7FB] px-6 py-12 md:px-8 md:py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#A90117]">League archive</p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">History lives here.</h2>
+            <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/52 md:text-base">Regular-season records, past playoff brackets, and championship rosters are organized as parts of the league information archive.</p>
+          </div>
+          <div className="mt-7 grid gap-4 md:grid-cols-3">
+            <Link href="/info/history" className="group rounded-3xl bg-[#000B36] p-6 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">History</p>
+              <h3 className="mt-2 text-2xl font-black">League history</h3>
+              <p className="mt-3 text-sm font-semibold leading-6 text-white/50">Historical standings, games, franchise lineage, and season records.</p>
+              <p className="mt-5 text-sm font-black text-cyan-200">Explore history →</p>
+            </Link>
+            <Link href="/info/history/brackets" className="group rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#18BDFC] hover:shadow-lg">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#A90117]">Playoffs</p>
+              <h3 className="mt-2 text-2xl font-black">Playoff brackets</h3>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/50">Every completed postseason rebuilt in one standardized bracket format.</p>
+              <p className="mt-5 text-sm font-black text-[#A90117]">View brackets →</p>
+            </Link>
+            <Link href="/info/champions" className="group rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#18BDFC] hover:shadow-lg">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#A90117]">Champions</p>
+              <h3 className="mt-2 text-2xl font-black">Title history</h3>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/50">Every champion and the roster that finished the championship run.</p>
+              <p className="mt-5 text-sm font-black text-[#A90117]">View champions →</p>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="px-6 py-16 md:px-8 md:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-6 md:grid-cols-3">

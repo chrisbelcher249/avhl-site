@@ -25,6 +25,8 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - Native live Draft Capital board at `/draft` for 2027 and 2028, plus data-driven pick inventory on every team page
 - AVHL Discord link retained; closed owner application removed
 - Statistics hub with linked current-player and historical-career sections; History cross-links to the player archive
+- League archive nested under `/info`, with History at `/info/history`, Champions at `/info/champions`, and standardized playoff brackets at `/info/history/brackets`
+- Historical playoff brackets for 2022–23 through 2025–26 with season-specific formats, seeds, preserved scores, historical names, team marks, and champions
 
 ## Run locally
 
@@ -62,6 +64,7 @@ Generated application data lives in:
 - `data/playerHistory.js`
 - `data/salaryCap.js`
 - `data/draftPicks.js`
+- `data/playoffBrackets.js`
 
 To regenerate those files, run:
 

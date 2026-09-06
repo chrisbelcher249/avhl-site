@@ -51,7 +51,7 @@ function SectionHeading({ eyebrow, title, copy }) {
 function OvrStat({ label, value, emphasized = false }) {
   return (
     <div className={`rounded-2xl border p-4 ${emphasized ? "border-[#000B36] bg-[#000B36] text-white" : "border-[#000B36]/10 bg-white"}`}>
-      <p className={`text-[10px] font-black uppercase tracking-[0.15em] ${emphasized ? "text-white/65" : "text-[#000B36]/38"}`}>{label}</p>
+      <p className={`whitespace-nowrap text-[9px] font-black uppercase tracking-[0.11em] sm:text-[10px] ${emphasized ? "text-white/65" : "text-[#000B36]/38"}`}>{label}</p>
       <p className="mt-1 text-2xl font-black tabular-nums">{Number.isFinite(value) ? value.toFixed(1) : "—"}</p>
     </div>
   );

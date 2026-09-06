@@ -12,8 +12,6 @@ const navItems = [
   ["Schedule", "/schedule"],
   ["Sim", "/sim"],
   ["Statistics", "/statistics"],
-  ["History", "/history"],
-  ["Champions", "/champions"],
   ["League Info", "/info"],
 ];
 

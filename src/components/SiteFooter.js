@@ -19,8 +19,9 @@ export default function SiteFooter() {
           <Link href="/draft" className="hover:text-cyan-200">Draft</Link>
           <Link href="/trades" className="hover:text-cyan-200">Trades</Link>
           <Link href="/schedule" className="hover:text-cyan-200">Schedule</Link>
-          <Link href="/history" className="hover:text-cyan-200">History</Link>
-          <Link href="/champions" className="hover:text-cyan-200">Champions</Link>
+          <Link href="/info/history" className="hover:text-cyan-200">History</Link>
+          <Link href="/info/champions" className="hover:text-cyan-200">Champions</Link>
+          <Link href="/info/history/brackets" className="hover:text-cyan-200">Playoff Brackets</Link>
           <Link href="/info" className="hover:text-cyan-200">League Info</Link>
           <a href="https://discord.com/invite/ZTqfdqwraz" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-200">Discord</a>
         </div>

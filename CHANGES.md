@@ -196,3 +196,14 @@
 - Draft data remains live through the existing AVHL pick-tracker CSV feed, so pick ownership changes do not require a site-data rebuild.
 - Made every visible column on Major League team roster tables sortable: jersey number, player name, position, OVR, age, years left, AAV, current-season production/SV%, and career production/SV%.
 - Added clear sort-direction indicators and proper alphabetical/numeric ordering. Skater/goalie switches reset to the default OVR-descending view.
+
+## Site 22 — Historical playoff brackets + Info archive structure
+- Reorganized league archival pages beneath `/info`: History now lives at `/info/history` and Champions at `/info/champions`.
+- Removed History and Champions from the top navigation so League Info acts as their parent section; added archive cards for History, Playoff Brackets, and Champions to `/info`.
+- Kept `/history` and `/champions` as redirects for compatibility, and added `/history/brackets` as a redirect to the canonical bracket archive.
+- Added `/info/history/brackets` with standardized interactive historical brackets for all four completed postseasons (2022–23 through 2025–26).
+- Preserved the actual playoff format used each season: 16 teams with division/wild-card labels in 2022–23, 24 teams/12 conference seeds in 2023–24, and the 20-team/10-seed conference format in 2024–25 and 2025–26.
+- Preserved historical team names and seeds, all series scores shown by the original 2023–24 and 2024–25 bracket records, and advancement-only presentation where scores were not retained (2022–23 and 2025–26).
+- Added consistent AVHL styling, team logos, winner emphasis, bracket connector lines, season switching, champion presentation, and current Major League team links where the historical franchise maps to a current Major club.
+- Team-page Average OVR cards now force `Forwards · Top 12` onto one line, matching the other three rating labels.
+- Simulator files and live-roster hookup are unchanged from Site 21.
