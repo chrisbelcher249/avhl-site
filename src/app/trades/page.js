@@ -1,5 +1,7 @@
 import TradesExplorer from "@/components/TradesExplorer";
 import { getTrades } from "@/lib/trades";
+import { getPlayerNameIndex } from "@/lib/playerHistory";
+import { getPlayers } from "@/lib/players";
 
 export const metadata = {
   title: "Trades",
@@ -9,7 +11,9 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function TradesPage() {
-  const { trades, error } = await getTrades();
+  const [{ trades, error }, { players }] = await Promise.all([getTrades(), getPlayers()]);
+  const playerNameIndex = getPlayerNameIndex();
+  for (const player of players) playerNameIndex[player.name.toLowerCase()] = player.id;
 
   return (
     <main className="min-h-screen bg-[#F4F7FB] text-[#000B36]">
@@ -43,7 +47,7 @@ export default async function TradesPage() {
             <p className="mt-2 text-sm font-semibold text-[#000B36]/48">Approved trades will appear here as they are added to the league tracker.</p>
           </div>
         ) : (
-          <TradesExplorer trades={trades} />
+          <TradesExplorer trades={trades} playerNameIndex={playerNameIndex} />
         )}
       </section>
     </main>

@@ -9,7 +9,7 @@ function assetsList(value) {
   return String(value || "").split(",").map((asset) => asset.trim()).filter(Boolean);
 }
 
-function TeamSide({ abbreviation, receives }) {
+function TeamSide({ abbreviation, receives, playerNameIndex, playerNames }) {
   const team = teamByAbbreviation[abbreviation];
   const assets = assetsList(receives);
 
@@ -29,9 +29,17 @@ function TeamSide({ abbreviation, receives }) {
         </div>
       </div>
       <ul className="mt-4 grid gap-2">
-        {assets.map((asset) => (
-          <li key={asset} className="rounded-xl border border-[#000B36]/8 bg-white px-3 py-2.5 text-sm font-extrabold leading-5">{asset}</li>
-        ))}
+        {assets.map((asset) => {
+          const normalized = asset.trim().toLowerCase();
+          const simplified = normalized.replace(/\s*\([^)]*\)\s*$/, "").trim();
+          const matchedName = playerNameIndex[normalized] ? normalized : playerNameIndex[simplified] ? simplified : playerNames.find((name) => normalized.includes(name));
+          const playerId = matchedName ? playerNameIndex[matchedName] : null;
+          return (
+            <li key={asset} className="rounded-xl border border-[#000B36]/8 bg-white px-3 py-2.5 text-sm font-extrabold leading-5">
+              {playerId ? <Link href={`/players/${playerId}`} className="hover:text-[#A90117] hover:underline">{asset}</Link> : asset}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -54,9 +62,10 @@ function searchText(trade) {
   ].filter(Boolean).join(" ").toLowerCase();
 }
 
-export default function TradesExplorer({ trades }) {
+export default function TradesExplorer({ trades, playerNameIndex = {} }) {
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
+  const playerNames = useMemo(() => Object.keys(playerNameIndex).sort((a, b) => b.length - a.length), [playerNameIndex]);
 
   const filteredTrades = useMemo(() => {
     if (!normalizedQuery) return trades;
@@ -134,8 +143,8 @@ export default function TradesExplorer({ trades }) {
                       <span className="rounded-full bg-[#000B36] px-3 py-1 text-[10px] font-black uppercase tracking-[0.13em] text-white">Official</span>
                     </div>
                     <div className="grid gap-3 lg:grid-cols-2">
-                      <TeamSide abbreviation={trade.teamA} receives={trade.teamAReceives} />
-                      <TeamSide abbreviation={trade.teamB} receives={trade.teamBReceives} />
+                      <TeamSide abbreviation={trade.teamA} receives={trade.teamAReceives} playerNameIndex={playerNameIndex} playerNames={playerNames} />
+                      <TeamSide abbreviation={trade.teamB} receives={trade.teamBReceives} playerNameIndex={playerNameIndex} playerNames={playerNames} />
                     </div>
                   </article>
                 ))}

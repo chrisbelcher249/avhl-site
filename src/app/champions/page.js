@@ -3,11 +3,19 @@ import Link from "next/link";
 import { champions } from "../../../data/champions";
 import { teams } from "../../../data/teams";
 import { minorTeams } from "../../../data/minorTeams";
+import { getKnownPlayerIdByName } from "@/lib/playerHistory";
 
 export const metadata = {
   title: "Champions",
   description: "AVHL champions and championship rosters from 2022–23 through 2025–26.",
 };
+
+
+function PlayerLink({ name, className = "" }) {
+  const id = getKnownPlayerIdByName(name);
+  if (!id) return <span className={className}>{name}</span>;
+  return <Link href={`/players/${id}`} className={`${className} transition hover:text-[#A90117] hover:underline`}>{name}</Link>;
+}
 
 function initials(teamName) {
   return teamName.split(/\s+/).map((part) => part[0]).join("").slice(0, 3).toUpperCase();
@@ -64,7 +72,7 @@ export default function ChampionsPage() {
                     <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                       <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
                         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/38">Captain</p>
-                        <p className="mt-1 text-lg font-black">{captain?.name || "—"}</p>
+                        <div className="mt-1 text-lg font-black">{captain ? <PlayerLink name={captain.name} className="text-white hover:!text-cyan-200" /> : "—"}</div>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
                         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/38">Roster</p>
@@ -90,7 +98,7 @@ export default function ChampionsPage() {
                       {champion.roster.map((player, index) => (
                         <li key={player.name} className="flex items-center gap-3 border-b border-[#000B36]/7 py-2.5">
                           <span className="w-6 shrink-0 text-right text-[10px] font-black tabular-nums text-[#000B36]/30">{index + 1}</span>
-                          <span className={`flex-1 text-sm ${player.captain ? "font-black" : "font-bold text-[#000B36]/72"}`}>{player.name}</span>
+                          <PlayerLink name={player.name} className={`flex-1 text-sm ${player.captain ? "font-black" : "font-bold text-[#000B36]/72"}`} />
                           {player.captain ? <span className="rounded-full bg-[#A90117] px-2 py-1 text-[9px] font-black text-white">C</span> : null}
                         </li>
                       ))}

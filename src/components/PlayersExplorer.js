@@ -105,7 +105,7 @@ function PlayerCard({ player }) {
     <article className="grid gap-4 rounded-2xl border border-[#000B36]/10 bg-white p-4 shadow-sm transition hover:border-[#18BDFC] md:grid-cols-[minmax(0,1.55fr)_minmax(0,1.2fr)_0.45fr_0.45fr_minmax(0,1.1fr)_minmax(0,1.05fr)] md:items-center md:px-5">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <h2 className="truncate text-base font-black md:text-lg">{player.name}</h2>
+          <Link href={`/players/${player.id}`} className="truncate text-base font-black transition hover:text-[#A90117] hover:underline md:text-lg">{player.name}</Link>
           <span className="shrink-0 text-[10px] font-black uppercase tracking-wide text-[#000B36]/30">#{player.id}</span>
         </div>
         <p className="mt-1 truncate text-xs font-bold text-[#000B36]/45">{player.playerType || player.role}</p>

@@ -167,3 +167,14 @@
 - Tightened the complete rivalry matrix so all five columns fit standard desktop widths without a nuisance horizontal scrollbar.
 - Reduced rival-cell logo/text spacing slightly while preserving all rivalry data and level dots.
 - No simulator or live-roster logic changed from Site 16.
+
+## Site 18 — Permanent player profiles + historical statistics
+- Added permanent `/players/[AVHL-ID]` profiles covering all 2,091 known AVHL player IDs.
+- Current players show their live/current 2026–27 AVHL team, team logo, jersey number, position, overall rating, age, contract, size, pro club, and ratings when available.
+- Historical season rows intentionally do not assign a team; current identity is displayed separately at the top of the player profile.
+- Added the supplied skater and goalie career-statistics sources through 2025–26 and generated 1,144 historical stat records (1,028 skaters, 116 goalies).
+- Added `/statistics/career` with player search, skater/goalie switching, season filtering, career totals, sorting, pagination, and links to every player profile.
+- Rebuilt `/statistics` as the statistics hub with links to current players and the historical archive plus career leader previews.
+- Added a Player Career Stats cross-link from `/history` without adding another top-navigation item.
+- Player names now link to permanent profiles from `/players`, team rosters, championship rosters/captains, historical-stat tables, statistics leaderboards, and recognized player assets on the Trades page.
+- Current players without pre-2026–27 AVHL history retain normal profiles with a clear no-record-yet state; 182 historical-only players retain permanent archive profiles.

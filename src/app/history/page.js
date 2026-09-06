@@ -5,7 +5,7 @@ import { franchiseLineage, historySeasons, historySummary, regularSeasonHistory 
 
 export const metadata = {
   title: "History",
-  description: "Explore AVHL regular-season history from 2022–23 through 2025–26, including historical standings and franchise lineage.",
+  description: "Explore AVHL regular-season history from 2022–23 through 2025–26, including standings, franchise lineage, champions, and linked player career statistics.",
 };
 
 function seasonLeader(season) {
@@ -35,6 +35,9 @@ export default function HistoryPage() {
               </a>
               <Link href="/champions" className="inline-flex w-fit rounded-full bg-white px-6 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">
                 View champions
+              </Link>
+              <Link href="/statistics/career" className="inline-flex w-fit rounded-full border border-white/20 bg-white/[0.07] px-6 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-white hover:text-[#000B36]">
+                Player career stats
               </Link>
             </div>
           </div>

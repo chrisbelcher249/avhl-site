@@ -1,3 +1,4 @@
+import Link from "next/link";
 import PlayersExplorer from "@/components/PlayersExplorer";
 import { getPlayers } from "@/lib/players";
 
@@ -19,8 +20,11 @@ export default async function PlayersPage() {
           <p className="text-sm font-black uppercase tracking-[0.26em] text-cyan-200">2026–27 Database</p>
           <h1 className="mt-3 text-5xl font-black uppercase tracking-tight md:text-7xl">Players</h1>
           <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-white/65 md:text-lg">
-            Search every player in the AVHL universe, compare ratings and production, or isolate the complete unrestricted free-agent pool.
+            Search every player in the AVHL universe, compare ratings and production, or isolate the complete unrestricted free-agent pool. Every name links to a permanent player profile.
           </p>
+          <Link href="/statistics/career" className="mt-6 inline-flex rounded-full border border-white/18 bg-white/[0.07] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white transition hover:bg-white hover:text-[#000B36]">
+            Historical career statistics →
+          </Link>
           <div className="mt-8 flex flex-wrap gap-3">
             {[
               [playerCounts.total, "Total players"],
