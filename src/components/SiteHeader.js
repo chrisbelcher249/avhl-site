@@ -6,6 +6,7 @@ const navItems = [
   ["Rivals", "/rivals"],
   ["Players", "/players"],
   ["Cap", "/cap"],
+  ["Draft", "/draft"],
   ["Trades", "/trades"],
   ["Standings", "/standings"],
   ["Schedule", "/schedule"],

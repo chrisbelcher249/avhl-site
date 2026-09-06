@@ -183,3 +183,9 @@
 - Cap page replaces Team OVR Sum with Top 20 Avg OVR, rounded to one decimal.
 - Cap/floor action amounts now show two decimal places in millions (for example, $0.25M below floor).
 
+
+## Site 20 — Draft tab
+- Added a new top-navigation **Draft** tab at `/draft`.
+- Added a live embedded Google Sheets draft-capital board using the AVHL master draft-pick spreadsheet.
+- Added an **Open in Google Sheets** fallback button.
+- Added Draft to the site footer.

@@ -16,6 +16,7 @@ export default function SiteFooter() {
           <Link href="/teams/minor-league" className="hover:text-cyan-200">Minor League</Link>
           <Link href="/players" className="hover:text-cyan-200">Players</Link>
           <Link href="/cap" className="hover:text-cyan-200">Cap</Link>
+          <Link href="/draft" className="hover:text-cyan-200">Draft</Link>
           <Link href="/trades" className="hover:text-cyan-200">Trades</Link>
           <Link href="/schedule" className="hover:text-cyan-200">Schedule</Link>
           <Link href="/history" className="hover:text-cyan-200">History</Link>
