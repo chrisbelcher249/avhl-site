@@ -1,0 +1,126 @@
+Game #,Date,Round Type,Game (Series),Home Team (Seed),Away Team (Seed),Final Score,Series Score
+1,4/14/26,Play-In,Game 1,Lincoln Lumberjacks (7),Denver Mountain Lions (10),5-4 DEN,1-0 DEN
+2,,,,Houston Hammerheads (8),Portland Sea Lions (9),7-3 HOU,1-0 HOU
+3,,,,Indianapolis Ghosts (8),Chicago Rockets (9),3-2 CHI,1-0 CHI
+4,,,,Raleigh Wildcats (7),Richmond Robbers (10),7-5 RAL,1-0 RAL
+5,4/15/26,,Game 2,Lincoln Lumberjacks (7),Denver Mountain Lions (10),3-2 DEN (OT),2-0 DEN
+6,,,,Houston Hammerheads (8),Portland Sea Lions (9),4-3 HOU,2-0 HOU
+7,,,,Indianapolis Ghosts (8),Chicago Rockets (9),5-1 CHI,2-0 CHI
+8,,,,Raleigh Wildcats (7),Richmond Robbers (10),6-3 RAL,2-0 RAL
+9,4/16/26,,Game 3,Denver Mountain Lions (10),Lincoln Lumberjacks (7),5-1 DEN,3-0 DEN
+10,,,,Portland Sea Lions (9),Houston Hammerheads (8),5-4 HOU,3-0 HOU
+11,,,,Chicago Rockets (9),Indianapolis Ghosts (8),2-1 CHI,3-0 CHI
+12,,,,Richmond Robbers (10),Raleigh Wildcats (7),6-5 RAL,3-0 RAL
+13,4/17/26,,Game 4,Denver Mountain Lions (10),Lincoln Lumberjacks (7),N/A,3-0 DEN
+14,,,,Portland Sea Lions (9),Houston Hammerheads (8),N/A,3-0 HOU
+15,,,,Chicago Rockets (9),Indianapolis Ghosts (8),N/A,3-0 CHI
+16,,,,Richmond Robbers (10),Raleigh Wildcats (7),N/A,3-0 RAL
+17,4/18/26,,Game 5,Lincoln Lumberjacks (7),Denver Mountain Lions (10),N/A,3-0 DEN
+18,,,,Houston Hammerheads (8),Portland Sea Lions (9),N/A,3-0 HOU
+19,,,,Indianapolis Ghosts (8),Chicago Rockets (9),N/A,3-0 CHI
+20,,,,Raleigh Wildcats (7),Richmond Robbers (10),N/A,3-0 RAL
+21,4/19/26,Round 1,Game 1,North Dakota Bison (3),Montana Miners (6),4-3 ND,1-0 ND
+22,,,,Arizona Heat (4),Memphis Cannons (5),3-2 ARI,1-0 ARI
+23,,,,Charleston Tsunami (3),Detroit Motors (6),5-1 CHA,1-0 CHA
+24,,,,Atlanta Cobalts (4),Florida Sunshine (5),4-1 ATL,1-0 ATL
+25,4/20/26,,,San Antonio Bandits (1),Houston Hammerheads (8),6-5 HOU (OT),1-0 HOU
+26,,,,Seattle Dragons (2),Denver Mountain Lions (10),5-4 SEA (OT),1-0 SEA
+27,,,,Philadelphia Destroyers (1),Chicago Rockets (9),4-3 PHI,1-0 PHI
+28,,,,Cleveland Demons (2),Raleigh Wildcats (7),7-6 RAL (OT),1-0 RAL
+29,4/21/26,,Game 2,North Dakota Bison (3),Montana Miners (6),5-3 MON,1-1 TIE
+30,,,,Arizona Heat (4),Memphis Cannons (5),6-3 MEM,1-1 TIE
+31,,,,Charleston Tsunami (3),Detroit Motors (6),5-1 CHA,2-0 CHA
+32,,,,Atlanta Cobalts (4),Florida Sunshine (5),6-3 ATL,2-0 ATL
+33,4/22/26,,,San Antonio Bandits (1),Houston Hammerheads (8),4-3 SAN,1-1 TIE
+34,,,,Seattle Dragons (2),Denver Mountain Lions (10),4-3 DEN (OT),1-1 TIE
+35,,,,Philadelphia Destroyers (1),Chicago Rockets (9),5-0 PHI,2-0 PHI
+36,,,,Cleveland Demons (2),Raleigh Wildcats (7),5-4 CLE,1-1 TIE
+37,4/23/26,,Game 3,Montana Miners (6),North Dakota Bison (3),4-3 MON,2-1 MON
+38,,,,Memphis Cannons (5),Arizona Heat (4),6-4 ARI,2-1 ARI
+39,,,,Detroit Motors (6),Charleston Tsunami (3),6-5 DET,2-1 CHA
+40,,,,Florida Sunshine (5),Atlanta Cobalts (4),2-1 ATL,3-0 ATL
+41,4/24/26,,,Houston Hammerheads (8),San Antonio Bandits (1),6-4 SAN,2-1 SAN
+42,,,,Denver Mountain Lions (10),Seattle Dragons (2),3-0 DEN,2-1 DEN
+43,,,,Chicago Rockets (9),Philadelphia Destroyers (1),7-6 CHI,2-1 PHI
+44,,,,Raleigh Wildcats (7),Cleveland Demons (2),4-3 CLE (OT),2-1 CLE
+45,4/25/26,,Game 4,Montana Miners (6),North Dakota Bison (3),6-3 MON,3-1 MON
+46,,,,Memphis Cannons (5),Arizona Heat (4),5-3 ARI,3-1 ARI
+47,,,,Detroit Motors (6),Charleston Tsunami (3),6-3 CHA,3-1 CHA
+48,,,,Florida Sunshine (5),Atlanta Cobalts (4),4-3 ATL,4-0 ATL
+49,4/26/26,,,Houston Hammerheads (8),San Antonio Bandits (1),4-1 SAN,3-1 SAN
+50,,,,Denver Mountain Lions (10),Seattle Dragons (2),6-5 DEN (OT),3-1 DEN
+51,,,,Chicago Rockets (9),Philadelphia Destroyers (1),4-3 CHI,2-2 TIE
+52,,,,Raleigh Wildcats (7),Cleveland Demons (2),5-4 CLE (OT),3-1 CLE
+53,4/27/26,,Game 5,North Dakota Bison (3),Montana Miners (6),3-2 MON,4-1 MON
+54,,,,Arizona Heat (4),Memphis Cannons (5),5-2 MEM,3-2 ARI
+55,,,,Charleston Tsunami (3),Detroit Motors (6),1-0 DET (OT),3-2 CHA
+56,,,,Atlanta Cobalts (4),Florida Sunshine (5),N/A,4-0 ATL
+57,4/28/26,,,San Antonio Bandits (1),Houston Hammerheads (8),2-1 SAN,4-1 SAN
+58,,,,Seattle Dragons (2),Denver Mountain Lions (10),3-1 SEA,3-2 DEN
+59,,,,Philadelphia Destroyers (1),Chicago Rockets (9),5-3 PHI,3-2 PHI
+60,,,,Cleveland Demons (2),Raleigh Wildcats (7),5-1 RAL,3-2 CLE
+61,4/29/26,,Game 6,Montana Miners (6),North Dakota Bison (3),N/A,4-1 MON
+62,,,,Memphis Cannons (5),Arizona Heat (4),3-1 ARI,4-2 ARI
+63,,,,Detroit Motors (6),Charleston Tsunami (3),3-2 CHA,4-2 CHA
+64,,,,Florida Sunshine (5),Atlanta Cobalts (4),N/A,4-0 ATL
+65,4/30/26,,,Houston Hammerheads (8),San Antonio Bandits (1),N/A,4-1 SAN
+66,,,,Denver Mountain Lions (10),Seattle Dragons (2),3-2 SEA,3-3 TIE
+67,,,,Chicago Rockets (9),Philadelphia Destroyers (1),7-1 PHI,4-2 PHI
+68,,,,Raleigh Wildcats (7),Cleveland Demons (2),5-3 CLE,4-2 CLE
+69,5/1/26,,Game 7,North Dakota Bison (3),Montana Miners (6),N/A,4-1 MON
+70,,,,Arizona Heat (4),Memphis Cannons (5),N/A,4-2 ARI
+71,,,,Charleston Tsunami (3),Detroit Motors (6),N/A,4-2 CHA
+72,,,,Atlanta Cobalts (4),Florida Sunshine (5),N/A,4-0 ATL
+73,5/2/26,,,San Antonio Bandits (1),Houston Hammerheads (8),N/A,4-1 SAN
+74,,,,Seattle Dragons (2),Denver Mountain Lions (10),4-3 SEA,4-3 SEA
+75,,,,Philadelphia Destroyers (1),Chicago Rockets (9),N/A,4-2 PHI
+76,,,,Cleveland Demons (2),Raleigh Wildcats (7),N/A,4-2 CLE
+77,5/3/26,Round 2,Game 1,San Antonio Bandits (1),Arizona Heat (4),4-3 ARI (OT),1-0 ARI
+78,,,,Philadelphia Destroyers (1),Atlanta Cobalts (4),6-0 PHI,1-0 PHI
+79,5/4/26,,,Seattle Dragons (2),Montana Miners (6),5-3 MON,1-0 MON
+80,,,,Cleveland Demons (2),Charleston Tsunami (3),3-2 CLE,1-0 CLE
+81,5/5/26,,Game 2,San Antonio Bandits (1),Arizona Heat (4),8-5 ARI,2-0 ARI
+82,,,,Philadelphia Destroyers (1),Atlanta Cobalts (4),6-1 PHI,2-0 PHI
+83,5/6/26,,,Seattle Dragons (2),Montana Miners (6),2-1 SEA (OT),1-1 TIE
+84,,,,Cleveland Demons (2),Charleston Tsunami (3),5-3 CLE,2-0 CLE
+85,5/7/26,,Game 3,Arizona Heat (4),San Antonio Bandits (1),5-1 SAN,2-1 ARI
+86,,,,Atlanta Cobalts (4),Philadelphia Destroyers (1),4-3 ATL (OT),2-1 PHI
+87,5/8/26,,,Montana Miners (6),Seattle Dragons (2),5-4 MON,2-1 MON
+88,,,,Charleston Tsunami (3),Cleveland Demons (2),5-2 CHA,2-1 CLE
+89,5/9/26,,Game 4,Arizona Heat (4),San Antonio Bandits (1),5-1 ARI,3-1 ARI
+90,,,,Atlanta Cobalts (4),Philadelphia Destroyers (1),3-2 PHI,3-1 PHI
+91,5/10/26,,,Montana Miners (6),Seattle Dragons (2),5-4 MON,3-1 MON
+92,,,,Charleston Tsunami (3),Cleveland Demons (2),3-1 CLE,3-1 CLE
+93,5/11/26,,Game 5,San Antonio Bandits (1),Arizona Heat (4),3-2 SAN,3-2 ARI
+94,,,,Philadelphia Destroyers (1),Atlanta Cobalts (4),6-1 PHI,4-1 PHI
+95,5/12/26,,,Seattle Dragons (2),Montana Miners (6),5-2 MON,4-1 MON
+96,,,,Cleveland Demons (2),Charleston Tsunami (3),6-1 CLE,4-1 CLE
+97,5/13/26,,Game 6,Arizona Heat (4),San Antonio Bandits (1),3-1 SAN,3-3 TIE
+98,,,,Atlanta Cobalts (4),Philadelphia Destroyers (1),N/A,4-1 PHI
+99,5/14/26,,,Montana Miners (6),Seattle Dragons (2),N/A,4-1 MON
+100,,,,Charleston Tsunami (3),Cleveland Demons (2),N/A,4-1 CLE
+101,5/15/26,,Game 7,San Antonio Bandits (1),Arizona Heat (4),5-3 ARI,4-3 ARI
+102,,,,Philadelphia Destroyers (1),Atlanta Cobalts (4),N/A,4-1 PHI
+103,5/16/26,,,Seattle Dragons (2),Montana Miners (6),N/A,4-1 MON
+104,,,,Cleveland Demons (2),Charleston Tsunami (3),N/A,4-1 CLE
+105,5/17/26,Conference Finals,Game 1,Philadelphia Destroyers (1),Cleveland Demons (2),6-2 PHI,1-0 PHI
+106,5/18/26,,,Arizona Heat (4),Montana Miners (6),4-2 ARI,1-0 ARI
+107,5/19/26,,Game 2,Philadelphia Destroyers (1),Cleveland Demons (2),3-2 CLE (OT),1-1 TIE
+108,5/20/26,,,Arizona Heat (4),Montana Miners (6),6-4 MON,1-1 TIE
+109,5/22/26,,Game 3,Cleveland Demons (2),Philadelphia Destroyers (1),6-0 CLE,2-1 CLE
+110,5/23/26,,,Montana Miners (6),Arizona Heat (4),3-0 MON,2-1 MON
+111,5/24/26,,Game 4,Cleveland Demons (2),Philadelphia Destroyers (1),5-4 CLE,3-1 CLE
+112,5/25/26,,,Montana Miners (6),Arizona Heat (4),5-3 MON,3-1 MON
+113,5/27/26,,Game 5,Philadelphia Destroyers (1),Cleveland Demons (2),7-6 PHI,3-2 CLE
+114,5/28/26,,,Arizona Heat (4),Montana Miners (6),4-3 MON,4-1 MON
+115,5/30/26,*June 1st,Game 6,Cleveland Demons (2),Philadelphia Destroyers (1),3-2 PHI (OT),3-3 TIE
+116,5/31/26,,,Montana Miners (6),Arizona Heat (4),N/A,4-1 MON
+117,6/2/26,*June 3rd,Game 7,Philadelphia Destroyers (1),Cleveland Demons (2),5-4 CLE (OT),4-3 CLE
+118,6/3/26,,,Arizona Heat (4),Montana Miners (6),N/A,4-1 MON
+119,6/5/26,Cup Final,Game 1,Cleveland Demons (2),Montana Miners (6),3-1 CLE,1-0 CLE
+120,6/7/26,,Game 2,Cleveland Demons (2),Montana Miners (6),6-4 CLE,2-0 CLE
+121,6/10/26,,Game 3,Montana Miners (6),Cleveland Demons (2),3-0 MON,2-1 CLE
+122,6/12/26,,Game 4,Montana Miners (6),Cleveland Demons (2),5-0 MON,2-2 TIE
+123,6/15/26,,Game 5,Cleveland Demons (2),Montana Miners (6),4-3 CLE (OT),3-2 CLE
+124,6/18/26,,Game 6,Montana Miners (6),Cleveland Demons (2),4-1 CLE,4-2 CLE
+125,6/21/26,,Game 7,Cleveland Demons (2),Montana Miners (6),N/A,4-2 CLE

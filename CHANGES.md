@@ -207,3 +207,11 @@
 - Added consistent AVHL styling, team logos, winner emphasis, bracket connector lines, season switching, champion presentation, and current Major League team links where the historical franchise maps to a current Major club.
 - Team-page Average OVR cards now force `Forwards · Top 12` onto one line, matching the other three rating labels.
 - Simulator files and live-roster hookup are unchanged from Site 21.
+
+## Site 23 — Restored playoff series scores
+- Restored every missing 2022–23 playoff series score from the official 2022–23 playoff schedule CSV (15 series).
+- Restored every missing 2025–26 playoff series score from the official 2025–26 playoff schedule CSV (19 series).
+- 2022–23 is now presented as best-of-seven throughout; 2025–26 qualifiers are best-of-five and all later rounds are best-of-seven.
+- The `/info/history/brackets` archive now has complete series scores for all four historical playoff seasons.
+- Retained clean copies of both official schedule CSVs under `data/source/` for provenance.
+- No bracket structure, team mapping, simulator logic, live-roster logic, or other site behavior was changed.
