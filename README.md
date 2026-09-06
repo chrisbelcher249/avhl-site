@@ -14,7 +14,7 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - Official mascot imagery and mascot names/numbers
 - Team-specific colors and arena presentation details
 - Complete current rosters for all 40 teams: 20 players per club, including 12 forwards, six defensemen, and two goalies
-- Skater and goalie roster views with AAV, contract term, player details, production, and key ratings
+- Skater and goalie roster views with sortable number/name/position/OVR/age/contract/AAV/production columns
 - Searchable database of all 1,909 current players, including 800 signed players and 1,109 unrestricted free agents
 - Permanent player profiles for all 2,091 known AVHL IDs, including 182 historical-only players
 - Historical player statistics from 2022–23 through 2025–26 at `/statistics/career` (1,028 skaters and 116 goalies)
@@ -22,7 +22,7 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - Team salary-cap compliance using a $100,000,000 cap, $70,000,000 floor, $20,000,000 maximum salary, and $900,000 minimum salary
 - Complete 1,640-game Major League schedule with team, division, conference, month, date, and venue filters
 - Individual 82-game schedule pages for all 40 teams
-- Data-driven 2027 and 2028 draft-pick inventory on every team page
+- Native live Draft Capital board at `/draft` for 2027 and 2028, plus data-driven pick inventory on every team page
 - AVHL Discord link retained; closed owner application removed
 - Statistics hub with linked current-player and historical-career sections; History cross-links to the player archive
 

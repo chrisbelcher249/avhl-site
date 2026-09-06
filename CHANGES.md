@@ -189,3 +189,10 @@
 - Added a live embedded Google Sheets draft-capital board using the AVHL master draft-pick spreadsheet.
 - Added an **Open in Google Sheets** fallback button.
 - Added Draft to the site footer.
+
+## Site 21 — Draft Capital redesign + sortable team rosters
+- Replaced the `/draft` Google Sheets embed with a native AVHL Draft Capital experience. The page now pulls the live pick tracker data server-side and renders it entirely in the AVHL website design; no spreadsheet iframe or Google Sheets link is displayed.
+- Added 2027/2028 draft-year switching, round and ownership filters, team/pick search, live league summary cards, and branded team draft-capital cards with original-team logos and ownership-history context for traded picks.
+- Draft data remains live through the existing AVHL pick-tracker CSV feed, so pick ownership changes do not require a site-data rebuild.
+- Made every visible column on Major League team roster tables sortable: jersey number, player name, position, OVR, age, years left, AAV, current-season production/SV%, and career production/SV%.
+- Added clear sort-direction indicators and proper alphabetical/numeric ordering. Skater/goalie switches reset to the default OVR-descending view.
