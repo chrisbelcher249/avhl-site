@@ -50,6 +50,16 @@ function averageOverall(players) {
   return ratings.reduce((total, overall) => total + overall, 0) / ratings.length;
 }
 
+function topAverageOverall(players, limit) {
+  const ratings = players
+    .map((player) => Number(player.overall))
+    .filter((overall) => Number.isFinite(overall))
+    .sort((a, b) => b - a)
+    .slice(0, limit);
+  if (!ratings.length) return null;
+  return ratings.reduce((total, overall) => total + overall, 0) / ratings.length;
+}
+
 export function buildTeamRosterAndCap(playerList, teamName) {
   const rosterPlayers = playerList.filter((player) => player.currentTeam === teamName);
   const skaters = rosterPlayers.filter((player) => player.role === "Skater");
@@ -76,8 +86,8 @@ export function buildTeamRosterAndCap(playerList, teamName) {
   const compliant = salaryCompliant && rosterCompliant;
 
   const issues = [];
-  if (overCap) issues.push(`$${Math.round((payroll - salaryCapRules.cap) / 100_000) / 10}M over cap`);
-  if (belowFloor) issues.push(`$${Math.round((salaryCapRules.floor - payroll) / 100_000) / 10}M below floor`);
+  if (overCap) issues.push(`$${((payroll - salaryCapRules.cap) / 1_000_000).toFixed(2)}M over cap`);
+  if (belowFloor) issues.push(`$${((salaryCapRules.floor - payroll) / 1_000_000).toFixed(2)}M below floor`);
   if (!contractsCompliant) issues.push("Contract salary violation");
   if (!forwardsCompliant) issues.push(`Need ${rosterRules.minimumForwards - forwards.length} F`);
   if (!defensemenCompliant) issues.push(`Need ${rosterRules.minimumDefensemen - defensemen.length} D`);
@@ -93,10 +103,11 @@ export function buildTeamRosterAndCap(playerList, teamName) {
     defensemen,
     forwardsCount: forwards.length,
     defensemenCount: defensemen.length,
-    averageOverall: averageOverall(rosterPlayers),
-    forwardAverageOverall: averageOverall(forwards),
-    defenseAverageOverall: averageOverall(defensemen),
-    goalieAverageOverall: averageOverall(goalies),
+    averageOverall: topAverageOverall(rosterPlayers, 20),
+    forwardAverageOverall: topAverageOverall(forwards, 12),
+    defenseAverageOverall: topAverageOverall(defensemen, 6),
+    goalieAverageOverall: topAverageOverall(goalies, 2),
+    top20AverageOverall: topAverageOverall(rosterPlayers, 20),
     overallSum: sumOverall(rosterPlayers),
     forwardOverallSum: sumOverall(forwards),
     defenseOverallSum: sumOverall(defensemen),

@@ -178,3 +178,8 @@
 - Added a Player Career Stats cross-link from `/history` without adding another top-navigation item.
 - Player names now link to permanent profiles from `/players`, team rosters, championship rosters/captains, historical-stat tables, statistics leaderboards, and recognized player assets on the Trades page.
 - Current players without pre-2026–27 AVHL history retain normal profiles with a clear no-record-yet state; 182 historical-only players retain permanent archive profiles.
+## Site 19 — OVR calculation updates
+- Team-page Average OVR now uses the top 20 roster players; forward, defense, and goalie averages use the top 12 F, top 6 D, and top 2 G respectively. If a roster/position group is smaller than the target, all available players are used.
+- Cap page replaces Team OVR Sum with Top 20 Avg OVR, rounded to one decimal.
+- Cap/floor action amounts now show two decimal places in millions (for example, $0.25M below floor).
+

@@ -143,10 +143,10 @@ export default async function TeamPage({ params }) {
                 <p className="text-[10px] font-bold text-[#000B36]/35">Live roster · one decimal</p>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                <OvrStat label="Overall" value={roster.averageOverall} emphasized />
-                <OvrStat label="Forwards" value={roster.forwardAverageOverall} />
-                <OvrStat label="Defense" value={roster.defenseAverageOverall} />
-                <OvrStat label="Goalies" value={roster.goalieAverageOverall} />
+                <OvrStat label="Overall · Top 20" value={roster.averageOverall} emphasized />
+                <OvrStat label="Forwards · Top 12" value={roster.forwardAverageOverall} />
+                <OvrStat label="Defense · Top 6" value={roster.defenseAverageOverall} />
+                <OvrStat label="Goalies · Top 2" value={roster.goalieAverageOverall} />
               </div>
             </div>
           </div>

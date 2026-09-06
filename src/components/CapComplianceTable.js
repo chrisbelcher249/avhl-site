@@ -31,7 +31,7 @@ const columns = [
   { key: "forwardsCount", label: "F", align: "center" },
   { key: "defensemenCount", label: "D", align: "center" },
   { key: "goaliesCount", label: "G", align: "center" },
-  { key: "overallSum", label: "Team OVR Sum", align: "center" },
+  { key: "top20AverageOverall", label: "Top 20 Avg OVR", align: "center" },
   { key: "status", label: "Status", align: "left" },
 ];
 
@@ -122,7 +122,7 @@ export default function CapComplianceTable({ rows, rosterRules }) {
                   <td className="px-4 py-4 text-center"><CountCell value={roster.forwardsCount} required={rosterRules.minimumForwards} /></td>
                   <td className="px-4 py-4 text-center"><CountCell value={roster.defensemenCount} required={rosterRules.minimumDefensemen} /></td>
                   <td className="px-4 py-4 text-center"><CountCell value={roster.goaliesCount} required={rosterRules.minimumGoalies} /></td>
-                  <td className="px-4 py-4 text-center text-sm font-black">{roster.overallSum}</td>
+                  <td className="px-4 py-4 text-center text-sm font-black tabular-nums">{Number.isFinite(roster.top20AverageOverall) ? roster.top20AverageOverall.toFixed(1) : "—"}</td>
                   <td className="px-5 py-4">
                     {roster.compliant ? (
                       <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-emerald-700">Compliant</span>
