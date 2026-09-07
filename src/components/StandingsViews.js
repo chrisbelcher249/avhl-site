@@ -118,76 +118,166 @@ function CompactTable({ title, eyebrow, records, labelForIndex, accent = false }
   );
 }
 
-function SeedTeam({ record, note }) {
-  if (!record) return null;
+const LIVE_BOARD_WIDTH = 1600;
+const LIVE_BOARD_HEIGHT = 790;
+const LIVE_NODE = 58;
+
+const LIVE_X = {
+  west: { qualifier: 76, round1: 286, round2: 500, conference: 684 },
+  east: { qualifier: 1524, round1: 1314, round2: 1100, conference: 916 },
+};
+
+const LIVE_Y = {
+  qualifier: [[104, 164], [504, 564]],
+  round1: [[74, 134], [254, 314], [454, 534], [654, 714]],
+  round2: [[174, 234], [504, 564]],
+  conference: [[334, 394]],
+  final: [[334, 394]],
+};
+
+function liveSeed(data, number) {
+  return data?.seeds?.find((record) => record.seed === number) || null;
+}
+
+function LiveLogoNode({ record, seed, x, y, side, placeholder }) {
+  const actualSeed = seed ?? record?.seed;
+  const content = (
+    <div
+      className={`absolute z-20 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 ${side === "east" ? "flex-row-reverse" : ""}`}
+      style={{ left: x, top: y }}
+      title={record ? `#${actualSeed} ${record.team.name}` : placeholder || "Projected winner"}
+    >
+      <span className="text-[9px] font-black tabular-nums text-[#000B36]/45">{record ? `#${actualSeed}` : ""}</span>
+      {record ? (
+        <span className="flex h-[58px] w-[58px] items-center justify-center rounded-2xl border border-[#000B36]/10 bg-white p-2 shadow-sm transition hover:-translate-y-0.5 hover:border-[#18BDFC] hover:shadow-md">
+          <Image src={record.team.assets.logo} alt={record.team.name} width={52} height={52} className="h-full w-full object-contain" />
+        </span>
+      ) : (
+        <span className="flex h-[46px] w-[46px] items-center justify-center rounded-2xl border border-dashed border-[#000B36]/16 bg-white/80 text-[8px] font-black uppercase tracking-[0.08em] text-[#000B36]/26">
+          {placeholder || "W"}
+        </span>
+      )}
+    </div>
+  );
+
+  if (!record) return content;
   return (
-    <Link href={`/teams/${record.team.slug}`} className="flex min-w-0 items-center gap-3 rounded-2xl border border-[#000B36]/10 bg-white px-3 py-2.5 transition hover:border-[#18BDFC]">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F1F4F8] p-1">
-        <Image src={record.team.assets.logo} alt="" width={32} height={32} className="h-full w-full object-contain" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-xs font-black">{record.team.name}</span>
-        <span className="mt-0.5 block text-[8px] font-black uppercase tracking-[0.12em] text-[#000B36]/35">{note || `Seed ${record.seed}`}</span>
-      </span>
-      <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-[#000B36] px-2 text-[10px] font-black text-white">{record.seed}</span>
+    <Link href={`/teams/${record.team.slug}`} className="contents">
+      {content}
     </Link>
   );
 }
 
-function BracketMatchup({ label, top, bottom, placeholder }) {
+function branchPath(x, y1, y2, targetX, targetY, direction) {
+  const nodeEdge = direction === "right" ? x + LIVE_NODE / 2 : x - LIVE_NODE / 2;
+  const targetEdge = direction === "right" ? targetX - 23 : targetX + 23;
+  const branchX = nodeEdge + (direction === "right" ? 62 : -62);
+  const midX = (branchX + targetEdge) / 2;
+  return `M ${nodeEdge} ${y1} H ${branchX} V ${y2} H ${nodeEdge} M ${branchX} ${(y1 + y2) / 2} H ${midX} V ${targetY} H ${targetEdge}`;
+}
+
+function LiveBracketLines() {
+  const paths = [];
+
+  for (const side of ["west", "east"]) {
+    const direction = side === "west" ? "right" : "left";
+    const x = LIVE_X[side];
+
+    // Qualifiers feed the open Round 1 slots.
+    paths.push(branchPath(x.qualifier, ...LIVE_Y.qualifier[0], x.round1, LIVE_Y.round1[0][1], direction));
+    paths.push(branchPath(x.qualifier, ...LIVE_Y.qualifier[1], x.round1, LIVE_Y.round1[2][1], direction));
+
+    // Round 1 games feed the two Round 2 series.
+    paths.push(branchPath(x.round1, ...LIVE_Y.round1[0], x.round2, LIVE_Y.round2[0][0], direction));
+    paths.push(branchPath(x.round1, ...LIVE_Y.round1[1], x.round2, LIVE_Y.round2[0][1], direction));
+    paths.push(branchPath(x.round1, ...LIVE_Y.round1[2], x.round2, LIVE_Y.round2[1][0], direction));
+    paths.push(branchPath(x.round1, ...LIVE_Y.round1[3], x.round2, LIVE_Y.round2[1][1], direction));
+
+    // Round 2 feeds the Conference Final.
+    paths.push(branchPath(x.round2, ...LIVE_Y.round2[0], x.conference, LIVE_Y.conference[0][0], direction));
+    paths.push(branchPath(x.round2, ...LIVE_Y.round2[1], x.conference, LIVE_Y.conference[0][1], direction));
+
+    // Conference champion advances into the league final.
+    paths.push(branchPath(x.conference, ...LIVE_Y.conference[0], 800, side === "west" ? LIVE_Y.final[0][0] : LIVE_Y.final[0][1], direction));
+  }
+
+  // The league-final pairing resolves into the champion marker below.
+  paths.push(`M 823 ${LIVE_Y.final[0][0]} H 850 V ${LIVE_Y.final[0][1]} H 823 M 850 364 V 438 H 830`);
+
   return (
-    <div className="rounded-3xl border border-[#000B36]/10 bg-[#F7F9FC] p-3.5">
-      <p className="mb-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-[#A90117]">{label}</p>
-      <SeedTeam record={top} />
-      <div className="my-1.5 text-center text-[8px] font-black uppercase tracking-[0.14em] text-[#000B36]/24">vs</div>
-      {bottom ? <SeedTeam record={bottom} /> : <div className="rounded-2xl border border-dashed border-[#000B36]/15 bg-white px-3 py-3 text-center text-[10px] font-black text-[#000B36]/42">{placeholder}</div>}
+    <svg className="pointer-events-none absolute inset-0 z-0" width={LIVE_BOARD_WIDTH} height={LIVE_BOARD_HEIGHT} viewBox={`0 0 ${LIVE_BOARD_WIDTH} ${LIVE_BOARD_HEIGHT}`} aria-hidden="true">
+      {paths.map((d, index) => (
+        <path key={index} d={d} fill="none" stroke="rgba(0,11,54,0.22)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      ))}
+    </svg>
+  );
+}
+
+function RoundLabel({ x, children }) {
+  return (
+    <div className="absolute top-4 z-10 -translate-x-1/2 text-center" style={{ left: x }}>
+      <p className="whitespace-nowrap text-[9px] font-black uppercase tracking-[0.16em] text-[#000B36]/38">{children}</p>
     </div>
   );
 }
 
-function ConferenceBracket({ data }) {
-  const seed = (number) => data.seeds.find((record) => record.seed === number);
+function LiveBracketSide({ data, side }) {
+  const x = LIVE_X[side];
+  const s = (number) => liveSeed(data, number);
+
   return (
-    <section className="rounded-[2rem] border border-[#000B36]/10 bg-white p-5 shadow-sm md:p-6">
-      <div className="flex items-end justify-between gap-4 border-b border-[#000B36]/8 pb-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#A90117]">If the season ended today</p>
-          <h3 className="mt-1 text-2xl font-black">{data.conference} Conference</h3>
-        </div>
-        <span className="rounded-full bg-[#000B36] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-white">10-team field</span>
+    <>
+      <div className="absolute top-12 z-10 -translate-x-1/2 text-center" style={{ left: (x.qualifier + x.conference) / 2 }}>
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#A90117]">{data.conference} Conference</p>
       </div>
 
-      <div className="mt-5 grid grid-cols-5 gap-1 rounded-2xl bg-[#000B36] p-2 text-center text-white sm:gap-2">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((number) => {
-          const record = seed(number);
-          return (
-            <div key={number} className="min-w-0 rounded-xl bg-white/[0.07] px-1.5 py-2">
-              <p className="text-[8px] font-black text-cyan-200">#{number}</p>
-              <p className="mt-0.5 truncate text-[8px] font-black sm:text-[9px]">{record?.team.abbreviation || "—"}</p>
-            </div>
-          );
-        })}
-      </div>
+      <RoundLabel x={x.qualifier}>Qualifier</RoundLabel>
+      <RoundLabel x={x.round1}>Round 1</RoundLabel>
+      <RoundLabel x={x.round2}>Round 2</RoundLabel>
+      <RoundLabel x={x.conference}>Conf. Final</RoundLabel>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
-        <div>
-          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#000B36]/40">Qualifier round</p>
-          <div className="space-y-3">
-            <BracketMatchup label="8 vs 9" top={seed(8)} bottom={seed(9)} />
-            <BracketMatchup label="7 vs 10" top={seed(7)} bottom={seed(10)} />
-          </div>
+      <LiveLogoNode record={s(8)} x={x.qualifier} y={LIVE_Y.qualifier[0][0]} side={side} />
+      <LiveLogoNode record={s(9)} x={x.qualifier} y={LIVE_Y.qualifier[0][1]} side={side} />
+      <LiveLogoNode record={s(7)} x={x.qualifier} y={LIVE_Y.qualifier[1][0]} side={side} />
+      <LiveLogoNode record={s(10)} x={x.qualifier} y={LIVE_Y.qualifier[1][1]} side={side} />
+
+      <LiveLogoNode record={s(1)} x={x.round1} y={LIVE_Y.round1[0][0]} side={side} />
+      <LiveLogoNode x={x.round1} y={LIVE_Y.round1[0][1]} side={side} placeholder="8/9" />
+      <LiveLogoNode record={s(4)} x={x.round1} y={LIVE_Y.round1[1][0]} side={side} />
+      <LiveLogoNode record={s(5)} x={x.round1} y={LIVE_Y.round1[1][1]} side={side} />
+      <LiveLogoNode record={s(2)} x={x.round1} y={LIVE_Y.round1[2][0]} side={side} />
+      <LiveLogoNode x={x.round1} y={LIVE_Y.round1[2][1]} side={side} placeholder="7/10" />
+      <LiveLogoNode record={s(3)} x={x.round1} y={LIVE_Y.round1[3][0]} side={side} />
+      <LiveLogoNode record={s(6)} x={x.round1} y={LIVE_Y.round1[3][1]} side={side} />
+
+      {LIVE_Y.round2.flat().map((y, index) => <LiveLogoNode key={`r2-${side}-${index}`} x={x.round2} y={y} side={side} placeholder="W" />)}
+      {LIVE_Y.conference[0].map((y, index) => <LiveLogoNode key={`cf-${side}-${index}`} x={x.conference} y={y} side={side} placeholder="W" />)}
+    </>
+  );
+}
+
+function LiveBracketBoard({ conferences }) {
+  const west = conferences.find((item) => item.conference === "Western") || conferences[0];
+  const east = conferences.find((item) => item.conference === "Eastern") || conferences[1];
+
+  return (
+    <div className="overflow-x-auto rounded-[2rem] border border-[#000B36]/10 bg-white shadow-sm">
+      <div className="relative mx-auto" style={{ width: LIVE_BOARD_WIDTH, height: LIVE_BOARD_HEIGHT }}>
+        <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 text-center">
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#A90117]">2026–27 projected playoffs</p>
+          <p className="mt-1 text-xl font-black">League Final</p>
         </div>
-        <div>
-          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#000B36]/40">Round 1 projection</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <BracketMatchup label="1 seed" top={seed(1)} placeholder="Winner of 8 / 9" />
-            <BracketMatchup label="4 vs 5" top={seed(4)} bottom={seed(5)} />
-            <BracketMatchup label="2 seed" top={seed(2)} placeholder="Winner of 7 / 10" />
-            <BracketMatchup label="3 vs 6" top={seed(3)} bottom={seed(6)} />
-          </div>
+        <LiveBracketLines />
+        <LiveBracketSide data={west} side="west" />
+        <LiveBracketSide data={east} side="east" />
+
+        <LiveLogoNode x={800} y={LIVE_Y.final[0][0]} side="west" placeholder="W" />
+        <LiveLogoNode x={800} y={LIVE_Y.final[0][1]} side="east" placeholder="E" />
+        <div className="absolute left-1/2 top-[452px] z-20 -translate-x-1/2 rounded-full bg-[#000B36] px-4 py-2 text-[8px] font-black uppercase tracking-[0.14em] text-cyan-200">
+          Champion
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -285,15 +375,16 @@ function WildCardView({ conferences }) {
 function BracketView({ conferences, completedGames }) {
   return (
     <div>
-      <ViewHeading eyebrow="Projected postseason" title="Live bracket" detail="Division winners are seeds 1–2, second-place teams 3–4, third-place teams 5–6, and wild cards 7–10." />
+      <ViewHeading eyebrow="Projected postseason" title="Live bracket" detail="One connected playoff bracket. Division winners seed 1–2, second-place teams 3–4, third-place teams 5–6, and wild cards 7–10." />
       {completedGames === 0 ? (
         <div className="mb-5 rounded-2xl border border-[#18BDFC]/25 bg-cyan-50 px-4 py-3 text-xs font-bold leading-5 text-[#000B36]/65">
-          Preseason preview: all clubs are currently tied at 0–0, so the bracket is populated as a format preview until official results create standings separation.
+          Preseason preview: all clubs are tied at 0–0, so the current 1–10 seeds are shown only to preview the bracket format. The bracket will reseed automatically from live standings once games are played.
         </div>
       ) : null}
-      <div className="grid gap-7 xl:grid-cols-2">
-        {conferences.map((conference) => <ConferenceBracket key={conference.conference} data={conference} />)}
-      </div>
+      <LiveBracketBoard conferences={conferences} />
+      <p className="mt-3 text-xs font-semibold leading-5 text-[#000B36]/38">
+        Team logos are clickable. Small numbers beside each logo are the current projected conference seeds; outlined nodes represent future series winners.
+      </p>
     </div>
   );
 }

@@ -1,3 +1,11 @@
+# Live bracket redesign — September 7, 2026
+
+- Replaced the Live Bracket standings dashboard with one connected playoff bracket spanning both conferences.
+- West advances from the left and East advances from the right into a single league final.
+- Current projected teams are represented primarily by team logos with small conference seed numbers.
+- Preserved the 8/9 and 7/10 qualifier structure and the 1 vs 8/9, 4 vs 5, 2 vs 7/10, and 3 vs 6 Round 1 paths.
+- Future-round positions remain visually connected placeholders until results exist.
+
 # V5.2 simulator integration — September 3, 2026
 
 - Added the AVHL Game Simulator at `/sim`.
