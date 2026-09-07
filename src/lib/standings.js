@@ -19,13 +19,17 @@ function emptyRecord(team) {
   };
 }
 
+// Official 2026–27 AVHL standings tiebreakers:
+// PTS → PTS% → RW → W → GF/G → GA/G (lower is better) → GD.
 export function compareStandings(a, b) {
   return (
     b.pts - a.pts ||
+    b.ptsPct - a.ptsPct ||
     b.rw - a.rw ||
-    b.gd - a.gd ||
-    b.gf - a.gf ||
     b.wins - a.wins ||
+    b.gfPerGame - a.gfPerGame ||
+    a.gaPerGame - b.gaPerGame ||
+    b.gd - a.gd ||
     a.team.name.localeCompare(b.team.name)
   );
 }
@@ -36,6 +40,13 @@ function finalize(record) {
   record.gfPerGame = record.gp ? record.gf / record.gp : 0;
   record.gaPerGame = record.gp ? record.ga / record.gp : 0;
   return record;
+}
+
+function assignSeeds(groups) {
+  let nextSeed = 1;
+  return groups.flatMap((group) =>
+    [...group].sort(compareStandings).map((record) => ({ ...record, seed: nextSeed++ }))
+  );
 }
 
 export function calculateStandings(schedule) {
@@ -73,37 +84,50 @@ export function calculateStandings(schedule) {
 
   Object.values(records).forEach(finalize);
 
+  const league = Object.values(records).sort(compareStandings);
+
   const conferences = Object.entries(conferenceMap).map(([conference, divisionNames]) => {
     const divisionSections = divisionNames.map((division) => {
       const divisionRecords = teams
         .filter((team) => team.division === division)
         .map((team) => records[team.slug])
         .sort(compareStandings);
+
       return {
         name: division,
+        records: divisionRecords,
         topThree: divisionRecords.slice(0, 3),
         remaining: divisionRecords.slice(3),
       };
     });
 
-    const automatic = divisionSections.flatMap((division) => division.topThree).sort(compareStandings);
-    const automaticSlugs = new Set(automatic.map((record) => record.team.slug));
-    const remaining = teams
-      .filter((team) => team.conference === conference && !automaticSlugs.has(team.slug))
+    const conferenceRecords = teams
+      .filter((team) => team.conference === conference)
       .map((team) => records[team.slug])
       .sort(compareStandings);
+
+    const automatic = divisionSections.flatMap((division) => division.topThree);
+    const automaticSlugs = new Set(automatic.map((record) => record.team.slug));
+    const remaining = conferenceRecords.filter((record) => !automaticSlugs.has(record.team.slug));
     const wildCards = remaining.slice(0, 4);
     const outside = remaining.slice(4);
-    const seeded = [...automatic, ...wildCards].map((record, index) => ({ ...record, seed: index + 1 }));
+
+    // Seeding is structural before tiebreakers are applied within each tier:
+    // 1–2 division winners, 3–4 second place, 5–6 third place, 7–10 wild cards.
+    const divisionWinners = divisionSections.map((division) => division.records[0]).filter(Boolean);
+    const secondPlace = divisionSections.map((division) => division.records[1]).filter(Boolean);
+    const thirdPlace = divisionSections.map((division) => division.records[2]).filter(Boolean);
+    const seeds = assignSeeds([divisionWinners, secondPlace, thirdPlace, wildCards]);
 
     return {
       conference,
+      conferenceRecords,
       divisionSections,
       wildCards,
       outside,
-      seeds: seeded,
+      seeds,
     };
   });
 
-  return { records, conferences, completedGames };
+  return { records, league, conferences, completedGames };
 }

@@ -215,3 +215,14 @@
 - The `/info/history/brackets` archive now has complete series scores for all four historical playoff seasons.
 - Retained clean copies of both official schedule CSVs under `data/source/` for provenance.
 - No bracket structure, team mapping, simulator logic, live-roster logic, or other site behavior was changed.
+
+## Site 24 — Standings redesign + live playoff bracket
+- Rebuilt `/standings` around one five-way segmented toggle: **League / Conference / Division / Wild Card / Live Bracket**.
+- League view shows the complete 1–40 table with all core standings and tiebreaker metrics.
+- Conference view shows all 20 Western and all 20 Eastern clubs side by side on desktop.
+- Division view shows all four 10-team divisions in a 2×2 desktop layout and uses **PCF** (not PAC) for the Pacific Division; the fourth division is presented as **EAST**.
+- Wild Card view shows the top three teams in each division plus the four current wild cards for each conference.
+- Added a live playoff-bracket projection using the current 10-team-per-conference format: division winners seed 1–2, second-place clubs 3–4, third-place clubs 5–6, and wild cards 7–10.
+- Replaced the old standings sort order with the official 2026–27 tiebreaker sequence: **PTS → PTS% → RW → W → GF/G → GA/G (lower) → GD**.
+- Added `/standings/tiebreakers` and a Tiebreakers button near the main standings view toggle.
+- All tables, wild-card selection, and live-bracket seed ordering share the same centralized standings comparator and continue to update from the live official schedule feed.
