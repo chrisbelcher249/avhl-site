@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRef } from "react";
 
 const navItems = [
   ["Teams", "/teams"],
@@ -16,6 +19,9 @@ const navItems = [
 ];
 
 export default function SiteHeader() {
+  const mobileMenuRef = useRef(null);
+  const closeMobileMenu = () => mobileMenuRef.current?.removeAttribute("open");
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#000B36]/95 text-white backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-3 md:px-8">
@@ -43,13 +49,13 @@ export default function SiteHeader() {
           ))}
         </nav>
 
-        <details className="relative xl:hidden">
+        <details ref={mobileMenuRef} className="relative xl:hidden">
           <summary className="cursor-pointer list-none rounded-full border border-white/20 px-4 py-2 text-sm font-black uppercase tracking-wide">
             Menu
           </summary>
           <nav className="absolute right-0 mt-3 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#000B36] p-2 shadow-2xl" aria-label="Mobile navigation">
             {navItems.map(([label, href]) => (
-              <Link key={href} href={href} className="block rounded-xl px-4 py-3 text-sm font-extrabold text-white/80 hover:bg-white/10 hover:text-white">
+              <Link key={href} href={href} onClick={closeMobileMenu} className="block rounded-xl px-4 py-3 text-sm font-extrabold text-white/80 hover:bg-white/10 hover:text-white">
                 {label}
               </Link>
             ))}

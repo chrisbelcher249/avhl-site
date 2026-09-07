@@ -1,3 +1,14 @@
+# Site 27 — Live bracket fit + standings naming + mobile menu
+
+- Corrected the current standings taxonomy so **Eastern Conference** remains the conference and **Metropolitan Division (MET)** remains the division; the standings UI no longer relabels Metropolitan as EAST.
+- Kept **PCF** as the official Pacific Division abbreviation.
+- Moved the red Western Conference and Eastern Conference labels directly above each conference's 8/9 qualifier area.
+- Tightened and resized the connected Live Bracket so it fits comfortably within normal desktop widths instead of requiring a small horizontal scroll at common screen sizes.
+- Repositioned the central projected-playoffs / League Final heading so it no longer collides with round labels.
+- Updated the preseason note to show the actual starting record state as **0–0–0**.
+- Fixed the mobile top-right navigation menu so selecting a destination closes the open dropdown immediately as navigation begins.
+- No simulator, roster, schedule-source, playoff-history, draft, or cap logic was changed.
+
 # Live bracket redesign — September 7, 2026
 
 - Replaced the Live Bracket standings dashboard with one connected playoff bracket spanning both conferences.
