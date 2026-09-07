@@ -21,7 +21,7 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - Player filters for AVHL status/team, position group, pro league, and overall rating, plus salary sorting
 - Team salary-cap compliance using a $100,000,000 cap, $70,000,000 floor, $20,000,000 maximum salary, and $900,000 minimum salary
 - Complete 1,640-game Major League schedule with team, division, conference, month, date, and venue filters
-- Live 2026–27 standings with League, Conference, Division, Wild Card, and Live Bracket views plus the official seven-step tiebreaker system
+- Live 2026–27 standings with League, Conference, Division, Wild Card, and Live Bracket views plus the official seven-step tiebreaker system; Wild Card includes 11–20 Outside Looking In and the bracket previews even before Game 1
 - Individual 82-game schedule pages for all 40 teams
 - Native live Draft Capital board at `/draft` for 2027 and 2028, plus data-driven pick inventory on every team page
 - AVHL Discord link retained; closed owner application removed

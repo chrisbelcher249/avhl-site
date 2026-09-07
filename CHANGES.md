@@ -226,3 +226,11 @@
 - Replaced the old standings sort order with the official 2026–27 tiebreaker sequence: **PTS → PTS% → RW → W → GF/G → GA/G (lower) → GD**.
 - Added `/standings/tiebreakers` and a Tiebreakers button near the main standings view toggle.
 - All tables, wild-card selection, and live-bracket seed ordering share the same centralized standings comparator and continue to update from the live official schedule feed.
+
+## Site 25 — Wild-card race depth + preseason bracket preview
+- Extended each conference's Wild Card view with an **Outside Looking In** section containing the remaining 10 teams, labeled 11–20.
+- Kept the existing top-three divisional qualifiers and four wild-card spots intact above that section.
+- Removed the first-game gate from **Live Bracket** so both 10-team conference brackets populate immediately, including before any 2026–27 games are completed.
+- Added a small preseason-preview notice when the schedule has zero completed games; once results exist, the same bracket continues updating from live standings automatically.
+- No simulator, roster, schedule-source, cap, history, draft, or playoff-history logic was changed.
+

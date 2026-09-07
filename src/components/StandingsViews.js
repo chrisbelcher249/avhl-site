@@ -238,7 +238,7 @@ function DivisionView({ conferences }) {
 function WildCardView({ conferences }) {
   return (
     <div>
-      <ViewHeading eyebrow="Playoff race" title="Wild card standings" detail="Each conference shows its top three teams from both divisions plus the four current wild cards." />
+      <ViewHeading eyebrow="Playoff race" title="Wild card standings" detail="Each conference shows its six automatic divisional spots, four current wild cards, and the 10 teams outside the projected field." />
       <div className="grid gap-7 xl:grid-cols-2">
         {conferences.map((conference) => (
           <section key={conference.conference} className="rounded-[2rem] border border-[#000B36]/10 bg-white p-4 shadow-sm sm:p-5">
@@ -268,6 +268,12 @@ function WildCardView({ conferences }) {
                 labelForIndex={(index) => `WC ${index + 1}`}
                 accent
               />
+              <CompactTable
+                title="Outside Looking In"
+                eyebrow="Next in the conference race"
+                records={conference.outside}
+                labelForIndex={(index) => index + 11}
+              />
             </div>
           </section>
         ))}
@@ -280,16 +286,14 @@ function BracketView({ conferences, completedGames }) {
   return (
     <div>
       <ViewHeading eyebrow="Projected postseason" title="Live bracket" detail="Division winners are seeds 1–2, second-place teams 3–4, third-place teams 5–6, and wild cards 7–10." />
-      {completedGames > 0 ? (
-        <div className="grid gap-7 xl:grid-cols-2">
-          {conferences.map((conference) => <ConferenceBracket key={conference.conference} data={conference} />)}
+      {completedGames === 0 ? (
+        <div className="mb-5 rounded-2xl border border-[#18BDFC]/25 bg-cyan-50 px-4 py-3 text-xs font-bold leading-5 text-[#000B36]/65">
+          Preseason preview: all clubs are currently tied at 0–0, so the bracket is populated as a format preview until official results create standings separation.
         </div>
-      ) : (
-        <div className="rounded-[2rem] border border-dashed border-[#000B36]/18 bg-white p-10 text-center">
-          <p className="text-2xl font-black">The live bracket activates after the first completed game.</p>
-          <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#000B36]/45">Once results begin coming in, both conference fields and all seeds 1–10 will populate automatically from the live standings.</p>
-        </div>
-      )}
+      ) : null}
+      <div className="grid gap-7 xl:grid-cols-2">
+        {conferences.map((conference) => <ConferenceBracket key={conference.conference} data={conference} />)}
+      </div>
     </div>
   );
 }
