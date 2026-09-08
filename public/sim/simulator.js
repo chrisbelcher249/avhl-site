@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V5.2
+  AVHL Game Simulator V6.0
   ----------------------
   Plain JavaScript, no packages, and intentionally separated from the UI.
 
@@ -10,6 +10,7 @@
   - Shots, attempts, hits, penalties, and faceoffs receive exact rink coordinates.
   - Goal replays preserve all players actually on the ice, including both goalies.
   - Randomness is constrained by physically and tactically plausible ranges.
+  - V6 consumes the live AVHL CSV ratings directly and models seeded injuries.
 */
 
 const AVHL_RINK = (typeof window !== "undefined" && window.AVHL_RINK_GEOMETRY) || {
@@ -85,6 +86,9 @@ class AVHLGameSimulator {
 
     this.random = new SeededRandom(seed);
     this.seed = this.random.seed;
+    // Injury rolls use a separate deterministic stream so adding medical logic
+    // does not perturb ordinary hockey RNG until an injury actually changes personnel.
+    this.injuryRandom = new SeededRandom(AVHLGameSimulator.hashString(`${this.seed}:injuries:v6`));
     this.rawData = this.clone(data);
     this.homeId = data.home.id;
     this.awayId = data.away.id;
@@ -132,13 +136,42 @@ class AVHLGameSimulator {
     return `${minutes}:${String(rounded % 60).padStart(2, "0")}`;
   }
 
+  ratingFrom(player, labels, fallback = null) {
+    const ratings = player?.ratings ?? {};
+    for (const label of labels) {
+      const value = Number(ratings[label]);
+      if (Number.isFinite(value)) return this.clamp(value, 40, 99);
+    }
+    const overall = Number(player?.overall);
+    const resolved = Number.isFinite(fallback) ? fallback : Number.isFinite(overall) ? overall : 80;
+    return this.clamp(resolved, 40, 99);
+  }
+
+  positionFamiliarity(player) {
+    const listed = String(player?.listedPosition || player?.position || "")
+      .toUpperCase()
+      .split(/[\/,\s-]+/)
+      .filter(Boolean);
+    const assigned = String(player?.position || "").toUpperCase();
+    if (!assigned || !listed.length || listed.includes(assigned)) return 1;
+    if (["LD", "RD"].includes(assigned) && listed.includes("D")) return 1;
+    // AVHL 2026-27 rule: a skater may play anywhere in their broad position
+    // group, but unfamiliar F slots / defense sides receive a 3% familiarity hit
+    // to awareness, passing and puck-control ratings.
+    return 0.97;
+  }
+
+  applyFamiliarity(value, player) {
+    return Math.round(value * this.positionFamiliarity(player) * 10) / 10;
+  }
+
   buildTeam(rawTeam, isHome) {
-    const forwards = rawTeam.forwards.map((player) => this.buildSyntheticSkater(player, rawTeam.id));
-    const defense = rawTeam.defense.map((player) => this.buildSyntheticSkater(player, rawTeam.id));
+    const forwards = rawTeam.forwards.map((player) => this.buildSkater(player, rawTeam.id));
+    const defense = rawTeam.defense.map((player) => this.buildSkater(player, rawTeam.id));
     const starterRaw = rawTeam.goalies.find((goalie) => goalie.starter) ?? rawTeam.goalies[0];
     const backupRaw = rawTeam.goalies.find((goalie) => goalie.id !== starterRaw.id) ?? rawTeam.goalies[1];
-    const goalie = this.buildSyntheticGoalie(starterRaw, rawTeam.id);
-    const backup = backupRaw ? this.buildSyntheticGoalie(backupRaw, rawTeam.id) : null;
+    const goalie = this.buildGoalie(starterRaw, rawTeam.id);
+    const backup = backupRaw ? this.buildGoalie(backupRaw, rawTeam.id) : null;
     const players = [...forwards, ...defense];
     const playerById = Object.fromEntries(players.map((player) => [player.id, player]));
 
@@ -199,6 +232,8 @@ class AVHLGameSimulator {
       defense,
       players,
       playerById,
+      goalies: [goalie, backup].filter(Boolean),
+      starterId: goalie.id,
       goalie,
       backup,
       forwardLines,
@@ -213,79 +248,82 @@ class AVHLGameSimulator {
     };
   }
 
-  buildSyntheticSkater(player, teamId) {
-    const localRandom = new SeededRandom(AVHLGameSimulator.hashString(`${teamId}:${player.name}`));
+  buildSkater(player, teamId) {
     const tier = player.position.includes("D") ? player.pair : player.line;
-    const baseOverall = 89 - (tier - 1) * 2.7 - (player.position.includes("D") ? 0.4 : 0);
-    const rating = (offset = 0, spread = 9) =>
-      Math.round(this.clamp(baseOverall + offset + localRandom.normal(0, spread / 3), 65, 96));
+    const r = (...labels) => this.ratingFrom(player, labels);
+    const familiarity = this.positionFamiliarity(player);
+    const awareness = (value) => Math.round(value * familiarity * 10) / 10;
 
     return {
       ...player,
       teamId,
       usageTier: tier,
-      overall: rating(),
-      deking: rating(),
-      handEye: rating(),
-      passing: rating(),
-      puckControl: rating(),
-      discipline: rating(2),
-      offensiveAwareness: rating(),
-      poise: rating(),
-      slapShotAccuracy: rating(player.position.includes("D") ? 2 : -1),
-      slapShotPower: rating(player.position.includes("D") ? 3 : 0),
-      wristShotAccuracy: rating(player.position.includes("D") ? -2 : 2),
-      wristShotPower: rating(),
-      defensiveAwareness: rating(player.position.includes("D") ? 3 : 0),
-      faceoffs: player.position === "C" ? rating(6) : rating(-17),
-      shotBlocking: rating(player.position.includes("D") ? 4 : -1),
-      stickChecking: rating(player.position.includes("D") ? 3 : 0),
-      acceleration: rating(),
-      agility: rating(),
-      balance: rating(),
-      endurance: rating(1),
-      speed: rating(),
-      aggressiveness: rating(),
-      bodyChecking: rating(player.position.includes("D") ? 2 : 0),
-      durability: rating(),
-      fightingSkill: rating(-5),
-      strength: rating(),
+      overall: Number.isFinite(Number(player.overall)) ? Number(player.overall) : r("Overall"),
+      deking: r("Deking"),
+      handEye: r("Hand Eye", "Hand-Eye"),
+      passing: awareness(r("Passing")),
+      puckControl: awareness(r("Puck Control")),
+      discipline: r("Discipline"),
+      offensiveAwareness: awareness(r("Off. Awareness", "Offensive Awareness")),
+      poise: r("Poise"),
+      slapShotAccuracy: r("Slap Shot Accuracy", "Slap Shot Acc."),
+      slapShotPower: r("Slap Shot Power"),
+      wristShotAccuracy: r("Wrist Shot Accuracy", "Wrist Shot Acc."),
+      wristShotPower: r("Wrist Shot Power"),
+      defensiveAwareness: awareness(r("Def. Awareness", "Defensive Awareness")),
+      faceoffs: r("Faceoffs"),
+      shotBlocking: r("Shot Blocking"),
+      stickChecking: r("Stick Checking"),
+      acceleration: r("Acceleration"),
+      agility: r("Agility"),
+      balance: r("Balance"),
+      endurance: r("Endurance"),
+      speed: r("Speed"),
+      aggressiveness: r("Aggressiveness"),
+      bodyChecking: r("Body Checking"),
+      durability: r("Durability"),
+      fightingSkill: r("Fighting Skill"),
+      strength: r("Strength"),
+      age: Number.isFinite(Number(player.age)) ? Number(player.age) : null,
+      heightIn: Number.isFinite(Number(player.heightIn)) ? Number(player.heightIn) : null,
+      weight: Number.isFinite(Number(player.weight)) ? Number(player.weight) : null,
+      positionFamiliarity: familiarity,
+      ratingSource: Object.keys(player.ratings || {}).length ? "avhl-csv" : "overall-fallback",
       fatigue: 0,
       stats: this.blankSkaterStats()
     };
   }
 
-  buildSyntheticGoalie(goalie, teamId) {
-    const localRandom = new SeededRandom(AVHLGameSimulator.hashString(`${teamId}:${goalie.name}:goalie`));
-    const nameBoost = goalie.name.includes("Vasilevskiy") ? 2 : goalie.name.includes("Saros") ? 1 : 0;
-    const base = 88 + nameBoost;
-    const rating = (offset = 0, spread = 7) =>
-      Math.round(this.clamp(base + offset + localRandom.normal(0, spread / 3), 72, 96));
-
+  buildGoalie(goalie, teamId) {
+    const r = (...labels) => this.ratingFrom(goalie, labels);
     return {
       ...goalie,
       teamId,
       position: "G",
-      overall: rating(),
-      angles: rating(),
-      breakaway: rating(),
-      fiveHole: rating(),
-      gloveHigh: rating(),
-      gloveLow: rating(),
-      stickHigh: rating(),
-      stickLow: rating(),
-      passing: rating(-2),
-      poise: rating(),
-      pokeCheck: rating(),
-      puckPlayingFrequency: rating(-4),
-      reboundControl: rating(),
-      recover: rating(),
-      aggressiveness: rating(-4),
-      agility: rating(),
-      durability: rating(),
-      endurance: rating(),
-      speed: rating(),
-      vision: rating(),
+      overall: Number.isFinite(Number(goalie.overall)) ? Number(goalie.overall) : r("Overall"),
+      angles: r("Angles"),
+      breakaway: r("Breakaway"),
+      fiveHole: r("Five Hole"),
+      gloveHigh: r("Glove High"),
+      gloveLow: r("Glove Low"),
+      stickHigh: r("Stick High"),
+      stickLow: r("Stick Low"),
+      passing: r("Passing"),
+      poise: r("Poise"),
+      pokeCheck: r("Poke Check"),
+      puckPlayingFrequency: r("Puck Playing Freq.", "Puck Playing Frequency"),
+      reboundControl: r("Rebound Control"),
+      recover: r("Recover"),
+      aggressiveness: r("Aggressiveness"),
+      agility: r("Agility"),
+      durability: r("Durability"),
+      endurance: r("Endurance"),
+      speed: r("Speed"),
+      vision: r("Vision"),
+      age: Number.isFinite(Number(goalie.age)) ? Number(goalie.age) : null,
+      heightIn: Number.isFinite(Number(goalie.heightIn)) ? Number(goalie.heightIn) : null,
+      weight: Number.isFinite(Number(goalie.weight)) ? Number(goalie.weight) : null,
+      ratingSource: Object.keys(goalie.ratings || {}).length ? "avhl-csv" : "overall-fallback",
       fatigue: 0,
       stats: this.blankGoalieStats()
     };
@@ -403,12 +441,12 @@ class AVHLGameSimulator {
         player.stats = this.blankSkaterStats();
         player.fatigue = 0;
       });
-      team.goalie.stats = this.blankGoalieStats();
-      team.goalie.fatigue = 0;
-      if (team.backup) {
-        team.backup.stats = this.blankGoalieStats();
-        team.backup.fatigue = 0;
+      for (const goalie of team.goalies) {
+        goalie.stats = this.blankGoalieStats();
+        goalie.fatigue = 0;
       }
+      team.goalie = team.goalies.find((goalie) => goalie.id === team.starterId) ?? team.goalies[0];
+      team.backup = team.goalies.find((goalie) => goalie.id !== team.goalie?.id) ?? null;
     });
   }
 
@@ -432,6 +470,7 @@ class AVHLGameSimulator {
       powerPlayTime: { [this.homeId]: 0, [this.awayId]: 0 },
       shorthandedGoals: { [this.homeId]: 0, [this.awayId]: 0 },
       activePenalties: [],
+      injuries: [],
       possessionTeam: null,
       puckCarrierId: null,
       puck: { x: 100, y: 42.5 },
@@ -684,11 +723,219 @@ class AVHLGameSimulator {
   }
 
   unavailablePlayerIds(state, teamId) {
-    return new Set(
+    const ids = new Set(
       state.activePenalties
         .filter((penalty) => penalty.teamId === teamId && penalty.playerId && penalty.remaining > 0)
         .map((penalty) => penalty.playerId)
     );
+    for (const injury of state.injuries ?? []) {
+      if (injury.teamId === teamId && injury.playerId) ids.add(injury.playerId);
+    }
+    return ids;
+  }
+
+  injuryRiskMultiplier(player) {
+    const durability = Number(player?.durability) || 80;
+    const fatigue = this.clamp(Number(player?.fatigue) || 0, 0, 1);
+    const age = Number(player?.age);
+    const durabilityFactor = 1 + (82 - durability) * 0.035;
+    const fatigueFactor = 1 + fatigue * 0.55;
+    const ageFactor = Number.isFinite(age) ? 1 + Math.max(0, age - 30) * 0.008 : 1;
+    return this.clamp(durabilityFactor * fatigueFactor * ageFactor, 0.48, 2.15);
+  }
+
+  injuryBodyArea(cause, player) {
+    const pools = {
+      hit: [["Upper body", 30], ["Lower body", 30], ["Shoulder", 14], ["Head", 10], ["Back", 8], ["Hand/Wrist", 8]],
+      block: [["Hand/Wrist", 31], ["Foot/Ankle", 29], ["Lower body", 20], ["Upper body", 12], ["Knee", 8]],
+      fight: [["Hand/Wrist", 31], ["Upper body", 28], ["Head", 20], ["Shoulder", 12], ["Lower body", 9]],
+      fatigue: [["Lower body", 45], ["Groin/Hip", 24], ["Back", 17], ["Upper body", 8], ["Knee", 6]],
+      goalie: [["Lower body", 34], ["Groin/Hip", 27], ["Knee", 13], ["Upper body", 13], ["Head", 7], ["Hand/Wrist", 6]]
+    };
+    const pool = pools[cause] ?? pools.hit;
+    return this.injuryRandom.weightedChoice(pool, ([, weight]) => weight)[0];
+  }
+
+  injuryDuration(player, impact = 1) {
+    const durability = Number(player?.durability) || 80;
+    const age = Number(player?.age);
+    const durabilityShift = this.clamp((82 - durability) * 0.006, -0.08, 0.16);
+    const impactShift = this.clamp((impact - 1) * 0.07, -0.05, 0.13);
+    const ageShift = Number.isFinite(age) ? this.clamp(Math.max(0, age - 31) * 0.0025, 0, 0.035) : 0;
+    const roll = this.injuryRandom.next() + durabilityShift + impactShift + ageShift;
+
+    if (roll < 0.46) return { severity: "day-to-day", gamesMissed: this.injuryRandom.integer(1, 2) };
+    if (roll < 0.78) return { severity: "minor", gamesMissed: this.injuryRandom.integer(3, 5) };
+    if (roll < 0.94) return { severity: "moderate", gamesMissed: this.injuryRandom.integer(6, 12) };
+    if (roll < 0.99) return { severity: "major", gamesMissed: this.injuryRandom.integer(13, 24) };
+    return { severity: "severe", gamesMissed: this.injuryRandom.integer(25, 45) };
+  }
+
+  substituteInjuredGoalie(state, teamId, injuredGoalie) {
+    const team = this.teams[teamId];
+    const replacement = team.goalies.find(
+      (goalie) => goalie.id !== injuredGoalie.id && !(state.injuries ?? []).some((injury) => injury.playerId === goalie.id)
+    );
+    if (!replacement) return false;
+
+    const oldPosition = state.positions[injuredGoalie.id] ?? this.defaultPositionForPlayer(state, teamId, injuredGoalie.id, 0);
+    team.goalie = replacement;
+    team.backup = injuredGoalie;
+    state.positions[replacement.id] = { ...oldPosition, vx: 0, vy: 0 };
+    delete state.positions[injuredGoalie.id];
+    this.addEvent(
+      state,
+      "goalie-change",
+      `${replacement.name} replaces ${injuredGoalie.name} in goal after the injury.`,
+      { teamId, playerId: replacement.id, secondaryPlayerId: injuredGoalie.id, location: { x: oldPosition.x, y: oldPosition.y } }
+    );
+    return true;
+  }
+
+  registerInjury(state, player, cause, impact = 1, location = state.puck, extra = {}) {
+    if (!player || (state.injuries ?? []).some((injury) => injury.playerId === player.id)) return null;
+    if (player.position === "G") {
+      const team = this.teams[player.teamId];
+      const healthyBackup = team.goalies.some(
+        (goalie) => goalie.id !== player.id && !(state.injuries ?? []).some((injury) => injury.playerId === goalie.id)
+      );
+      if (!healthyBackup) return null;
+    }
+
+    const duration = this.injuryDuration(player, impact);
+    const bodyArea = this.injuryBodyArea(cause, player);
+    const injury = {
+      id: `injury-${this.eventId + 1}-${player.id}`,
+      teamId: player.teamId,
+      playerId: player.id,
+      avhlId: player.avhlId ?? null,
+      playerName: player.name,
+      position: player.position,
+      cause,
+      bodyArea,
+      severity: duration.severity,
+      gamesMissed: duration.gamesMissed,
+      durability: player.durability,
+      fatigue: Math.round((player.fatigue || 0) * 1000) / 1000,
+      period: state.period,
+      clock: state.clock,
+      clockText: this.formatClock(state.clock),
+      absoluteTime: state.absoluteTime,
+      impact: Math.round(impact * 1000) / 1000,
+      ...extra
+    };
+    state.injuries.push(injury);
+
+    this.addEvent(
+      state,
+      "injury",
+      `INJURY — ${player.name}: ${bodyArea}, expected to miss ${duration.gamesMissed} game${duration.gamesMissed === 1 ? "" : "s"}.`,
+      {
+        teamId: player.teamId,
+        playerId: player.id,
+        location: location ? { ...location } : null,
+        outcome: duration.severity,
+        details: this.clone(injury)
+      }
+    );
+
+    if (player.position === "G") {
+      this.substituteInjuredGoalie(state, player.teamId, player);
+    } else {
+      const wasCarrier = state.puckCarrierId === player.id;
+      this.refreshUnits(state, false);
+      delete state.positions[player.id];
+      if (wasCarrier) {
+        state.possessionTeam = null;
+        state.puckCarrierId = null;
+        state.assistQueue = [];
+      }
+    }
+    return injury;
+  }
+
+  maybeCauseInjury(state, player, { cause = "hit", baseProbability = 0, impact = 1, location = state.puck, extra = {} } = {}) {
+    if (!player || baseProbability <= 0) return null;
+    if ((state.injuries ?? []).some((injury) => injury.playerId === player.id)) return null;
+    const probability = this.clamp(baseProbability * this.injuryRiskMultiplier(player) * this.clamp(impact, 0.35, 2.8), 0, 0.12);
+    if (!this.injuryRandom.chance(probability)) return null;
+    return this.registerInjury(state, player, cause, impact, location, { probability: Math.round(probability * 1000000) / 1000000, ...extra });
+  }
+
+  maybeShiftInjuries(state, teamId, outgoingIds) {
+    const team = this.teams[teamId];
+    for (const id of outgoingIds) {
+      const player = team.playerById[id];
+      if (!player || id === state.puckCarrierId || player.stats.currentShift < 50 || player.fatigue < 0.075) continue;
+      const workload = this.clamp(Math.pow(player.stats.currentShift / 55, 1.35) * (0.45 + player.fatigue * 1.3), 0.45, 3.2);
+      this.maybeCauseInjury(state, player, {
+        cause: "fatigue",
+        baseProbability: 0.000075,
+        impact: workload,
+        location: state.positions[player.id] ?? state.puck,
+        extra: { shiftSeconds: Math.round(player.stats.currentShift * 10) / 10 }
+      });
+    }
+  }
+
+  maybeGoalieCollisionInjury(state, goalie, shot) {
+    const close = ["crease", "low slot", "goal line", "behind net"].includes(shot.region);
+    if (!close && shot.context !== "breakaway") return null;
+    let baseProbability = 0.00035;
+    if (shot.technique.includes("jam") || shot.technique.includes("wraparound")) baseProbability = 0.0018;
+    else if (shot.region === "crease") baseProbability = 0.00115;
+    else if (shot.context === "breakaway") baseProbability = 0.00075;
+    const impact = this.clamp(0.75 + shot.pressure * 0.35 + (shot.technique.includes("jam") ? 0.5 : 0), 0.6, 1.8);
+    return this.maybeCauseInjury(state, goalie, {
+      cause: "goalie",
+      baseProbability,
+      impact,
+      location: { x: this.ownGoalX(goalie.teamId, state.period), y: 42.5 },
+      extra: { shotRegion: shot.region, shotTechnique: shot.technique }
+    });
+  }
+
+  tryGoaliePuckPlay(state, goalie, reboundLocation, attackingTeamId) {
+    if (!goalie || !reboundLocation || state.nextFaceoff) return false;
+    const defendingTeamId = goalie.teamId;
+    const pressure = this.localPressure(state, goalie, attackingTeamId);
+    const willingness = this.clamp(
+      0.12 + (goalie.puckPlayingFrequency - 75) * 0.012 + (goalie.poise - 80) * 0.003 - pressure * 0.22,
+      0.04,
+      0.56
+    );
+    if (!this.random.chance(willingness)) return false;
+
+    const recipient = this.chooseOnIcePlayer(
+      state,
+      defendingTeamId,
+      (player) => player.defensiveAwareness * 0.4 + player.passing * 0.28 + player.puckControl * 0.2 + player.speed * 0.12
+    );
+    if (!recipient) return false;
+    const success = this.clamp(
+      0.72 + (goalie.passing - 80) * 0.009 + (goalie.poise - 80) * 0.004 - pressure * 0.18,
+      0.48,
+      0.93
+    );
+    if (!this.random.chance(success)) return false;
+
+    const pickup = state.positions[recipient.id] ?? reboundLocation;
+    state.puck = { x: pickup.x, y: pickup.y };
+    this.setPossession(state, defendingTeamId, recipient.id, true);
+    state.lastContext = "goalie-play";
+    this.addEvent(
+      state,
+      "goalie-play",
+      `${goalie.name} settles the puck and moves it to ${recipient.name}.`,
+      {
+        teamId: defendingTeamId,
+        playerId: goalie.id,
+        secondaryPlayerId: recipient.id,
+        location: { ...state.puck },
+        details: { willingness, successProbability: success, pressure }
+      }
+    );
+    return true;
   }
 
   chooseUnit(state, teamId, forceRotate = false) {
@@ -976,6 +1223,8 @@ class AVHLGameSimulator {
       if (deepLivePlay && !state.nextFaceoff) continue;
 
       if ((safeOpportunity && overdue) || veryOverdue) {
+        const outgoing = [...state.onIce[teamId]];
+        this.maybeShiftInjuries(state, teamId, outgoing);
         this.setOnIce(state, teamId, this.chooseUnit(state, teamId, true), true);
         changed = true;
       }
@@ -1243,10 +1492,14 @@ class AVHLGameSimulator {
     if (isGoalie) {
       const ownGoal = this.ownGoalX(teamId, state.period);
       const puckDistance = Math.abs(puck.x - ownGoal);
-      const depth = possessing ? 2.3 : this.clamp(2.6 + (70 - Math.min(70, puckDistance)) * 0.018, 2.6, 4.4);
+      const aggressionDepth = (player.aggressiveness - 80) * 0.025;
+      const angleDiscipline = (player.angles - 80) * 0.012;
+      const depth = possessing
+        ? 2.25
+        : this.clamp(2.55 + (70 - Math.min(70, puckDistance)) * 0.018 + aggressionDepth - angleDiscipline * 0.35, 2.35, 4.75);
       return {
         x: ownGoal + direction * depth,
-        y: this.clamp(42.5 + (puck.y - 42.5) * 0.16, 35, 50)
+        y: this.clamp(42.5 + (puck.y - 42.5) * (0.15 + (player.angles - 80) * 0.0012), 35, 50)
       };
     }
 
@@ -1374,14 +1627,15 @@ class AVHLGameSimulator {
 
     const steerVelocity = (current, anchor, player) => {
       const goalie = player.position === "G";
-      const speedRating = goalie ? player.agility : player.speed;
+      const speedRating = player.speed;
       const accelRating = goalie ? player.agility : player.acceleration;
-      const maxSpeed = goalie
-        ? 12.5 + (speedRating - 70) * 0.08
-        : 21.5 + (speedRating - 70) * 0.16;
-      const maxAccel = goalie
-        ? 9.5 + (accelRating - 70) * 0.07
-        : 11.5 + (accelRating - 70) * 0.11;
+      const fatigue = this.clamp(player.fatigue || 0, 0, 1);
+      const maxSpeed = (goalie
+        ? 11.7 + (speedRating - 70) * 0.09
+        : 21.5 + (speedRating - 70) * 0.16) * (1 - fatigue * (goalie ? 0.08 : 0.12));
+      const maxAccel = (goalie
+        ? 9.7 + (accelRating - 70) * 0.085
+        : 11.5 + (accelRating - 70) * 0.11) * (1 - fatigue * (goalie ? 0.1 : 0.16));
       const dx = anchor.x - current.x;
       const dy = anchor.y - current.y;
       const distance = Math.hypot(dx, dy);
@@ -1392,7 +1646,10 @@ class AVHLGameSimulator {
       const currentSpeed = Math.hypot(current.vx ?? 0, current.vy ?? 0);
       let currentAngle = currentSpeed > 0.25 ? Math.atan2(current.vy, current.vx) : desiredAngle;
       let diff = Math.atan2(Math.sin(desiredAngle - currentAngle), Math.cos(desiredAngle - currentAngle));
-      const turnRate = goalie ? 3.1 : this.clamp(3.4 - currentSpeed * 0.055, 1.15, 3.2);
+      const agility = player.agility ?? 80;
+      const turnRate = goalie
+        ? this.clamp(2.65 + (agility - 75) * 0.028 - currentSpeed * 0.018, 2.2, 3.75)
+        : this.clamp(2.75 + (agility - 75) * 0.032 - currentSpeed * 0.047, 1.15, 3.65);
       diff = this.clamp(diff, -turnRate * dt, turnRate * dt);
       const steeredAngle = currentAngle + diff;
       const targetVx = Math.cos(steeredAngle) * desiredSpeed;
@@ -1523,7 +1780,7 @@ class AVHLGameSimulator {
         else if (situation === "OT") player.stats.otToi += seconds;
         else player.stats.evToi += seconds;
         player.fatigue = this.clamp(
-          player.fatigue + seconds * (0.0019 - (player.endurance - 70) * 0.000008),
+          player.fatigue + seconds * (0.00192 - (player.endurance - 70) * 0.000011),
           0,
           1
         );
@@ -1537,7 +1794,11 @@ class AVHLGameSimulator {
       }
 
       team.goalie.stats.toi += seconds;
-      team.goalie.fatigue = this.clamp(team.goalie.fatigue + seconds * 0.00008, 0, 1);
+      team.goalie.fatigue = this.clamp(
+        team.goalie.fatigue + seconds * (0.00009 - (team.goalie.endurance - 70) * 0.00000055),
+        0,
+        1
+      );
       state.shiftAge[teamId] += seconds;
     }
 
@@ -1772,14 +2033,15 @@ class AVHLGameSimulator {
     const ux = dx / distance;
     const uy = dy / distance;
     const toward = Math.max(0, (position.vx ?? 0) * ux + (position.vy ?? 0) * uy);
-    const maxSpeed = 21.5 + (player.speed - 70) * 0.16;
-    const accel = 11.5 + (player.acceleration - 70) * 0.11;
+    const maxSpeed = (21.5 + (player.speed - 70) * 0.16) * (1 - player.fatigue * 0.1);
+    const accel = (11.5 + (player.acceleration - 70) * 0.11) * (1 - player.fatigue * 0.14);
     const effectiveV = Math.min(maxSpeed, toward);
     const time = accel > 0.01
       ? (-effectiveV + Math.sqrt(Math.max(0, effectiveV * effectiveV + 2 * accel * distance))) / accel
       : distance / Math.max(1, maxSpeed);
     const awareness = player.position.includes("D") ? player.defensiveAwareness : player.offensiveAwareness;
-    return Math.max(0.12, time + this.clamp((84 - awareness) * 0.004, -0.04, 0.12));
+    const handlingAdjustment = (84 - player.agility) * 0.0025 + (84 - player.balance) * 0.0018;
+    return Math.max(0.12, time + this.clamp((84 - awareness) * 0.004 + handlingAdjustment, -0.06, 0.16));
   }
 
   resolveLoosePuck(state, location, attackingTeamId, reason = "loose puck") {
@@ -1864,8 +2126,8 @@ class AVHLGameSimulator {
     if (!playerId) return null;
     for (const team of Object.values(this.teams)) {
       if (team.playerById[playerId]) return team.playerById[playerId];
-      if (team.goalie.id === playerId) return team.goalie;
-      if (team.backup?.id === playerId) return team.backup;
+      const goalie = team.goalies.find((candidate) => candidate.id === playerId);
+      if (goalie) return goalie;
     }
     return null;
   }
@@ -2049,9 +2311,11 @@ class AVHLGameSimulator {
           ? this.clamp(Math.hypot(position.x - passerPosition.x, position.y - passerPosition.y), 4, 45)
           : 18;
         return (
-          player.offensiveAwareness * 0.55 +
-          player.puckControl * 0.35 +
-          player.speed * 0.2 +
+          player.offensiveAwareness * 0.42 +
+          player.puckControl * 0.25 +
+          player.speed * 0.14 +
+          player.handEye * (purpose === "one-timer" ? 0.18 : 0.06) +
+          player.poise * 0.07 +
           separation * 0.8
         );
       },
@@ -2136,18 +2400,25 @@ class AVHLGameSimulator {
     const pressure = this.localPressure(state, passer, defendingTeamId);
     state.passAttempts[teamId] += 1;
 
-    const defenderAwareness = laneDefender?.player?.defensiveAwareness ?? 80;
+    const defenderSkill = laneDefender
+      ? laneDefender.player.defensiveAwareness * 0.62 + laneDefender.player.stickChecking * 0.38
+      : 80;
+    const passerSkill =
+      passer.passing * 0.54 +
+      passer.puckControl * 0.20 +
+      passer.poise * 0.15 +
+      passer.offensiveAwareness * 0.11;
     const lanePenalty = laneDefender ? this.clamp((7 - laneDefender.lane.distance) * 0.018, 0, 0.10) : 0;
     const successProbability = this.clamp(
-      0.76 +
-      (["cycle", "one-timer"].includes(purpose) ? 0.08 : 0) +
-      (passer.passing - 82) * 0.008 +
-      (passer.poise - 82) * 0.003 -
+      0.75 +
+      (["cycle", "one-timer"].includes(purpose) ? 0.075 : 0) +
+      (passerSkill - 82) * 0.009 -
       pressure * 0.17 -
-      (defenderAwareness - 82) * 0.0025 -
+      (defenderSkill - 82) * 0.0032 -
+      passer.fatigue * 0.045 -
       lanePenalty,
-      0.48,
-      0.94
+      0.46,
+      0.95
     );
 
     const distance = Math.hypot(to.x - from.x, to.y - from.y);
@@ -2158,7 +2429,15 @@ class AVHLGameSimulator {
       passer.stats.giveaways += 1;
       const canIntercept = laneDefender && laneDefender.lane.distance <= 6.5;
       const interception = canIntercept && this.random.chance(
-        this.clamp(0.54 + (laneDefender.player.defensiveAwareness - 80) * 0.012 + (6.5 - laneDefender.lane.distance) * 0.05, 0.38, 0.9)
+        this.clamp(
+          0.52 +
+          (laneDefender.player.defensiveAwareness - 80) * 0.008 +
+          (laneDefender.player.stickChecking - 80) * 0.007 +
+          (laneDefender.player.handEye - 80) * 0.003 +
+          (6.5 - laneDefender.lane.distance) * 0.05,
+          0.36,
+          0.91
+        )
       );
 
       if (interception) {
@@ -2332,11 +2611,17 @@ class AVHLGameSimulator {
     const offenders = this.spatialOffsideOffenders(state, teamId);
     if (offenders.length) return this.whistleForOffside(state, teamId, offenders);
 
+    const carrierEntrySkill =
+      carrier.speed * 0.22 + carrier.acceleration * 0.14 + carrier.agility * 0.12 +
+      carrier.puckControl * 0.22 + carrier.deking * 0.19 + carrier.offensiveAwareness * 0.11;
+    const defenderEntrySkill =
+      defender.speed * 0.14 + defender.acceleration * 0.10 + defender.agility * 0.10 +
+      defender.stickChecking * 0.24 + defender.defensiveAwareness * 0.25 +
+      defender.bodyChecking * 0.11 + defender.balance * 0.06;
     const entryProbability = this.clamp(
-      0.59 +
-      (carrier.speed + carrier.puckControl + carrier.deking - defender.speed - defender.stickChecking - defender.defensiveAwareness) * 0.0033,
-      0.36,
-      0.8
+      0.58 + (carrierEntrySkill - defenderEntrySkill) * 0.012 - carrier.fatigue * 0.055 + defender.fatigue * 0.035,
+      0.32,
+      0.84
     );
 
     if (this.random.chance(entryProbability)) {
@@ -2391,8 +2676,11 @@ class AVHLGameSimulator {
       (player) => player.passing + player.puckControl + player.defensiveAwareness
     );
     const pressure = this.localPressure(state, carrier, this.opponent(teamId));
+    const breakoutSkill =
+      carrier.passing * 0.32 + carrier.puckControl * 0.24 + carrier.poise * 0.16 +
+      carrier.defensiveAwareness * 0.12 + carrier.agility * 0.08 + carrier.acceleration * 0.08;
     const success = this.random.chance(
-      this.clamp(0.72 + (carrier.passing + carrier.puckControl - 166) * 0.006 - pressure * 0.2, 0.44, 0.9)
+      this.clamp(0.71 + (breakoutSkill - 82) * 0.011 - pressure * 0.21 - carrier.fatigue * 0.05, 0.4, 0.92)
     );
 
     if (success) {
@@ -2720,31 +3008,51 @@ class AVHLGameSimulator {
 
   calculateGoalProbability(state, shooter, goalie, shot) {
     const targetRating = this.goalieAttributeForTarget(goalie, shot.actualTarget);
-    const shooterSkill =
-      this.shotAccuracyRating(shooter, shot.technique) * 0.43 +
-      this.shotPowerRating(shooter, shot.technique) * 0.18 +
-      shooter.offensiveAwareness * 0.2 +
-      shooter.poise * 0.19;
-    const goalieSkill =
-      targetRating * 0.4 +
-      goalie.angles * 0.22 +
-      goalie.vision * (shot.screened ? 0.2 : 0.09) +
-      goalie.poise * 0.12 +
+    let shooterSkill =
+      this.shotAccuracyRating(shooter, shot.technique) * 0.42 +
+      this.shotPowerRating(shooter, shot.technique) * 0.17 +
+      shooter.offensiveAwareness * 0.20 +
+      shooter.poise * 0.16 +
+      shooter.handEye * 0.05;
+
+    if (shot.technique.includes("deke")) {
+      shooterSkill = shooter.deking * 0.38 + shooter.puckControl * 0.27 + shooter.poise * 0.18 + shooter.wristShotAccuracy * 0.10 + shooter.handEye * 0.07;
+    } else if (shot.technique.includes("tip") || shot.technique.includes("jam")) {
+      shooterSkill = shooter.handEye * 0.38 + shooter.strength * 0.18 + shooter.puckControl * 0.14 + shooter.offensiveAwareness * 0.18 + shooter.poise * 0.12;
+    } else if (shot.technique.includes("one-timer")) {
+      shooterSkill += (shooter.handEye - 80) * 0.12;
+    }
+
+    let goalieSkill =
+      targetRating * 0.38 +
+      goalie.angles * 0.20 +
+      goalie.vision * (shot.screened ? 0.19 : 0.08) +
+      goalie.poise * 0.11 +
       goalie.agility * 0.08 +
-      goalie.recover * (shot.context === "rebound" ? 0.18 : 0.04);
+      goalie.recover * (shot.context === "rebound" ? 0.17 : 0.04);
+
+    if (shot.context === "breakaway" || shot.technique.includes("deke")) {
+      const breakawayDefense =
+        goalie.breakaway * 0.52 + goalie.pokeCheck * 0.23 + goalie.agility * 0.10 +
+        goalie.speed * 0.07 + goalie.poise * 0.05 + goalie.aggressiveness * 0.03;
+      goalieSkill = goalieSkill * 0.55 + breakawayDefense * 0.45;
+    }
+
     const openness = shot.openness[shot.actualTarget] ?? 0.4;
     const specialTeams = this.teamSituation(state, shooter.teamId) === "PP" ? 0.014 : 0;
     const pressurePenalty = shot.pressure * 0.018;
     const screenBonus = shot.screened ? 0.022 : 0;
+    const fatigueAdjustment = (goalie.fatigue - shooter.fatigue) * 0.016;
     const base = this.baseGoalProbability(shot.region, shot.context, shot.technique);
     return this.clamp(
       base +
       (shooterSkill - goalieSkill) * 0.0022 +
       (openness - 0.4) * 0.055 +
       specialTeams +
-      screenBonus -
+      screenBonus +
+      fatigueAdjustment -
       pressurePenalty,
-      0.012,
+      0.01,
       0.34
     );
   }
@@ -2835,13 +3143,18 @@ class AVHLGameSimulator {
 
     const reboundControl = this.clamp((goalie.reboundControl - 70) / 26, 0, 1);
     const recovery = this.clamp((goalie.recover - 70) / 26, 0, 1);
-    let coverProbability = 0.34 + reboundControl * 0.18;
+    let coverProbability =
+      0.33 + reboundControl * 0.17 +
+      (goalie.poise - 80) * 0.0022 +
+      (goalie.vision - 80) * (shot.screened ? 0.0018 : 0.0008);
     if (saveType === "glove") coverProbability += 0.18;
     if (shot.context === "rebound") coverProbability -= 0.13;
     if (shot.screened) coverProbability -= 0.07;
     coverProbability = this.clamp(coverProbability, 0.24, 0.68);
 
-    let controlledProbability = 0.20 + reboundControl * 0.14 + recovery * 0.04;
+    let controlledProbability =
+      0.19 + reboundControl * 0.14 + recovery * 0.05 +
+      (goalie.poise - 80) * 0.0015 - goalie.fatigue * 0.025;
     if (saveType === "pad" || saveType === "blocker") controlledProbability += 0.03;
     controlledProbability = this.clamp(controlledProbability, 0.18, 0.36);
 
@@ -3891,21 +4204,43 @@ class AVHLGameSimulator {
     this.placePlayersForShot(state, teamId, shooter, origin);
     const technique = this.chooseShotTechnique(shooter, region, context, state);
     const pressure = this.localPressure(state, shooter, defendingTeamId);
+    const attackingGoalX = this.attackingGoalX(teamId, state.period);
+    const screenCandidate = this.chooseOnIcePlayer(
+      state,
+      teamId,
+      (player) => {
+        const pos = state.positions[player.id];
+        if (!pos || player.id === shooter.id) return 0.1;
+        const netDistance = Math.hypot(pos.x - attackingGoalX, pos.y - 42.5);
+        const heightBonus = Number.isFinite(player.heightIn) ? (player.heightIn - 72) * 0.7 : 0;
+        return Math.max(0.1, player.strength * 0.34 + player.handEye * 0.24 + player.offensiveAwareness * 0.22 + player.balance * 0.12 + heightBonus - netDistance * 0.55);
+      },
+      (player) => player.id !== shooter.id
+    );
+    const screenSkill = screenCandidate
+      ? screenCandidate.strength * 0.34 + screenCandidate.handEye * 0.24 + screenCandidate.offensiveAwareness * 0.24 + screenCandidate.balance * 0.18
+      : 80;
     const screened = this.random.chance(
-      this.clamp(0.18 + (region === "point" ? 0.24 : 0) + (region.includes("circle") ? 0.06 : 0), 0.08, 0.48)
+      this.clamp(
+        0.15 + (region === "point" ? 0.23 : 0) + (region.includes("circle") ? 0.055 : 0) + (screenSkill - 80) * 0.003,
+        0.06,
+        0.5
+      )
     );
     const goalie = defendingTeam.goalie;
     const goalPoint = { x: this.attackingGoalX(teamId, state.period), y: 42.5 };
     const blocker = this.chooseBlocker(state, defendingTeamId, origin, goalPoint);
     const shotPower = this.shotPowerRating(shooter, technique);
+    const blockerSkill = blocker.shotBlocking * 0.48 + blocker.defensiveAwareness * 0.30 + blocker.balance * 0.12 + blocker.poise * 0.10;
+    const releaseSkill = shooter.offensiveAwareness * 0.45 + shotPower * 0.35 + shooter.poise * 0.20;
     const blockProbability = this.clamp(
-      0.205 +
-      (blocker.shotBlocking + blocker.defensiveAwareness - shooter.offensiveAwareness - shotPower) * 0.0028 +
+      0.20 +
+      (blockerSkill - releaseSkill) * 0.0052 +
       pressure * 0.09 -
       (context === "breakaway" ? 0.2 : 0) -
       (technique.includes("jam") ? 0.12 : 0),
-      0.025,
-      0.39
+      0.02,
+      0.40
     );
 
     shooter.stats.attempts += 1;
@@ -3931,9 +4266,21 @@ class AVHLGameSimulator {
           location: origin,
           mapType: "attempt",
           outcome: "blocked",
-          details: { region, technique, context, blockLocation }
+          details: { region, technique, context, blockLocation, shotPower }
         }
       );
+      const blockImpact = this.clamp(
+        0.72 + (shotPower - 80) * 0.022 - (blocker.shotBlocking - 80) * 0.006 + pressure * 0.18,
+        0.45,
+        1.75
+      );
+      this.maybeCauseInjury(state, blocker, {
+        cause: "block",
+        baseProbability: 0.0028,
+        impact: blockImpact,
+        location: blockLocation,
+        extra: { shooterId: shooter.id, shotPower: Math.round(shotPower * 10) / 10 }
+      });
       this.resolveLoosePuck(state, blockLocation, teamId, "blocked shot");
       return { goal: false, stopped: false };
     }
@@ -4075,11 +4422,13 @@ class AVHLGameSimulator {
             ...shot,
             goalProbability,
             goalieAttributeUsed: shot.actualTarget,
+            screeningPlayerId: screened ? screenCandidate?.id ?? null : null,
             assists: assistIds
           },
           replay
         }
       );
+      this.maybeGoalieCollisionInjury(state, goalie, shot);
       this.releaseMinorAfterPowerPlayGoal(state, teamId);
       state.assistQueue = [];
       state.possessionTeam = null;
@@ -4118,10 +4467,13 @@ class AVHLGameSimulator {
           saveOutcome: save.outcome,
           saveType: save.saveType,
           goalieAttributeUsed: shot.actualTarget,
+          screeningPlayerId: screened ? screenCandidate?.id ?? null : null,
           reboundLocation
         }
       }
     );
+
+    const goalieInjury = this.maybeGoalieCollisionInjury(state, goalie, shot);
 
     if (save.outcome === "covered") {
       state.possessionTeam = null;
@@ -4134,6 +4486,10 @@ class AVHLGameSimulator {
       };
       state.lastContext = "stoppage";
       return { goal: false, stopped: true };
+    }
+
+    if (save.outcome === "controlled" && !goalieInjury && this.tryGoaliePuckPlay(state, goalie, reboundLocation, teamId)) {
+      return { goal: false, stopped: false };
     }
 
     state.puck = reboundLocation;
@@ -4283,7 +4639,9 @@ class AVHLGameSimulator {
         if (!player || !pos) return null;
         const distance = Math.hypot(pos.x - victimPos.x, pos.y - victimPos.y);
         if (distance > 22.0) return null;
-        const score = player.bodyChecking * 0.42 + player.strength * 0.28 + player.aggressiveness * 0.18 + player.speed * 0.12 - distance * 1.8;
+        const score =
+          player.bodyChecking * 0.36 + player.strength * 0.22 + player.aggressiveness * 0.16 +
+          player.speed * 0.10 + player.acceleration * 0.08 + player.balance * 0.08 - distance * 1.8;
         return { player, distance, score };
       })
       .filter(Boolean)
@@ -4292,7 +4650,8 @@ class AVHLGameSimulator {
     if (!candidate) return;
     const hitter = candidate.player;
 
-    const closeTime = this.clamp(candidate.distance / Math.max(12, 17 + (hitter.speed - 80) * 0.16), 0.16, 1.05);
+    const closeSpeed = Math.max(12, 17 + (hitter.speed - 80) * 0.12 + (hitter.acceleration - 80) * 0.08);
+    const closeTime = this.clamp(candidate.distance / closeSpeed, 0.16, 1.05);
     this.setMovementOverride(state, hitter.id, victimPos, closeTime + 0.12);
     this.advanceClock(state, closeTime, "hit");
     const currentVictim = state.positions[victim.id] ?? victimPos;
@@ -4302,27 +4661,46 @@ class AVHLGameSimulator {
 
     const location = { x: currentVictim.x, y: currentVictim.y };
     const legalScore =
-      hitter.bodyChecking * 0.4 +
-      hitter.discipline * 0.35 +
-      hitter.balance * 0.1 +
+      hitter.bodyChecking * 0.34 + hitter.discipline * 0.32 + hitter.balance * 0.12 + hitter.poise * 0.08 + hitter.strength * 0.14 +
       this.random.normal(0, 10);
     const dangerousScore =
-      hitter.aggressiveness * 0.42 +
-      (101 - hitter.discipline) * 0.35 +
+      hitter.aggressiveness * 0.39 + (101 - hitter.discipline) * 0.31 + hitter.bodyChecking * 0.12 + hitter.strength * 0.08 +
       this.random.normal(0, 10);
+
+    const weightDifference = (Number(hitter.weight) || 200) - (Number(victim.weight) || 200);
+    const impact = this.clamp(
+      0.78 +
+      (hitter.bodyChecking - 80) * 0.018 +
+      (hitter.strength - 80) * 0.012 +
+      (hitter.speed - 80) * 0.008 +
+      (hitter.aggressiveness - 80) * 0.006 +
+      weightDifference * 0.004 -
+      (victim.balance - 80) * 0.012 -
+      (victim.strength - 80) * 0.006,
+      0.42,
+      2.25
+    );
 
     if (dangerousScore > legalScore + 13 && this.random.chance(0.36)) {
       this.callPenalty(state, hitterTeamId, "hit", location);
+      this.maybeCauseInjury(state, victim, {
+        cause: "hit",
+        baseProbability: 0.0052,
+        impact: impact * 1.18,
+        location,
+        extra: { hitterId: hitter.id, penalizedHit: true }
+      });
       return;
     }
 
     hitter.stats.hits += 1;
     state.hits[hitterTeamId] += 1;
+    const hitterForce = hitter.bodyChecking * 0.46 + hitter.strength * 0.27 + hitter.balance * 0.08 + hitter.speed * 0.08 + hitter.aggressiveness * 0.11;
+    const victimResistance = victim.balance * 0.40 + victim.puckControl * 0.31 + victim.strength * 0.17 + victim.agility * 0.12;
     const turnoverProbability = this.clamp(
-      0.32 +
-      (hitter.bodyChecking + hitter.strength - victim.balance - victim.puckControl) * 0.004,
-      0.16,
-      0.62
+      0.31 + (hitterForce - victimResistance) * 0.0105 + victim.fatigue * 0.055,
+      0.14,
+      0.66
     );
     const turnover = this.random.chance(turnoverProbability);
     this.addEvent(
@@ -4338,12 +4716,20 @@ class AVHLGameSimulator {
         location,
         mapType: "hit",
         outcome: turnover ? "loose-puck" : "hit",
-        details: { spatialHit: true, closingDistance: candidate.distance, contactDistance }
+        details: { spatialHit: true, closingDistance: candidate.distance, contactDistance, impact, turnoverProbability }
       }
     );
 
-    if (turnover) {
-      victim.stats.giveaways += 1;
+    const injury = this.maybeCauseInjury(state, victim, {
+      cause: "hit",
+      baseProbability: 0.0040,
+      impact,
+      location,
+      extra: { hitterId: hitter.id, turnover }
+    });
+
+    if (turnover || injury) {
+      victim.stats.giveaways += turnover ? 1 : 0;
       const loose = {
         x: this.clamp(location.x + this.random.normal(0, 3.2), 2.5, 197.5),
         y: this.clamp(location.y + this.random.normal(0, 3.2), 2.5, 82.5)
@@ -4351,7 +4737,7 @@ class AVHLGameSimulator {
       state.puck = loose;
       state.possessionTeam = null;
       state.puckCarrierId = null;
-      this.resolveLoosePuck(state, loose, victimTeamId, "puck knocked loose by hit");
+      this.resolveLoosePuck(state, loose, victimTeamId, injury ? "puck left loose after injury" : "puck knocked loose by hit");
     }
 
     if (this.random.chance(0.0012)) {
@@ -4363,12 +4749,12 @@ class AVHLGameSimulator {
     const fighterA = this.chooseOnIcePlayer(
       state,
       teamAId,
-      (player) => player.fightingSkill + player.aggressiveness + player.strength
+      (player) => player.fightingSkill * 0.42 + player.aggressiveness * 0.25 + player.strength * 0.23 + player.balance * 0.06 + player.poise * 0.04
     );
     const fighterB = this.chooseOnIcePlayer(
       state,
       teamBId,
-      (player) => player.fightingSkill + player.aggressiveness + player.strength
+      (player) => player.fightingSkill * 0.42 + player.aggressiveness * 0.25 + player.strength * 0.23 + player.balance * 0.06 + player.poise * 0.04
     );
     for (const fighter of [fighterA, fighterB]) {
       fighter.stats.penaltyMinutes += 5;
@@ -4397,6 +4783,20 @@ class AVHLGameSimulator {
         details: { duration: 300 }
       }
     );
+    for (const [fighter, opponent] of [[fighterA, fighterB], [fighterB, fighterA]]) {
+      const fightImpact = this.clamp(
+        0.75 + (opponent.fightingSkill - 80) * 0.015 + (opponent.strength - 80) * 0.01 - (fighter.balance - 80) * 0.006,
+        0.5,
+        1.65
+      );
+      this.maybeCauseInjury(state, fighter, {
+        cause: "fight",
+        baseProbability: 0.014,
+        impact: fightImpact,
+        location,
+        extra: { opponentId: opponent.id }
+      });
+    }
     state.possessionTeam = null;
     state.puckCarrierId = null;
     state.assistQueue = [];
@@ -4418,10 +4818,15 @@ class AVHLGameSimulator {
     const goalLineX = direction === 1 ? AVHL_RINK.goalLines.high : AVHL_RINK.goalLines.low;
     const fromOwnSideOfCenter = direction === 1 ? origin.x < 100 : origin.x > 100;
     const pressure = this.localPressure(state, clearer, this.opponent(teamId));
+    const clearReleasePower = clearer.position.includes("D")
+      ? clearer.slapShotPower * 0.65 + clearer.wristShotPower * 0.35
+      : clearer.wristShotPower * 0.65 + clearer.slapShotPower * 0.35;
     const clearPower =
       124 +
-      (clearer.strength - 80) * 0.72 +
-      (clearer.passing - 80) * 0.38 -
+      (clearer.strength - 80) * 0.46 +
+      (clearer.passing - 80) * 0.30 +
+      (clearReleasePower - 80) * 0.32 +
+      (clearer.poise - 80) * 0.16 -
       clearer.fatigue * 12 -
       pressure * 10 +
       this.random.normal(0, 15);
@@ -4893,25 +5298,36 @@ class AVHLGameSimulator {
     const skaterRows = {};
     const goalieRows = {};
     const teamStats = {};
+    const injuryByPlayerId = Object.fromEntries((state.injuries ?? []).map((injury) => [injury.playerId, injury]));
 
     for (const teamId of [this.awayId, this.homeId]) {
       const team = this.teams[teamId];
       skaterRows[teamId] = team.players.map((player) => ({
         id: player.id,
+        avhlId: player.avhlId ?? null,
         name: player.name,
         number: player.number,
         position: player.position,
+        listedPosition: player.listedPosition ?? player.position,
+        overall: player.overall,
+        positionFamiliarity: player.positionFamiliarity,
+        injury: injuryByPlayerId[player.id] ? this.clone(injuryByPlayerId[player.id]) : null,
         ...this.clone(player.stats)
       }));
 
-      goalieRows[teamId] = [team.goalie, team.backup].filter(Boolean).map((goalie) => ({
+      goalieRows[teamId] = team.goalies.map((goalie) => ({
         id: goalie.id,
+        avhlId: goalie.avhlId ?? null,
         name: goalie.name,
         number: goalie.number,
-        starter: goalie.id === team.goalie.id,
+        starter: goalie.id === team.starterId,
+        activeAtEnd: goalie.id === team.goalie.id,
+        overall: goalie.overall,
+        injury: injuryByPlayerId[goalie.id] ? this.clone(injuryByPlayerId[goalie.id]) : null,
         ...this.clone(goalie.stats)
       }));
 
+      const teamInjuries = (state.injuries ?? []).filter((injury) => injury.teamId === teamId);
       teamStats[teamId] = {
         score: state.score[teamId],
         shots: state.shots[teamId],
@@ -4925,9 +5341,21 @@ class AVHLGameSimulator {
         powerPlayGoals: state.powerPlayGoals[teamId],
         powerPlayOpportunities: state.powerPlayOpportunities[teamId],
         powerPlayTime: state.powerPlayTime[teamId],
-        shorthandedGoals: state.shorthandedGoals[teamId]
+        shorthandedGoals: state.shorthandedGoals[teamId],
+        injuries: teamInjuries.length,
+        manGamesLostProjected: teamInjuries.reduce((sum, injury) => sum + (Number(injury.gamesMissed) || 0), 0)
       };
     }
+
+    const aggregateGoalieStats = (teamId) => {
+      const rows = goalieRows[teamId];
+      return rows.reduce((total, row) => {
+        for (const key of ["shotsAgainst", "saves", "goalsAgainst", "toi", "shootoutShotsAgainst", "shootoutSaves", "shootoutGoalsAgainst", "emptyNetGoals", "penaltyMinutes", "goals", "assists", "points"]) {
+          total[key] = (total[key] || 0) + (Number(row[key]) || 0);
+        }
+        return total;
+      }, {});
+    };
 
     return {
       score: { ...state.score },
@@ -4943,13 +5371,28 @@ class AVHLGameSimulator {
       powerPlayGoals: { ...state.powerPlayGoals },
       powerPlayTime: { ...state.powerPlayTime },
       shorthandedGoals: { ...state.shorthandedGoals },
+      injuries: this.clone(state.injuries ?? []),
       teamStats,
       skaters: skaterRows,
       goalieRows,
       leaders,
       goalies: {
-        [this.homeId]: this.clone(this.teams[this.homeId].goalie.stats),
-        [this.awayId]: this.clone(this.teams[this.awayId].goalie.stats)
+        [this.homeId]: aggregateGoalieStats(this.homeId),
+        [this.awayId]: aggregateGoalieStats(this.awayId)
+      },
+      ratingModel: {
+        version: "V6.0",
+        syntheticRatings: false,
+        skaterRatingsUsed: 26,
+        goalieRatingsUsed: 20,
+        rosterSource: {
+          [this.homeId]: this.teams[this.homeId].rosterSource ?? "bundled",
+          [this.awayId]: this.teams[this.awayId].rosterSource ?? "bundled"
+        },
+        csvRatedPlayers: Object.values(this.teams).reduce(
+          (sum, team) => sum + team.players.filter((player) => player.ratingSource === "avhl-csv").length + team.goalies.filter((goalie) => goalie.ratingSource === "avhl-csv").length,
+          0
+        )
       }
     };
   }

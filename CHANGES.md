@@ -253,3 +253,17 @@
 - Added a small preseason-preview notice when the schedule has zero completed games; once results exist, the same bracket continues updating from live standings automatically.
 - No simulator, roster, schedule-source, cap, history, draft, or playoff-history logic was changed.
 
+
+## Site 26 / Simulator V6.0 — Live full ratings + injuries
+- Rebuilt the simulator's player-rating pipeline around the same live Google Sheets CSV source used by the Players and team pages. `/api/sim-rosters` now exposes the complete simulator-relevant skater and goalie rating sets plus age/size/type metadata.
+- Removed the V5.2 synthetic line-tier rating generation. V6 reads the actual player attributes from the live roster feed; Overall is retained mainly for automatic lineup ordering and as a missing-value fallback rather than a hidden universal outcome modifier.
+- Expanded skater simulation use to all 26 supplied attributes: Deking, Hand Eye, Passing, Puck Control, Discipline, Offensive Awareness, Poise, both slap-shot ratings, both wrist-shot ratings, Defensive Awareness, Faceoffs, Shot Blocking, Stick Checking, Acceleration, Agility, Balance, Endurance, Speed, Aggressiveness, Body Checking, Durability, Fighting Skill, and Strength.
+- Expanded goalie simulation use to all 20 supplied attributes: Angles, Breakaway, Five Hole, Glove High/Low, Stick High/Low, Passing, Poise, Poke Check, Puck Playing Frequency, Rebound Control, Recover, Aggressiveness, Agility, Durability, Endurance, Speed, and Vision.
+- Reweighted entries, breakouts, passes/interceptions, screens, blocks, shot selection/accuracy/power/targeting, goalie saves/rebounds/puck play, skating, loose-puck races, hits, penalties, faceoffs, clears, and fights around event-specific multi-rating matchups instead of synthetic player tiers.
+- Applied the AVHL unfamiliar-position rule inside the simulator: a skater used at an unlisted position within the same general group receives a 3% penalty only to Offensive Awareness, Defensive Awareness, Passing, and Puck Control.
+- Added seeded, event-driven injuries from hits, blocked shots, fights, long-fatigue shifts, and close-range goalie collisions. Durability is the primary susceptibility/severity rating, with fatigue, event impact, and a small age component.
+- Injured skaters leave the active unit immediately and line selection rebuilds around healthy players. Injured starting goalies now trigger a real backup-goalie substitution and goalie-change event.
+- Added injury details and rating-model metadata to the official packet; bumped the official schema to `avhl-official-game-v2`.
+- Added injury/man-games-lost rows and player injury/familiarity indicators to the simulator box score and final summary.
+- Regenerated the bundled fallback player database from the September 8, 2026 skater/goalie files so live-source outages no longer revert to the older August roster state.
+- Added `V6_RATING_MODEL.md` and `scripts/test-simulator-v6.mjs` documenting and validating the full rating/RNG model, exact rating identity, seeded repeatability, and injury calibration.

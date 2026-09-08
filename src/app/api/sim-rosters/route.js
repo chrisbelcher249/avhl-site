@@ -12,6 +12,12 @@ function compactPlayer(player) {
     position: player.position,
     number: player.number,
     overall: player.overall,
+    age: player.age,
+    height: player.height,
+    heightIn: player.heightIn,
+    weight: player.weight,
+    handedness: player.handedness,
+    playerType: player.playerType,
     ratings: player.ratings || {},
   };
 }

@@ -56,6 +56,7 @@ def skater(row):
         "number": number(row["Jersey #"]),
         "position": row["Position(s)"].strip(),
         "height": row["Height"].strip(),
+        "heightIn": number(row["Height (In)"]),
         "weight": number(row["Weight"]),
         "age": number(row["Age"]),
         "handedness": row["Shot"].strip(),
@@ -75,16 +76,29 @@ def skater(row):
         },
         "ratings": {
             "Deking": number(row["Deking"]),
+            "Hand Eye": number(row["Hand Eye"]),
             "Passing": number(row["Passing"]),
             "Puck Control": number(row["Puck Control"]),
+            "Discipline": number(row["Discipline"]),
             "Off. Awareness": number(row["Off. Awareness"]),
-            "Wrist Shot Acc.": number(row["Wrist Shot Accuracy"]),
+            "Poise": number(row["Poise"]),
+            "Slap Shot Accuracy": number(row["Slap Shot Accuracy"]),
+            "Slap Shot Power": number(row["Slap Shot Power"]),
+            "Wrist Shot Accuracy": number(row["Wrist Shot Accuracy"]),
+            "Wrist Shot Power": number(row["Wrist Shot Power"]),
             "Def. Awareness": number(row["Def. Awareness"]),
             "Faceoffs": number(row["Faceoffs"]),
+            "Shot Blocking": number(row["Shot Blocking"]),
             "Stick Checking": number(row["Stick Checking"]),
             "Acceleration": number(row["Acceleration"]),
+            "Agility": number(row["Agility"]),
+            "Balance": number(row["Balance"]),
+            "Endurance": number(row["Endurance"]),
             "Speed": number(row["Speed"]),
+            "Aggressiveness": number(row["Aggressiveness"]),
             "Body Checking": number(row["Body Checking"]),
+            "Durability": number(row["Durability"]),
+            "Fighting Skill": number(row["Fighting Skill"]),
             "Strength": number(row["Strength"]),
         },
     }
@@ -102,6 +116,7 @@ def goalie(row):
         "number": number(row["Jersey #"]),
         "position": "G",
         "height": row["Height"].strip(),
+        "heightIn": number(row["Height (In)"]),
         "weight": number(row["Weight"]),
         "age": number(row["Age"]),
         "handedness": row["Glove"].strip(),
@@ -127,9 +142,16 @@ def goalie(row):
             "Glove Low": number(row["Glove Low"]),
             "Stick High": number(row["Stick High"]),
             "Stick Low": number(row["Stick Low"]),
+            "Passing": number(row["Passing"]),
+            "Poise": number(row["Poise"]),
+            "Poke Check": number(row["Poke Check"]),
+            "Puck Playing Freq.": number(row["Puck Playing Freq."]),
             "Rebound Control": number(row["Rebound Control"]),
             "Recover": number(row["Recover"]),
+            "Aggressiveness": number(row["Aggressiveness"]),
             "Agility": number(row["Agility"]),
+            "Durability": number(row["Durability"]),
+            "Endurance": number(row["Endurance"]),
             "Speed": number(row["Speed"]),
             "Vision": number(row["Vision"]),
         },
@@ -142,8 +164,8 @@ def main():
     players = skaters + goalies
 
     ids = [player["id"] for player in players]
-    if len(players) != 1909:
-        raise ValueError(f"Expected 1,909 players, found {len(players):,}")
+    if not skaters or not goalies:
+        raise ValueError("Both skater and goalie databases must contain players")
     if len(set(ids)) != len(ids):
         raise ValueError("Player IDs must be unique")
     if any(not player["name"] for player in players):
@@ -151,8 +173,6 @@ def main():
 
     rostered = [player for player in players if player["currentTeam"] != "UFA"]
     free_agents = [player for player in players if player["currentTeam"] == "UFA"]
-    if len(rostered) != 800 or len(free_agents) != 1109:
-        raise ValueError(f"Expected 800 rostered players and 1,109 UFAs; found {len(rostered)} and {len(free_agents)}")
     if any(player["aav"] is None for player in rostered):
         raise ValueError("Every rostered player must have an AAV")
     if any(player["aav"] is not None for player in free_agents):

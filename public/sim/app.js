@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V5.2";
+  const SIMULATOR_VERSION = "V6.0";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
@@ -768,7 +768,7 @@
       elements.replayPlayers.append(group);
       replayPlayerNodes.set(track.playerId, group);
 
-      // V5.2 intentionally draws no scorer/assist trajectory trails.
+      // V6.0 intentionally draws no scorer/assist trajectory trails.
 
     }
 
@@ -1056,7 +1056,9 @@
       ["PENALTY MINUTES", formatPim(teamStatValue(summary, awayId, "penaltyMinutes")), formatPim(teamStatValue(summary, homeId, "penaltyMinutes"))],
       ["POWERPLAYS", `${teamStatValue(summary, awayId, "powerPlayGoals")} / ${teamStatValue(summary, awayId, "powerPlayOpportunities")}`, `${teamStatValue(summary, homeId, "powerPlayGoals")} / ${teamStatValue(summary, homeId, "powerPlayOpportunities")}`],
       ["POWERPLAY MINUTES", formatStatTime(teamStatValue(summary, awayId, "powerPlayTime"), true), formatStatTime(teamStatValue(summary, homeId, "powerPlayTime"), true)],
-      ["SHORTHANDED GOALS", teamStatValue(summary, awayId, "shorthandedGoals"), teamStatValue(summary, homeId, "shorthandedGoals")]
+      ["SHORTHANDED GOALS", teamStatValue(summary, awayId, "shorthandedGoals"), teamStatValue(summary, homeId, "shorthandedGoals")],
+      ["INJURIES", teamStatValue(summary, awayId, "injuries"), teamStatValue(summary, homeId, "injuries")],
+      ["PROJECTED MAN-GAMES LOST", teamStatValue(summary, awayId, "manGamesLostProjected"), teamStatValue(summary, homeId, "manGamesLostProjected")]
     ];
 
     elements.boxScoreContent.innerHTML = `
@@ -1102,7 +1104,7 @@
             ${rows.map((row) => {
               const fot = (row.faceoffWins || 0) + (row.faceoffLosses || 0);
               return `<tr>
-                <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)} · ${escapeHtml(row.position)}</span></td>
+                <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)} · ${escapeHtml(row.position)}${row.positionFamiliarity < 1 ? ` · 3% unfamiliar-position penalty` : ""}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${row.injury.gamesMissed}G)` : ""}</span></td>
                 <td>${formatStatTime(row.toi, true)}</td>
                 <td>${row.goals || 0}</td><td>${row.assists || 0}</td><td>${row.points || 0}</td><td>${plusMinusText(row.plusMinus)}</td>
                 <td>${row.shots || 0}</td><td>${skaterShotPercentage(row)}</td><td>${formatStatTime(row.ppToi, true)}</td><td>${formatPim(row.penaltyMinutes)}</td>
@@ -1130,7 +1132,7 @@
           </tr></thead>
           <tbody>
             ${rows.map((row) => `<tr>
-              <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)}${row.starter ? " · Starter" : " · Backup"}</span></td>
+              <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)}${row.starter ? " · Starter" : " · Backup"}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${row.injury.gamesMissed}G)` : ""}</span></td>
               <td>${formatStatTime(row.toi, true)}</td><td>${row.shotsAgainst || 0}</td><td>${row.saves || 0}</td><td>${goalieSavePercentageFull(row)}</td>
               <td>${row.goalsAgainst || 0}</td><td>${goalieGaa(row)}</td><td>${row.emptyNetGoals || 0}</td><td>${formatPim(row.penaltyMinutes)}</td>
               <td>${row.goals || 0}</td><td>${row.assists || 0}</td><td>${row.points || 0}</td>
@@ -1218,7 +1220,7 @@
   function buildOfficialPacket() {
     const summary = game.finalSummary;
     return {
-      schema: "avhl-official-game-v1",
+      schema: "avhl-official-game-v2",
       simulatorVersion: SIMULATOR_VERSION,
       gameId: officialGameId(),
       verifiedAt: new Date().toISOString(),
@@ -1285,8 +1287,11 @@
 
   function renderFinalSummary(summary) {
     if (!summary) return;
-    const homeGoalie = teams[homeId].goalie;
-    const awayGoalie = teams[awayId].goalie;
+    const goalieLines = (teamId) => (summary.goalieRows?.[teamId] || [])
+      .filter((row) => (row.toi || 0) > 0 || row.starter)
+      .map((row) => `<div><span>${escapeHtml(row.name)}${row.injury ? ` · INJ ${escapeHtml(row.injury.bodyArea)}` : ""}</span><strong>${row.saves || 0}/${row.shotsAgainst || 0} · ${goalieSavePercentage(row)}</strong></div>`)
+      .join("");
+    const injuries = summary.injuries || [];
     elements.summary.innerHTML = `
       <div class="summary-topline">
         <div>
@@ -1303,9 +1308,19 @@
         </div>
       </div>
       <div class="goalie-lines">
-        <div><span>${escapeHtml(shortName(homeGoalie))}</span><strong>${summary.goalies[homeId].saves}/${summary.goalies[homeId].shotsAgainst} · ${goalieSavePercentage(summary.goalies[homeId])}</strong></div>
-        <div><span>${escapeHtml(shortName(awayGoalie))}</span><strong>${summary.goalies[awayId].saves}/${summary.goalies[awayId].shotsAgainst} · ${goalieSavePercentage(summary.goalies[awayId])}</strong></div>
+        ${goalieLines(homeId)}
+        ${goalieLines(awayId)}
       </div>
+      ${injuries.length ? `
+        <div class="leader-list injury-summary-list">
+          ${injuries.map((injury) => `
+            <div class="leader-row">
+              <span>${escapeHtml(injury.playerName)} · ${escapeHtml(injury.bodyArea)}</span>
+              <strong>${injury.gamesMissed}G · ${escapeHtml(injury.severity)}</strong>
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
       <div class="leader-list">
         ${summary.leaders.length
           ? summary.leaders.map((leader) => `
@@ -1402,6 +1417,12 @@
     try {
       const rosterStatus = await window.AVHL_LOAD_LIVE_ROSTERS();
       console.info(`AVHL simulator rosters: ${rosterStatus.playerCount} players across ${rosterStatus.teamCount} teams (${rosterStatus.source})`);
+      if (elements.assetStatus) {
+        elements.assetStatus.dataset.ready = rosterStatus.source === "live" ? "true" : "false";
+        elements.assetStatus.textContent = rosterStatus.source === "live"
+          ? `Live CSV rosters + full ratings loaded (${rosterStatus.playerCount})`
+          : `Roster source: ${rosterStatus.source} (${rosterStatus.playerCount})`;
+      }
     } catch (error) {
       console.warn("Live AVHL rosters unavailable; using bundled simulator rosters.", error);
     }

@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V3 demo data.
+  AVHL Game Simulator V6 roster/bootstrap data.
 
   The roster is intentionally kept in a separate file so it can later be
   replaced by exported AVHL player data, Firebase snapshots, CSV imports, or
@@ -96,7 +96,7 @@ window.AVHL_DATA = {
 };
 
 /*
-  V5.2 website integration layer.
+  V6 website integration layer.
   Team identity still comes from the bundled 40-team catalog, while player
   rosters are loaded from the same live AVHL player database used by the site.
   If that request fails, the original Arizona/Atlanta demo pools remain a safe
@@ -160,6 +160,12 @@ window.AVHL_DATA = {
       number: Number.isFinite(Number(player.number)) ? Number(player.number) : null,
       listedPosition: player.position || "",
       overall: overall(player) || null,
+      age: Number.isFinite(Number(player.age)) ? Number(player.age) : null,
+      height: player.height || "",
+      heightIn: Number.isFinite(Number(player.heightIn)) ? Number(player.heightIn) : null,
+      weight: Number.isFinite(Number(player.weight)) ? Number(player.weight) : null,
+      handedness: player.handedness || "",
+      playerType: player.playerType || "",
       ratings: player.ratings || {},
       ...extra,
     };
