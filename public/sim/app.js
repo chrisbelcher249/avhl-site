@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V6.1";
+  const SIMULATOR_VERSION = "V6.2";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
@@ -833,7 +833,7 @@
       elements.replayPlayers.append(group);
       replayPlayerNodes.set(track.playerId, group);
 
-      // V6.1 intentionally draws no scorer/assist trajectory trails.
+      // V6.2 intentionally draws no scorer/assist trajectory trails.
 
     }
 
@@ -1349,47 +1349,61 @@
     }
   }
 
-  function goalieSavePercentage(stats) {
-    if (!stats?.shotsAgainst) return "—";
-    return (stats.saves / stats.shotsAgainst).toFixed(3).replace(/^0/, "");
+  function summaryLeaderText(homeValue, awayValue) {
+    const homeNumber = Number(homeValue) || 0;
+    const awayNumber = Number(awayValue) || 0;
+    if (homeNumber === awayNumber) return `${homeNumber}–${awayNumber}`;
+
+    const homeLeads = homeNumber > awayNumber;
+    const high = homeLeads ? homeNumber : awayNumber;
+    const low = homeLeads ? awayNumber : homeNumber;
+    const leader = homeLeads ? teams[homeId] : teams[awayId];
+    return `${high}–${low} ${leader?.abbreviation || ""}`.trim();
+  }
+
+  function injuryPositionLabel(position) {
+    const value = String(position || "").toUpperCase();
+    if (value === "LD" || value === "RD" || value === "D") return "D";
+    if (value === "G") return "G";
+    return value || "F";
+  }
+
+  function injuryBodyAreaLabel(bodyArea) {
+    return String(bodyArea || "Injury").replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
   }
 
   function renderFinalSummary(summary) {
     if (!summary) return;
-    const goalieLines = (teamId) => (summary.goalieRows?.[teamId] || [])
-      .filter((row) => (row.toi || 0) > 0 || row.starter)
-      .map((row) => `<div><span>${escapeHtml(row.name)}${row.injury ? ` · INJ ${escapeHtml(row.injury.bodyArea)}` : ""}</span><strong>${row.saves || 0}/${row.shotsAgainst || 0} · ${goalieSavePercentage(row)}</strong></div>`)
-      .join("");
     const injuries = summary.injuries || [];
     elements.summary.innerHTML = `
       <div class="summary-topline">
         <div>
-          <span>Final</span>
-          <strong>${summary.score[homeId]}–${summary.score[awayId]}</strong>
+          <span>Final Score</span>
+          <strong>${escapeHtml(summaryLeaderText(summary.score[homeId], summary.score[awayId]))}</strong>
         </div>
         <div>
-          <span>Shots</span>
-          <strong>${summary.shots[homeId]}–${summary.shots[awayId]}</strong>
+          <span>Shots On Goal</span>
+          <strong>${escapeHtml(summaryLeaderText(summary.shots[homeId], summary.shots[awayId]))}</strong>
         </div>
         <div>
-          <span>Attempts</span>
-          <strong>${summary.attempts[homeId]}–${summary.attempts[awayId]}</strong>
+          <span>Shot Attempts</span>
+          <strong>${escapeHtml(summaryLeaderText(summary.attempts[homeId], summary.attempts[awayId]))}</strong>
         </div>
-      </div>
-      <div class="goalie-lines">
-        ${goalieLines(homeId)}
-        ${goalieLines(awayId)}
       </div>
       <div class="injury-summary-block">
         <div class="injury-summary-heading">Injuries</div>
         ${injuries.length ? `
           <div class="injury-summary-list">
-            ${injuries.map((injury) => `
-              <div class="injury-summary-row">
-                <span>${escapeHtml(injury.playerName)} · ${escapeHtml(injury.bodyArea)}</span>
-                <strong>${escapeHtml(injuryGamesText(injury.gamesMissed, { prefix: true }))} · ${escapeHtml(injury.severity)}</strong>
-              </div>
-            `).join("")}
+            ${injuries.map((injury) => {
+              const team = teams[injury.teamId];
+              const teamAbbreviation = team?.abbreviation || "—";
+              return `
+                <div class="injury-summary-row">
+                  <span>${escapeHtml(injuryPositionLabel(injury.position))} ${escapeHtml(injury.playerName)} (${escapeHtml(teamAbbreviation)}) · ${escapeHtml(injuryBodyAreaLabel(injury.bodyArea))}</span>
+                  <strong>${escapeHtml(injuryGamesText(injury.gamesMissed, { prefix: true }))}</strong>
+                </div>
+              `;
+            }).join("")}
           </div>
         ` : `<div class="injury-summary-none">No injuries</div>`}
       </div>

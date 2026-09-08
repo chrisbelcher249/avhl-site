@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V6.1 — prototype administrator gate
+  AVHL Game Simulator V6.2 — prototype administrator gate
 
   IMPORTANT:
   This is a LOCAL/static prototype. The plaintext password is NOT stored here;

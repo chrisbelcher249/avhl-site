@@ -1,6 +1,6 @@
-# AVHL Simulator V6.1 — Rating and RNG Model
+# AVHL Simulator V6.2 — Rating and RNG Model
 
-V6.1 retains the V6.0 rating engine, which removes the old synthetic line-tier ratings and feeds the simulator the same live player database used by the AVHL Players/Team pages. When the live Google Sheets CSV is available, `/api/sim-rosters` reads it through `src/lib/players.js`; `public/sim/data.js` then builds the game rosters from those live rows. The bundled `data/players.js` fallback was regenerated from the September 8, 2026 CSV files so an outage does not silently restore the older August rosters.
+V6.2 retains the V6.0 rating engine, which removes the old synthetic line-tier ratings and feeds the simulator the same live player database used by the AVHL Players/Team pages. When the live Google Sheets CSV is available, `/api/sim-rosters` reads it through `src/lib/players.js`; `public/sim/data.js` then builds the game rosters from those live rows. The bundled `data/players.js` fallback was regenerated from the September 8, 2026 CSV files so an outage does not silently restore the older August rosters.
 
 ## Core RNG philosophy
 

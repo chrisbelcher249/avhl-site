@@ -437,8 +437,7 @@ h2 {
   background: var(--panel);
 }
 
-.summary-topline span,
-.goalie-lines span {
+.summary-topline span {
   display: block;
   color: var(--muted);
   font-size: 0.72rem;
@@ -450,13 +449,6 @@ h2 {
   font-size: 1.28rem;
 }
 
-.goalie-lines {
-  display: grid;
-  gap: 5px;
-  margin-bottom: 10px;
-}
-
-.goalie-lines > div,
 .leader-row {
   display: flex;
   justify-content: space-between;
@@ -3360,7 +3352,7 @@ body {
 }
 
 /* ==============================================================
-   AVHL GAME SIMULATOR V6.1 — full box score + official-game gate
+   AVHL GAME SIMULATOR V6.2 — full box score + official-game gate
    ============================================================= */
 
 .full-boxscore-panel {

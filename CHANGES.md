@@ -1,5 +1,14 @@
 # Site 27 — Live bracket fit + standings naming + mobile menu
 
+## Simulator V6.2 — final-summary cleanup
+
+- Removed goalie stat lines from the compact final-summary card; complete goalie statistics remain in Full Game Stats.
+- Injury rows now use a roster-style label such as `D Logan Stanley (COL) · Upper Body`, with only `Out 5 games` on the right.
+- Removed injury severity text from the compact summary while preserving severity and full injury metadata in the official game packet.
+- Renamed the three compact summary boxes to `Final Score`, `Shots On Goal`, and `Shot Attempts`.
+- Each compact summary box now orders the larger value first and appends the abbreviation of the team that led that category (for example, `53–39 HOU`); tied categories show no team abbreviation.
+- Simulator/version metadata updated to V6.2; the underlying V6 rating/RNG/injury model is unchanged.
+
 ## Simulator V6.1 — UI polish + injury visibility
 
 - Removed redundant abbreviation-circle fallbacks from Full Game Stats team/stat headers; team logos stand on their own.
