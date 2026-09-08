@@ -7,7 +7,7 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - 40 Major League team directory with official logos
 - 40-team Minor League directory nested under `/teams/minor-league`
 - Official rivalry system with four designated rivals per Major League team, rivalry levels, Top 10 rivalries, and named rivalry groups
-- Integrated V5.2 simulator at `/sim`
+- Integrated V6.1 simulator at `/sim`
 - Updated Saturday Night Showdown schedule
 - Fully branded team pages with arena hero imagery
 - Official Home / Away / Alternate uniform galleries
@@ -15,7 +15,7 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - Team-specific colors and arena presentation details
 - Complete current rosters for all 40 teams: 20 players per club, including 12 forwards, six defensemen, and two goalies
 - Skater and goalie roster views with sortable number/name/position/OVR/age/contract/AAV/production columns
-- Searchable database of all 1,909 current players, including 800 signed players and 1,109 unrestricted free agents
+- Searchable current-player database sourced from the live AVHL ratings CSVs
 - Permanent player profiles for all 2,091 known AVHL IDs, including 182 historical-only players
 - Historical player statistics from 2022–23 through 2025–26 at `/statistics/career` (1,028 skaters and 116 goalies)
 - Player filters for AVHL status/team, position group, pro league, and overall rating, plus salary sorting
@@ -28,6 +28,15 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - Statistics hub with linked current-player and historical-career sections; History cross-links to the player archive
 - League archive nested under `/info`, with History at `/info/history`, Champions at `/info/champions`, and standardized playoff brackets at `/info/history/brackets`
 - Historical playoff brackets for 2022–23 through 2025–26 with season-specific formats, seeds, preserved scores, historical names, team marks, and champions
+
+
+## Simulator V6.1 polish
+
+- Full Game Stats tabs use the actual matchup nicknames rather than generic Away/Home labels.
+- Redundant abbreviation-circle fallbacks were removed from box-score stat headers.
+- Final summary headlines were simplified so goalie lines and injuries get the space; complete skater statistics remain in the full box score.
+- Injury durations spell out `game` / `games`, and injury events remain visible when skipping ahead.
+- Long team nicknames are fitted dynamically in the broadcast scoreboard and Live Game Totals headers so all 40 Major teams present cleanly.
 
 ## Run locally
 
@@ -116,4 +125,4 @@ The site intentionally excludes repetitive franchise-management fields that are 
 - Southeast Skirmish was removed, leaving six named trio/quad rivalry groups.
 - The rivalry-level legend now sits with the full four-rival matrix where the colored dots are used.
 - `/sim` now loads matchup rosters through `/api/sim-rosters`, backed by the same live Google Sheets player loader used by Players and Cap. If Google Sheets is temporarily unavailable, the site's bundled player database is used by that loader; the simulator's original two demo pools remain the last-resort fallback only if the API route itself fails.
-- The V5.2 simulation engine is unchanged by the roster hookup.
+- The V6.1 simulator uses the full live player-rating set, event-driven injuries, polished injury reporting, matchup-specific stat tabs, and runtime fitting for long team names.

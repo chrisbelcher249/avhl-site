@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V6.0";
+  const SIMULATOR_VERSION = "V6.1";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
@@ -266,6 +266,64 @@
     if (select) select.value = side === "home" ? "Home" : "Away";
   }
 
+  function updateBoxScoreTabLabels(home, away) {
+    const labels = {
+      "away-skaters": `${away.name} Skaters`,
+      "away-goalies": `${away.name} Goalies`,
+      "home-skaters": `${home.name} Skaters`,
+      "home-goalies": `${home.name} Goalies`
+    };
+    for (const button of elements.boxScoreTabs) {
+      if (labels[button.dataset.boxTab]) button.textContent = labels[button.dataset.boxTab];
+    }
+  }
+
+  function fitTeamNameElement(node) {
+    if (!node) return;
+    node.style.removeProperty("font-size");
+    node.style.removeProperty("letter-spacing");
+    node.style.whiteSpace = "nowrap";
+    node.style.lineHeight = "1";
+
+    const available = node.clientWidth;
+    if (!available) return;
+    let size = Number.parseFloat(window.getComputedStyle(node).fontSize) || 30;
+    const minimum = 16;
+    while (node.scrollWidth > available && size > minimum) {
+      size -= 0.5;
+      node.style.fontSize = `${size}px`;
+    }
+
+    if (node.scrollWidth > available && node.textContent.includes(" ")) {
+      node.style.whiteSpace = "normal";
+      node.style.lineHeight = ".92";
+    }
+  }
+
+  function fitBroadcastTeamNames() {
+    fitTeamNameElement(elements.awayName);
+    fitTeamNameElement(elements.homeName);
+  }
+
+  function fitLiveStatTeamName(node) {
+    if (!node) return;
+    node.style.removeProperty("font-size");
+    node.style.whiteSpace = "nowrap";
+    const available = Math.max(0, node.clientWidth - 12);
+    if (!available) return;
+    let size = Number.parseFloat(window.getComputedStyle(node).fontSize) || 16;
+    const minimum = 11;
+    while (node.scrollWidth > available && size > minimum) {
+      size -= 0.5;
+      node.style.fontSize = `${size}px`;
+    }
+  }
+
+  function fitLiveStatTeamNames() {
+    fitLiveStatTeamName(elements.statsAwayName);
+    fitLiveStatTeamName(elements.statsHomeName);
+  }
+
   function applyTeamBranding(home, away) {
     document.documentElement.style.setProperty("--home", home.primaryColor);
     document.documentElement.style.setProperty("--away", away.primaryColor);
@@ -289,6 +347,7 @@
       node.textContent = home.arenaName || "AVHL Arena";
     });
     if (elements.matchupLabel) elements.matchupLabel.textContent = `${away.abbreviation} at ${home.abbreviation}`;
+    updateBoxScoreTabLabels(home, away);
 
     setImageAsset(elements.homeLogo, home.assets?.logo, elements.homeLogoFallback);
     setImageAsset(elements.awayLogo, away.assets?.logo, elements.awayLogoFallback);
@@ -455,8 +514,12 @@
     applyTeamBranding(home, away);
     elements.homeName.textContent = home.name;
     elements.awayName.textContent = away.name;
+    fitBroadcastTeamNames();
+    window.requestAnimationFrame(fitBroadcastTeamNames);
     elements.statsHomeName.textContent = home.name;
     elements.statsAwayName.textContent = away.name;
+    fitLiveStatTeamNames();
+    window.requestAnimationFrame(fitLiveStatTeamNames);
     elements.homeScore.textContent = "0";
     elements.awayScore.textContent = "0";
     elements.homeShots.textContent = "0 shots";
@@ -543,6 +606,7 @@
 
   function feedEventClass(event) {
     if (event.type === "goal") return "goal";
+    if (event.type === "injury") return "injury";
     if (event.type === "penalty" || event.type === "fight") return "penalty";
     if (event.type === "period-start" || event.type === "period-end" || event.type === "final") return "divider";
     if (event.type === "shot" || event.type === "shot-attempt") return "shot";
@@ -632,6 +696,7 @@
         index === target ||
         event.type === "goal" ||
         event.type === "penalty" ||
+        event.type === "injury" ||
         event.type === "period-start" ||
         event.type === "period-end" ||
         event.type === "shootout-attempt" ||
@@ -768,7 +833,7 @@
       elements.replayPlayers.append(group);
       replayPlayerNodes.set(track.playerId, group);
 
-      // V6.0 intentionally draws no scorer/assist trajectory trails.
+      // V6.1 intentionally draws no scorer/assist trajectory trails.
 
     }
 
@@ -1011,6 +1076,12 @@
     return number > 0 ? `+${number}` : String(number);
   }
 
+  function injuryGamesText(gamesMissed, { prefix = false } = {}) {
+    const games = Math.max(0, Number(gamesMissed) || 0);
+    const text = `${games} ${games === 1 ? "game" : "games"}`;
+    return prefix ? `Out ${text}` : text;
+  }
+
   function resetFullBoxScore() {
     activeBoxTab = "team";
     officialVerifiedGameId = null;
@@ -1038,10 +1109,8 @@
   }
 
   function teamLogoMarkup(team) {
-    if (team?.assets?.logo) {
-      return `<img class="boxscore-team-logo" src="${escapeHtml(team.assets.logo)}" alt="${escapeHtml(team.fullName || team.name)} logo" onerror="this.hidden=true;this.nextElementSibling.hidden=false" /><span class="boxscore-team-logo-fallback" hidden>${escapeHtml(team.abbreviation)}</span>`;
-    }
-    return `<span class="boxscore-team-logo-fallback">${escapeHtml(team?.abbreviation || "AVHL")}</span>`;
+    if (!team?.assets?.logo) return "";
+    return `<img class="boxscore-team-logo" src="${escapeHtml(team.assets.logo)}" alt="${escapeHtml(team.fullName || team.name)} logo" onerror="this.remove()" />`;
   }
 
   function renderTeamBoxScore(summary) {
@@ -1104,7 +1173,7 @@
             ${rows.map((row) => {
               const fot = (row.faceoffWins || 0) + (row.faceoffLosses || 0);
               return `<tr>
-                <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)} · ${escapeHtml(row.position)}${row.positionFamiliarity < 1 ? ` · 3% unfamiliar-position penalty` : ""}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${row.injury.gamesMissed}G)` : ""}</span></td>
+                <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)} · ${escapeHtml(row.position)}${row.positionFamiliarity < 1 ? ` · 3% unfamiliar-position penalty` : ""}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${escapeHtml(injuryGamesText(row.injury.gamesMissed))})` : ""}</span></td>
                 <td>${formatStatTime(row.toi, true)}</td>
                 <td>${row.goals || 0}</td><td>${row.assists || 0}</td><td>${row.points || 0}</td><td>${plusMinusText(row.plusMinus)}</td>
                 <td>${row.shots || 0}</td><td>${skaterShotPercentage(row)}</td><td>${formatStatTime(row.ppToi, true)}</td><td>${formatPim(row.penaltyMinutes)}</td>
@@ -1132,7 +1201,7 @@
           </tr></thead>
           <tbody>
             ${rows.map((row) => `<tr>
-              <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)}${row.starter ? " · Starter" : " · Backup"}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${row.injury.gamesMissed}G)` : ""}</span></td>
+              <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)}${row.starter ? " · Starter" : " · Backup"}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${escapeHtml(injuryGamesText(row.injury.gamesMissed))})` : ""}</span></td>
               <td>${formatStatTime(row.toi, true)}</td><td>${row.shotsAgainst || 0}</td><td>${row.saves || 0}</td><td>${goalieSavePercentageFull(row)}</td>
               <td>${row.goalsAgainst || 0}</td><td>${goalieGaa(row)}</td><td>${row.emptyNetGoals || 0}</td><td>${formatPim(row.penaltyMinutes)}</td>
               <td>${row.goals || 0}</td><td>${row.assists || 0}</td><td>${row.points || 0}</td>
@@ -1311,28 +1380,26 @@
         ${goalieLines(homeId)}
         ${goalieLines(awayId)}
       </div>
-      ${injuries.length ? `
-        <div class="leader-list injury-summary-list">
-          ${injuries.map((injury) => `
-            <div class="leader-row">
-              <span>${escapeHtml(injury.playerName)} · ${escapeHtml(injury.bodyArea)}</span>
-              <strong>${injury.gamesMissed}G · ${escapeHtml(injury.severity)}</strong>
-            </div>
-          `).join("")}
-        </div>
-      ` : ""}
-      <div class="leader-list">
-        ${summary.leaders.length
-          ? summary.leaders.map((leader) => `
-              <div class="leader-row">
-                <span>${escapeHtml(leader.name)}</span>
-                <strong>${leader.goals}G ${leader.assists}A</strong>
+      <div class="injury-summary-block">
+        <div class="injury-summary-heading">Injuries</div>
+        ${injuries.length ? `
+          <div class="injury-summary-list">
+            ${injuries.map((injury) => `
+              <div class="injury-summary-row">
+                <span>${escapeHtml(injury.playerName)} · ${escapeHtml(injury.bodyArea)}</span>
+                <strong>${escapeHtml(injuryGamesText(injury.gamesMissed, { prefix: true }))} · ${escapeHtml(injury.severity)}</strong>
               </div>
-            `).join("")
-          : `<p>No skater recorded a point.</p>`}
+            `).join("")}
+          </div>
+        ` : `<div class="injury-summary-none">No injuries</div>`}
       </div>
     `;
   }
+
+  window.addEventListener("resize", () => window.requestAnimationFrame(() => {
+    fitBroadcastTeamNames();
+    fitLiveStatTeamNames();
+  }));
 
   elements.playButton.addEventListener("click", () => {
     if (playing) stopPlayback();

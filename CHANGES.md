@@ -1,5 +1,17 @@
 # Site 27 — Live bracket fit + standings naming + mobile menu
 
+## Simulator V6.1 — UI polish + injury visibility
+
+- Removed redundant abbreviation-circle fallbacks from Full Game Stats team/stat headers; team logos stand on their own.
+- Full Game Stats tabs now use the actual matchup nicknames (for example, `Cougars Goalies` and `Blood Hounds Skaters`) instead of generic Away/Home labels.
+- Removed skater point-leader headlines from the final summary card; that space is now dedicated to goalie lines and injuries because full player stats already live below.
+- Injury duration now spells out `Out 1 game`, `Out 6 games`, etc. instead of ambiguous hockey-stat shorthand such as `1G`.
+- Injury events are preserved when using jump-to-goal, jump-to-period-end, or jump-to-final controls.
+- Injury play-by-play rows now receive a prominent injury treatment so they are difficult to miss.
+- Broadcast team nicknames and the Live Game Totals team headers are runtime-fit to their available space, preventing long names such as Hammerheads, Mountain Lions, Blood Hounds, Steamrollers, and Thunderbolts from clipping or colliding with adjacent UI.
+- Simulator/version metadata updated to V6.1; the underlying V6 rating/RNG model remains otherwise unchanged.
+
+
 - Corrected the current standings taxonomy so **Eastern Conference** remains the conference and **Metropolitan Division (MET)** remains the division; the standings UI no longer relabels Metropolitan as EAST.
 - Kept **PCF** as the official Pacific Division abbreviation.
 - Moved the red Western Conference and Eastern Conference labels directly above each conference's 8/9 qualifier area.

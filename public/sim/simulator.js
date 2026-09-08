@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V6.0
+  AVHL Game Simulator V6.1
   ----------------------
   Plain JavaScript, no packages, and intentionally separated from the UI.
 
@@ -5381,7 +5381,7 @@ class AVHLGameSimulator {
         [this.awayId]: aggregateGoalieStats(this.awayId)
       },
       ratingModel: {
-        version: "V6.0",
+        version: "V6.1",
         syntheticRatings: false,
         skaterRatingsUsed: 26,
         goalieRatingsUsed: 20,

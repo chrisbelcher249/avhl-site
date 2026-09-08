@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000b36" />
-  <title>AVHL Game Simulator V6.0</title>
+  <title>AVHL Game Simulator V6.1</title>
   <link rel="stylesheet" href="styles.css?v=6.0" />
   <script src="rink.js?v=6.0" defer></script>
   <script src="team-metadata.js?v=6.0" defer></script>
@@ -23,7 +23,7 @@
         </div>
         <div>
           <p class="eyebrow">American Virtual Hockey League</p>
-          <h1>Game Center <span class="version-tag">V6.0</span></h1>
+          <h1>Game Center <span class="version-tag">V6.1</span></h1>
           <p class="header-subtitle">Chronological simulation · spatial events · full-rink goal replays</p>
         </div>
       </div>
@@ -365,10 +365,10 @@
 
       <div class="boxscore-tabs" role="tablist" aria-label="Game statistic views">
         <button type="button" class="boxscore-tab active" data-box-tab="team" role="tab" aria-selected="true">Team Stats</button>
-        <button type="button" class="boxscore-tab" data-box-tab="away-skaters" role="tab">Away Skaters</button>
-        <button type="button" class="boxscore-tab" data-box-tab="away-goalies" role="tab">Away Goalies</button>
-        <button type="button" class="boxscore-tab" data-box-tab="home-skaters" role="tab">Home Skaters</button>
-        <button type="button" class="boxscore-tab" data-box-tab="home-goalies" role="tab">Home Goalies</button>
+        <button type="button" class="boxscore-tab" data-box-tab="away-skaters" role="tab">Cobalts Skaters</button>
+        <button type="button" class="boxscore-tab" data-box-tab="away-goalies" role="tab">Cobalts Goalies</button>
+        <button type="button" class="boxscore-tab" data-box-tab="home-skaters" role="tab">Heat Skaters</button>
+        <button type="button" class="boxscore-tab" data-box-tab="home-goalies" role="tab">Heat Goalies</button>
       </div>
 
       <div id="box-score-content" class="box-score-content">
@@ -381,7 +381,7 @@
       <section class="official-modal-card" role="dialog" aria-modal="true" aria-labelledby="official-modal-title">
         <p class="panel-kicker">AVHL administrator</p>
         <h2 id="official-modal-title">Verify Official Game</h2>
-        <p>V6.0 validates the administrator password locally, then saves a JSON game packet containing the seed, full box score, event log, rating-model metadata, and any injuries. Season-level database/Sheet write-back remains a separate authenticated step.</p>
+        <p>V6.1 validates the administrator password locally, then saves a JSON game packet containing the seed, full box score, event log, rating-model metadata, and any injuries. Season-level database/Sheet write-back remains a separate authenticated step.</p>
         <form id="official-form">
           <label class="official-password-field">
             Administrator password
@@ -397,7 +397,7 @@
     </div>
 
     <footer class="site-footer">
-      <span>AVHL Game Simulator V6.0</span>
+      <span>AVHL Game Simulator V6.1</span>
       <span>Away left · Home right · selectable sweaters · V2.2 chronological event engine preserved</span>
     </footer>
   </main>

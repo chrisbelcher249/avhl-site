@@ -407,6 +407,14 @@ h2 {
   text-align: left;
 }
 
+.team-stat-grid > strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: .92rem;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
 .summary-card {
   padding: 13px;
   border: 1px solid #235677;
@@ -455,6 +463,44 @@ h2 {
   gap: 12px;
   padding: 5px 0;
   border-bottom: 1px solid var(--border);
+}
+
+.injury-summary-block {
+  margin-top: 4px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255,255,255,.09);
+}
+
+.injury-summary-heading {
+  margin-bottom: 3px;
+  color: #ff9aa0;
+  font-size: .66rem;
+  font-weight: 950;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.injury-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.injury-summary-row span {
+  min-width: 0;
+}
+
+.injury-summary-row strong {
+  flex: 0 0 auto;
+  color: #fff0f1;
+}
+
+.injury-summary-none {
+  padding: 6px 0 2px;
+  color: var(--muted);
+  font-size: .78rem;
 }
 
 .rink-panel {
@@ -1335,6 +1381,21 @@ body {
   background: linear-gradient(90deg, rgba(127,74,24,.28), rgba(12,23,38,.68));
 }
 
+.feed-row.injury {
+  border-left: 4px solid #ff6b72;
+  background: linear-gradient(90deg, rgba(154,45,55,.38), rgba(12,23,38,.72));
+}
+
+.feed-row.injury .event-time {
+  color: #ff9aa0;
+  font-weight: 900;
+}
+
+.feed-row.injury .event-text {
+  color: #fff1f2;
+  font-weight: 850;
+}
+
 .event-player {
   position: relative;
   border-radius: 12px;
@@ -2027,6 +2088,8 @@ body {
 }
 
 .team-identity {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -2056,7 +2119,14 @@ body {
 
 .team-identity .team-copy {
   min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
   align-self: center;
+}
+
+.team-identity .team-name {
+  max-width: 100%;
+  white-space: nowrap;
 }
 
 /* Jersey focal card */
@@ -3290,7 +3360,7 @@ body {
 }
 
 /* ==============================================================
-   AVHL GAME SIMULATOR V6.0 — full box score + official-game gate
+   AVHL GAME SIMULATOR V6.1 — full box score + official-game gate
    ============================================================= */
 
 .full-boxscore-panel {
@@ -3458,6 +3528,8 @@ body {
   font-size: .75rem;
   font-weight: 900;
 }
+
+.boxscore-team-logo-fallback[hidden] { display: none !important; }
 
 .team-boxscore-final {
   min-width: 170px;
