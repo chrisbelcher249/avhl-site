@@ -1,3 +1,13 @@
+# AVHL Site Change Log
+
+## Simulator V6.5 — two-line goal replay scoring summary
+
+- Replay goal selector line 1 now follows: `3rd 8:37 — WSH — A. Burakovsky (1) — 3-1 WSH`.
+- A second line beneath the selector shows credited assists, e.g. `From D. Chisholm (1), V. Tarasenko (1)`.
+- Goal and assist numbers are cumulative in-game totals through that selected goal, so a player's second goal/assist displays `(2)`.
+- Score shown is the score immediately after the selected goal; tied scores display `TIE`.
+- Assist credits remain sourced from the exact replay/scoring event fixed in V6.4.
+
 # Changes
 
 ## Simulator V6.4 — assist distribution + replay consistency

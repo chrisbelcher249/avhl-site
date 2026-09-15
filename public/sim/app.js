@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V6.4";
+  const SIMULATOR_VERSION = "V6.5";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
@@ -67,6 +67,7 @@
     statsAwayPim: document.getElementById("stats-away-pim"),
     summary: document.getElementById("summary"),
     goalSelect: document.getElementById("goal-select"),
+    goalAssistLine: document.getElementById("goal-assist-line"),
     replayButton: document.getElementById("replay-button"),
     replayPlayers: document.getElementById("replay-players"),
     replayTrails: document.getElementById("replay-trails"),
@@ -539,6 +540,7 @@
     });
     elements.goalSelect.innerHTML = `<option value="">No goals yet</option>`;
     elements.goalSelect.disabled = true;
+    updateGoalCreditDisplay(null);
     elements.replayButton.disabled = true;
     elements.replayButton.textContent = "Play";
     elements.replayProgress.disabled = true;
@@ -706,28 +708,65 @@
     renderEventMap();
   }
 
+  function scoringTotalThroughGoal(event, playerId, stat) {
+    const targetIndex = encounteredGoals.findIndex((goal) => goal.id === event.id);
+    const goalsThroughEvent = targetIndex >= 0 ? encounteredGoals.slice(0, targetIndex + 1) : encounteredGoals;
+    if (stat === "goal") {
+      return goalsThroughEvent.filter((goal) => goal.playerId === playerId).length;
+    }
+    return goalsThroughEvent.reduce((total, goal) => {
+      return total + ((goal.details?.assists || []).includes(playerId) ? 1 : 0);
+    }, 0);
+  }
+
+  function scoreAfterGoalLabel(event) {
+    const homeScore = Number(event.score?.[homeId] ?? 0);
+    const awayScore = Number(event.score?.[awayId] ?? 0);
+    if (homeScore === awayScore) return `${homeScore}-${awayScore} TIE`;
+    const leaderId = homeScore > awayScore ? homeId : awayId;
+    const highScore = Math.max(homeScore, awayScore);
+    const lowScore = Math.min(homeScore, awayScore);
+    return `${highScore}-${lowScore} ${teams?.[leaderId]?.abbreviation || ""}`.trim();
+  }
+
+  function goalDisplayDetails(event) {
+    const scorer = getPlayer(event.playerId);
+    const scoringTeam = teams?.[event.teamId];
+    const scorerGoalNumber = scoringTotalThroughGoal(event, event.playerId, "goal");
+    const assistPlayers = (event.details?.assists || [])
+      .map((playerId) => getPlayer(playerId))
+      .filter(Boolean);
+    const firstLine = `${event.periodLabel} ${event.clockText} — ${scoringTeam?.abbreviation || ""} — ${shortName(scorer)} (${scorerGoalNumber}) — ${scoreAfterGoalLabel(event)}`;
+    const secondLine = assistPlayers.length
+      ? `From ${assistPlayers.map((player) => `${shortName(player)} (${scoringTotalThroughGoal(event, player.id, "assist")})`).join(", ")}`
+      : "Unassisted";
+    return { scorer, assistPlayers, firstLine, secondLine };
+  }
+
+  function updateGoalCreditDisplay(event) {
+    if (!elements.goalAssistLine) return;
+    if (!event) {
+      elements.goalAssistLine.textContent = "Scoring details will appear here.";
+      return;
+    }
+    elements.goalAssistLine.textContent = goalDisplayDetails(event).secondLine;
+  }
+
   function registerGoal(event) {
     if (!encounteredGoals.some((goal) => goal.id === event.id)) {
       encounteredGoals.push(event);
-      const scorer = getPlayer(event.playerId);
+      const { scorer, assistPlayers, firstLine, secondLine } = goalDisplayDetails(event);
       const option = document.createElement("option");
       option.value = String(event.id);
-      const assistPlayers = (event.details?.assists || [])
-        .map((playerId) => getPlayer(playerId))
-        .filter(Boolean);
-      const assistLabel = assistPlayers.length
-        ? `A: ${assistPlayers.map((player) => shortName(player)).join(", ")}`
-        : "Unassisted";
-      option.textContent = `${event.periodLabel} ${event.clockText} — ${shortName(scorer)} (${assistLabel})`;
-      option.title = assistPlayers.length
-        ? `${scorer?.name || "Goal"} — Assists: ${assistPlayers.map((player) => player.name).join(", ")}`
-        : `${scorer?.name || "Goal"} — Unassisted`;
+      option.textContent = firstLine;
+      option.title = `${firstLine}\n${secondLine}`;
       elements.goalSelect.append(option);
     }
     elements.goalSelect.disabled = false;
     elements.replayButton.disabled = false;
     elements.replayProgress.disabled = false;
     elements.goalSelect.value = String(event.id);
+    updateGoalCreditDisplay(event);
     currentReplayEventId = event.id;
   }
 
@@ -808,6 +847,7 @@
     currentReplayEvent = event;
     currentReplayEventId = event.id;
     elements.goalSelect.value = String(event.id);
+    updateGoalCreditDisplay(event);
     elements.replayPlayers.replaceChildren();
     elements.replayTrails.replaceChildren();
     elements.replayPuck.setAttribute("opacity", "1");
@@ -842,7 +882,7 @@
       elements.replayPlayers.append(group);
       replayPlayerNodes.set(track.playerId, group);
 
-      // V6.4 intentionally draws no scorer/assist trajectory trails.
+      // V6.5 intentionally draws no scorer/assist trajectory trails.
 
     }
 

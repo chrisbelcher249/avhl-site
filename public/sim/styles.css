@@ -525,6 +525,40 @@ h2 {
   min-height: 42px;
 }
 
+.goal-replay-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.goal-replay-field > label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+}
+
+.goal-replay-field select {
+  width: 100%;
+}
+
+.goal-assist-line {
+  min-height: 1.35em;
+  margin-top: 7px;
+  padding: 0 2px;
+  color: var(--text);
+  font-size: 0.84rem;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.replay-controls {
+  align-items: flex-start;
+}
+
+.replay-controls > button {
+  margin-top: 25px;
+}
+
 .event-toggle-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3352,7 +3386,7 @@ body {
 }
 
 /* ==============================================================
-   AVHL GAME SIMULATOR V6.4 — full box score + official-game gate
+   AVHL GAME SIMULATOR V6.5 — full box score + official-game gate
    ============================================================= */
 
 .full-boxscore-panel {
