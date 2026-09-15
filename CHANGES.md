@@ -1,5 +1,15 @@
 # Changes
 
+## Simulator V6.4 — assist distribution + replay consistency
+
+- Fixed completed-pass assist tracking: the passer is now recorded before puck flight temporarily clears possession.
+- Primary scoring sequences now follow the AVHL assist target: 6% unassisted, 16% one assist, 78% two assists.
+- Two-assist plays are constructed as two distinct, real completed passes before the shot, so the credited players are visible in the replay.
+- Goal replay reconstruction is scoped to the same scoring sequence used for the official assist credits.
+- Goal event text, replay dropdown labels, player statistics, and replay role metadata now share one assist record.
+- Rebound goals carry forward the saved-shot shooter and prior setup touch when appropriate.
+- Kept scoring output near the prior build by tuning the offensive-zone primary-shot trigger after the new completed-pass setup model.
+
 ## Live team branding + simulator V6.3 replay credits
 
 - Major-team branding now reads live from the 2026–27 Team Specifications Google Sheet with the bundled `data/teams.js` as a fail-safe fallback.

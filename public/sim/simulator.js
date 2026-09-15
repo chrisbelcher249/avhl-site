@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V6.3
+  AVHL Game Simulator V6.4
   ----------------------
   Plain JavaScript, no packages, and intentionally separated from the UI.
 
@@ -2300,7 +2300,7 @@ class AVHLGameSimulator {
     return { ...spot };
   }
 
-  choosePassRecipient(state, teamId, passer, purpose = "cycle") {
+  choosePassRecipient(state, teamId, passer, purpose = "cycle", options = {}) {
     return this.chooseOnIcePlayer(
       state,
       teamId,
@@ -2321,6 +2321,7 @@ class AVHLGameSimulator {
       },
       (player) => {
         if (player.id === passer.id) return false;
+        if ((options.excludeRecipientIds || []).includes(player.id)) return false;
         const position = state.positions[player.id];
         if (!position) return false;
         const puckZone = this.zoneForTeam(state.puck.x, teamId, state.period);
@@ -2334,14 +2335,14 @@ class AVHLGameSimulator {
     );
   }
 
-  simulatePass(state, teamId, purpose = "cycle") {
+  simulatePass(state, teamId, purpose = "cycle", options = {}) {
     const team = this.teams[teamId];
     const passer = team.playerById[state.puckCarrierId] ?? this.chooseOnIcePlayer(
       state,
       teamId,
       (player) => player.puckControl + player.passing
     );
-    const recipient = this.choosePassRecipient(state, teamId, passer, purpose);
+    const recipient = this.choosePassRecipient(state, teamId, passer, purpose, options);
     if (!passer || !recipient) return false;
 
     // On an entry pass, an attacker who is already across while the puck is
@@ -2425,7 +2426,7 @@ class AVHLGameSimulator {
     const passSpeed = this.clamp(52 + (passer.passing - 75) * 0.75 + (purpose === "one-timer" ? 9 : 0), 46, 78);
     const fullFlight = this.clamp(distance / passSpeed, 0.12, 0.62);
 
-    if (!this.random.chance(successProbability)) {
+    if (!options.forceComplete && !this.random.chance(successProbability)) {
       passer.stats.giveaways += 1;
       const canIntercept = laneDefender && laneDefender.lane.distance <= 6.5;
       const interception = canIntercept && this.random.chance(
@@ -2495,9 +2496,12 @@ class AVHLGameSimulator {
       return false;
     }
 
+    // Credit the passer before the puck goes into flight. advancePuckFlight()
+    // intentionally clears possession while the puck is loose, so adding the
+    // assist candidate after the flight silently rejected every completed pass.
+    this.addAssistCandidate(state, passer.id);
     this.advancePuckFlight(state, from, to, fullFlight, "pass");
     state.passCompletions[teamId] += 1;
-    this.addAssistCandidate(state, passer.id);
     this.setPossession(state, teamId, recipient.id, false);
     const pickup = state.positions[recipient.id] ?? to;
     state.puck = { x: pickup.x, y: pickup.y };
@@ -2519,6 +2523,57 @@ class AVHLGameSimulator {
       }
     );
     return true;
+  }
+
+  prepareScoringChance(state, teamId, baseContext = "cycle") {
+    const assistRoll = this.random.next();
+    const plannedAssistCount = assistRoll < 0.06 ? 0 : assistRoll < 0.22 ? 1 : 2;
+    const replaySequenceStartAbsolute = state.absoluteTime;
+    const setupAssistIds = [];
+
+    for (let passIndex = 0; passIndex < plannedAssistCount; passIndex += 1) {
+      if (passIndex > 0 && state.clock > 1.2) {
+        this.advanceClock(state, this.random.range(0.45, 0.95), "play");
+        if (state.clock <= 0 || state.nextFaceoff || state.possessionTeam !== teamId) return null;
+      }
+
+      let completed = false;
+      // Net geometry or a transient lane/offside constraint can reject a
+      // specific recipient even when this scoring sequence calls for a pass.
+      // Retry a few legal recipients; the pass itself remains a real spatial
+      // event and is what the replay later shows as the assist.
+      for (let attempt = 0; attempt < 4 && !completed; attempt += 1) {
+        const passerId = state.puckCarrierId;
+        completed = this.simulatePass(
+          state,
+          teamId,
+          passIndex === plannedAssistCount - 1 ? "one-timer" : "cycle",
+          {
+            forceComplete: true,
+            excludeRecipientIds: [...setupAssistIds]
+          }
+        ) === true;
+        if (completed) {
+          if (passerId && !setupAssistIds.includes(passerId)) setupAssistIds.push(passerId);
+          break;
+        }
+        if (state.nextFaceoff || state.possessionTeam !== teamId) return null;
+      }
+      if (!completed) return null;
+    }
+
+    const oneTimerSetup = setupAssistIds.length > 0 && this.random.chance(0.34);
+    if (oneTimerSetup && state.clock > 0.8) {
+      this.advanceClock(state, this.random.range(0.4, 0.9), "shot");
+      if (state.clock <= 0 || state.nextFaceoff || state.possessionTeam !== teamId) return null;
+    }
+
+    return {
+      context: oneTimerSetup ? "one-timer" : baseContext,
+      plannedAssistCount,
+      forcedAssistIds: setupAssistIds.slice().reverse(),
+      replaySequenceStartAbsolute
+    };
   }
 
   localPressure(state, player, defendingTeamId) {
@@ -2644,7 +2699,9 @@ class AVHLGameSimulator {
       );
       if (state.clock > 2 && this.random.chance(breakaway ? 0.72 : state.lastContext === "rush" ? 0.42 : 0.24)) {
         this.advanceClock(state, this.random.range(breakaway ? 0.75 : 1.2, breakaway ? 1.6 : 2.8), "shot");
-        this.simulateShot(state, teamId, { context: state.lastContext });
+        if (state.clock <= 0 || state.nextFaceoff || state.possessionTeam !== teamId) return true;
+        const scoringSetup = this.prepareScoringChance(state, teamId, state.lastContext);
+        if (scoringSetup) this.simulateShot(state, teamId, scoringSetup);
       }
       return;
     }
@@ -3214,7 +3271,7 @@ class AVHLGameSimulator {
     this.refreshUnits(state, false);
   }
 
-  createGoalReplay(state, scoringTeamId, scorer, assists, shot) {
+  createGoalReplay(state, scoringTeamId, scorer, assists, shot, replayOptions = {}) {
     const defendingTeamId = this.opponent(scoringTeamId);
     const attackingSkaters = [...state.onIce[scoringTeamId]];
     const defendingSkaters = [...state.onIce[defendingTeamId]];
@@ -3331,7 +3388,15 @@ class AVHLGameSimulator {
     const latestRestart = [...rawRecentEvents]
       .reverse()
       .find((event) => event.type === "faceoff" || event.type === "period-start");
-    const activeStartAbsolute = Math.max(cutoffAbsolute, lineupStartAbsolute, latestRestart?.absoluteTime ?? cutoffAbsolute);
+    const requestedSequenceStart = Number.isFinite(replayOptions.sequenceStartAbsolute)
+      ? replayOptions.sequenceStartAbsolute
+      : cutoffAbsolute;
+    const activeStartAbsolute = Math.max(
+      cutoffAbsolute,
+      lineupStartAbsolute,
+      latestRestart?.absoluteTime ?? cutoffAbsolute,
+      requestedSequenceStart
+    );
 
     const recentSnapshots = rawSnapshots
       .filter((snapshot) => snapshot.time >= activeStartAbsolute - 0.01)
@@ -4392,7 +4457,13 @@ class AVHLGameSimulator {
       shooter.stats.goals += 1;
       shooter.stats.points += 1;
       goalie.stats.goalsAgainst += 1;
-      const assistIds = state.assistQueue
+      const forcedAssistIds = Array.isArray(options.forcedAssistIds)
+        ? options.forcedAssistIds
+            .filter((id) => id && id !== shooter.id && team.playerById[id])
+            .filter((id, index, array) => array.indexOf(id) === index)
+            .slice(0, 2)
+        : null;
+      const assistIds = forcedAssistIds ?? state.assistQueue
         .filter((id) => id !== shooter.id)
         .filter((id, index, array) => array.indexOf(id) === index)
         .slice(-2)
@@ -4404,7 +4475,9 @@ class AVHLGameSimulator {
           player.stats.points += 1;
         }
       });
-      const replay = this.createGoalReplay(state, teamId, shooter, assistIds, shot);
+      const replay = this.createGoalReplay(state, teamId, shooter, assistIds, shot, {
+        sequenceStartAbsolute: Number.isFinite(options.replaySequenceStartAbsolute) ? options.replaySequenceStartAbsolute : null
+      });
       const assistText = assistIds.length
         ? ` Assists: ${assistIds.map((id) => this.shortName(team.playerById[id])).join(", ")}.`
         : " Unassisted.";
@@ -4423,6 +4496,7 @@ class AVHLGameSimulator {
             goalProbability,
             goalieAttributeUsed: shot.actualTarget,
             screeningPlayerId: screened ? screenCandidate?.id ?? null : null,
+            plannedAssistCount: Number.isInteger(options.plannedAssistCount) ? options.plannedAssistCount : null,
             assists: assistIds
           },
           replay
@@ -4497,6 +4571,10 @@ class AVHLGameSimulator {
     state.puckCarrierId = null;
     const winner = this.resolveLoosePuck(state, reboundLocation, teamId, "rebound");
     if (!winner) return { goal: false, stopped: false };
+    // Any saved shot that is recovered by the attacking team is a legitimate
+    // previous offensive touch. Preserve it for a possible rebound assist,
+    // not only on the subset classified as "dangerous" rebounds.
+    if (winner.teamId === teamId) this.addAssistCandidate(state, shooter.id);
     state.lastContext = winner.teamId === teamId ? "rebound" : "rebound-recovery";
 
     if (
@@ -4505,12 +4583,23 @@ class AVHLGameSimulator {
       (options.reboundDepth ?? 0) < 2 &&
       state.clock > 1
     ) {
-      this.addAssistCandidate(state, shooter.id);
       this.advanceClock(state, this.random.range(0.7, 1.8), "shot");
+      const priorAssistIds = Array.isArray(options.forcedAssistIds)
+        ? options.forcedAssistIds
+        : state.assistQueue.slice().reverse();
+      const reboundAssistIds = [shooter.id, ...priorAssistIds]
+        .filter((id) => id && id !== winner.player.id && team.playerById[id])
+        .filter((id, index, array) => array.indexOf(id) === index)
+        .slice(0, 2);
       return this.simulateShot(state, teamId, {
         context: "rebound",
         shooter: winner.player,
-        reboundDepth: (options.reboundDepth ?? 0) + 1
+        reboundDepth: (options.reboundDepth ?? 0) + 1,
+        plannedAssistCount: reboundAssistIds.length,
+        forcedAssistIds: reboundAssistIds,
+        replaySequenceStartAbsolute: Number.isFinite(options.replaySequenceStartAbsolute)
+          ? options.replaySequenceStartAbsolute
+          : state.absoluteTime
       });
     }
 
@@ -4933,24 +5022,13 @@ class AVHLGameSimulator {
 
     if (zone === "OZ") {
       const penaltyCutoff = state.activePenalties.length < 3 ? 0.835 : 0.828;
-      if (roll < 0.34) {
-        const setupPass = this.random.chance(0.80);
-        let oneTimerSetup = false;
-        if (setupPass) {
-          const twoPassSetup = this.random.chance(0.52);
-          let completedSetupPass = this.simulatePass(state, teamId, "cycle") === true;
-          if (state.possessionTeam !== teamId || state.nextFaceoff) return;
-          if (completedSetupPass && twoPassSetup && state.clock > 1.2) {
-            this.advanceClock(state, this.random.range(0.6, 1.2), "play");
-            completedSetupPass = this.simulatePass(state, teamId, "cycle") === true;
-            if (state.possessionTeam !== teamId || state.nextFaceoff) return;
-          }
-          oneTimerSetup = completedSetupPass && this.random.chance(0.34);
-          if (oneTimerSetup && state.clock > 0.8) {
-            this.advanceClock(state, this.random.range(0.4, 0.9), "shot");
-          }
-        }
-        this.simulateShot(state, teamId, { context: oneTimerSetup ? "one-timer" : state.lastContext });
+      if (roll < 0.27) {
+        // Every primary scoring chance gets an explicit 6/16/78 assist
+        // setup, built from actual completed passes so the scorer/assist
+        // credits and the replay are the same play rather than separate rolls.
+        const scoringSetup = this.prepareScoringChance(state, teamId, state.lastContext);
+        if (!scoringSetup) return;
+        this.simulateShot(state, teamId, scoringSetup);
       } else if (roll < 0.54) {
         this.simulatePass(state, teamId, "cycle");
       } else if (roll < 0.75) {
@@ -5381,7 +5459,7 @@ class AVHLGameSimulator {
         [this.awayId]: aggregateGoalieStats(this.awayId)
       },
       ratingModel: {
-        version: "V6.3",
+        version: "V6.4",
         syntheticRatings: false,
         skaterRatingsUsed: 26,
         goalieRatingsUsed: 20,

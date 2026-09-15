@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V6.3 roster/bootstrap data.
+  AVHL Game Simulator V6.4 roster/bootstrap data.
 
   The roster is intentionally kept in a separate file so it can later be
   replaced by exported AVHL player data, Firebase snapshots, CSV imports, or
