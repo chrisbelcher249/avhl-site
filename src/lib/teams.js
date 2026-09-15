@@ -1,8 +1,32 @@
 import { teams as fallbackTeams } from "../../data/teams";
 
 export const TEAM_BRANDING_SHEET_ID = "1wi3Flw2LkO39wZH2MtaKGjfePbBsXoiLQDjfUYT0Ef4";
-export const TEAM_BRANDING_SHEET_GID = "0";
-export const TEAM_BRANDING_SHEET_URL = `https://docs.google.com/spreadsheets/d/${TEAM_BRANDING_SHEET_ID}/export?format=csv&gid=${TEAM_BRANDING_SHEET_GID}`;
+
+// Google has more than one anonymous CSV endpoint. The Visualization endpoint
+// is the most reliable for public/view-only sheets on serverless hosts; the
+// export endpoints stay as fallbacks in case Google changes behavior.
+function sheetCsvCandidates() {
+  const bust = Date.now();
+  const base = `https://docs.google.com/spreadsheets/d/${TEAM_BRANDING_SHEET_ID}`;
+  return [
+    {
+      name: "google-gviz",
+      url: `${base}/gviz/tq?tqx=out:csv&_=${bust}`,
+    },
+    {
+      name: "google-gviz-gid-0",
+      url: `${base}/gviz/tq?tqx=out:csv&gid=0&_=${bust}`,
+    },
+    {
+      name: "google-export",
+      url: `${base}/export?format=csv&_=${bust}`,
+    },
+    {
+      name: "google-export-gid-0",
+      url: `${base}/export?format=csv&gid=0&_=${bust}`,
+    },
+  ];
+}
 
 function parseCsv(text) {
   const rows = [];
@@ -41,7 +65,7 @@ function parseCsv(text) {
 }
 
 function clean(value) {
-  const text = String(value ?? "").trim();
+  const text = String(value ?? "").replace(/^\uFEFF/, "").trim();
   if (!text || /^n\/?a$/i.test(text)) return "";
   return text;
 }
@@ -58,12 +82,53 @@ function rgbToHex(value) {
   return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
 }
 
+function normalizeHeader(value) {
+  return clean(value).replace(/\s+/g, " ");
+}
+
 function rowObject(headers, row) {
   const object = {};
   headers.forEach((header, index) => {
     if (header && object[header] === undefined) object[header] = row[index] ?? "";
   });
   return object;
+}
+
+function findHeaderRow(rows) {
+  // Do not assume row 1 forever. This also survives a title/notes row being
+  // inserted above the table in Google Sheets later.
+  for (let index = 0; index < Math.min(rows.length, 12); index += 1) {
+    const headers = rows[index].map(normalizeHeader);
+    if (headers.includes("Abbreviation") && headers.includes("Arena Name")) {
+      return { index, headers };
+    }
+  }
+  return null;
+}
+
+function parseLiveTeams(csv) {
+  const rows = parseCsv(csv);
+  if (rows.length < 2) throw new Error("Team branding sheet did not contain team rows");
+
+  const header = findHeaderRow(rows);
+  if (!header) throw new Error("Team branding sheet is missing the expected header row");
+
+  const abbreviationIndex = header.headers.indexOf("Abbreviation");
+  const liveByAbbreviation = new Map();
+
+  for (const row of rows.slice(header.index + 1)) {
+    const abbreviation = clean(row[abbreviationIndex]).toUpperCase();
+    if (!abbreviation) continue;
+    liveByAbbreviation.set(abbreviation, rowObject(header.headers, row));
+  }
+
+  // A successful response that somehow contains only a few teams is worse
+  // than falling back; reject it so another Google endpoint can be tried.
+  if (liveByAbbreviation.size < 35) {
+    throw new Error(`Only ${liveByAbbreviation.size} team rows were found`);
+  }
+
+  return liveByAbbreviation;
 }
 
 function mergeTeam(base, row) {
@@ -110,48 +175,72 @@ function mergeTeam(base, row) {
   };
 }
 
+async function fetchLiveSheet() {
+  const errors = [];
+
+  for (const candidate of sheetCsvCandidates()) {
+    try {
+      const response = await fetch(candidate.url, {
+        cache: "no-store",
+        redirect: "follow",
+        headers: {
+          Accept: "text/csv,text/plain;q=0.9,*/*;q=0.8",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+          "User-Agent": "AVHL/1.0 (+https://avhl.org)",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const csv = await response.text();
+      const liveByAbbreviation = parseLiveTeams(csv);
+      return {
+        liveByAbbreviation,
+        endpoint: candidate.name,
+        errors,
+      };
+    } catch (error) {
+      errors.push(`${candidate.name}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  throw new Error(errors.join(" | ") || "No Google Sheets CSV endpoint succeeded");
+}
+
 export async function getTeams() {
   try {
-    const response = await fetch(TEAM_BRANDING_SHEET_URL, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Google Sheets returned ${response.status}`);
-
-    const csv = await response.text();
-    const rows = parseCsv(csv);
-    if (rows.length < 2) throw new Error("Team branding sheet did not contain team rows");
-
-    const headers = rows[0].map((header) => clean(header));
-    const abbreviationIndex = headers.indexOf("Abbreviation");
-    if (abbreviationIndex < 0) throw new Error("Team branding sheet is missing Abbreviation");
-
-    const liveByAbbreviation = new Map();
-    for (const row of rows.slice(1)) {
-      const abbreviation = clean(row[abbreviationIndex]).toUpperCase();
-      if (!abbreviation) continue;
-      liveByAbbreviation.set(abbreviation, rowObject(headers, row));
-    }
-
+    const { liveByAbbreviation, endpoint, errors } = await fetchLiveSheet();
     const teams = fallbackTeams.map((team) => mergeTeam(team, liveByAbbreviation.get(team.abbreviation)));
     return {
       teams,
       source: "live",
+      endpoint,
       liveTeamCount: liveByAbbreviation.size,
+      errors,
     };
   } catch (error) {
     console.error("Unable to load live team branding; using bundled team data.", error);
     return {
       teams: fallbackTeams,
       source: "fallback",
+      endpoint: null,
       liveTeamCount: 0,
+      errors: [error instanceof Error ? error.message : String(error)],
     };
   }
 }
 
 export async function getTeamBySlug(slug) {
-  const { teams, source, liveTeamCount } = await getTeams();
+  const { teams, source, endpoint, liveTeamCount, errors } = await getTeams();
   return {
     team: teams.find((candidate) => candidate.slug === slug) ?? null,
     teams,
     source,
+    endpoint,
     liveTeamCount,
+    errors,
   };
 }

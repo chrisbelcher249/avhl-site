@@ -140,3 +140,10 @@ The site intentionally excludes repetitive franchise-management fields that are 
 - The rivalry-level legend now sits with the full four-rival matrix where the colored dots are used.
 - `/sim` now loads matchup rosters through `/api/sim-rosters`, backed by the same live Google Sheets player loader used by Players and Cap. If Google Sheets is temporarily unavailable, the site's bundled player database is used by that loader; the simulator's original two demo pools remain the last-resort fallback only if the API route itself fails.
 - The V6.5.1 simulator uses the full live player-rating set, event-driven injuries, polished injury reporting, matchup-specific stat tabs, and runtime fitting for long team names.
+
+### Lineups preview
+The site now includes `/lineups` and `/lineups/[team-slug]`. These pages are read-only visualization prototypes. Until owner lineup persistence is added, the displayed units are generated from the current live roster using position/ratings. The lineup builder lives in `src/lib/lineups.js`, making it straightforward to swap projected units for saved owner selections later.
+
+## Live team branding diagnostics
+
+Major-team identity data is loaded from the public 2026-27 Team Specifications Google Sheet at runtime. The loader tries multiple anonymous Google CSV endpoints and does not assume a specific worksheet gid. The bundled `data/teams.js` remains a final fail-safe. After deployment, `/api/teams` can be used as a quick health check: `source` should be `live`, `liveTeamCount` should be 40, and `endpoint` identifies the Google CSV route that succeeded.

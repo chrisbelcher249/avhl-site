@@ -4,19 +4,21 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
-  const { teams, source, liveTeamCount } = await getTeams();
+  const { teams, source, endpoint, liveTeamCount, errors } = await getTeams();
   return Response.json(
     {
-      ok: true,
+      ok: source === "live",
       source,
+      endpoint,
       sheetId: TEAM_BRANDING_SHEET_ID,
       teamCount: teams.length,
       liveTeamCount,
+      errors,
       teams,
     },
     {
       headers: {
-        "Cache-Control": "no-store, max-age=0",
+        "Cache-Control": "no-store, max-age=0, must-revalidate",
       },
     },
   );

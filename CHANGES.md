@@ -1,3 +1,12 @@
+# Site 33 / V6.6.1 — live branding fetch reliability
+
+- Fixed the live Team Specifications feed silently falling back to bundled team data on `/teams`.
+- The branding loader now tries Google's anonymous Visualization CSV endpoint first and no longer assumes the live worksheet has `gid=0`.
+- Added multiple Google CSV endpoint fallbacks, cache-busting/no-cache headers, header-row detection, and a sanity check that rejects incomplete sheet responses.
+- `/api/teams` now reports `source`, the successful `endpoint`, `liveTeamCount`, and any earlier endpoint errors so the live feed can be verified after deployment.
+- Existing bundled team data remains the final fail-safe only if every live endpoint fails.
+- No lineup, simulator, roster, schedule, standings, or replay logic changed.
+
 # AVHL Site Change Log
 
 ## Simulator V6.5.1 — replay scoring text fit
@@ -323,3 +332,9 @@
 - Added injury/man-games-lost rows and player injury/familiarity indicators to the simulator box score and final summary.
 - Regenerated the bundled fallback player database from the September 8, 2026 skater/goalie files so live-source outages no longer revert to the older August roster state.
 - Added `V6_RATING_MODEL.md` and `scripts/test-simulator-v6.mjs` documenting and validating the full rating/RNG model, exact rating identity, seeded repeatability, and injury calibration.
+## Site 32 / V6.6 — Lineup visualization
+- Added a new public `/lineups` directory for all 40 Major League teams.
+- Added `/lineups/[team-slug]` pages with forward lines, defense pairs, starter/backup goalies, PP1/PP2, PK1/PK2, three 3-on-3 OT units, first five shootout shooters, and scratches.
+- Lineup pages currently auto-project from the same live roster source used by the website/simulator; they are intentionally read-only until owner editing/auth is designed.
+- Added a team switcher on lineup pages, a `Lineups` item in the main navigation, and `View lineup` links on team pages.
+- Added `src/lib/lineups.js` so the preview arrangement logic is isolated and can later be replaced by saved owner lineups without redesigning the page.
