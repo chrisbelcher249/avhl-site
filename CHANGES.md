@@ -1,5 +1,10 @@
 # AVHL Site Change Log
 
+## Simulator V6.5.1 — replay scoring text fit
+
+- Reduced the goal replay selector text size so the full scoring summary fits much more comfortably.
+- Reduced the assist-credit line slightly as well; no replay, scoring, assist, or simulation logic changed.
+
 ## Simulator V6.5 — two-line goal replay scoring summary
 
 - Replay goal selector line 1 now follows: `3rd 8:37 — WSH — A. Burakovsky (1) — 3-1 WSH`.

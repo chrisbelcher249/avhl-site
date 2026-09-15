@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V6.5";
+  const SIMULATOR_VERSION = "V6.5.1";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
@@ -882,7 +882,7 @@
       elements.replayPlayers.append(group);
       replayPlayerNodes.set(track.playerId, group);
 
-      // V6.5 intentionally draws no scorer/assist trajectory trails.
+      // V6.5.1 intentionally draws no scorer/assist trajectory trails.
 
     }
 
