@@ -1,3 +1,13 @@
+# Changes
+
+## Live team branding + simulator V6.3 replay credits
+
+- Major-team branding now reads live from the 2026–27 Team Specifications Google Sheet with the bundled `data/teams.js` as a fail-safe fallback.
+- Team directory, team profile, team schedule headers, homepage division identity, and `/api/teams` use the live merged branding source.
+- Simulator team metadata refreshes from `/api/teams` before matchup selectors load, so arena names, mascot names, team names, and colors update without a redeploy.
+- Goal replay dropdown entries now show the scorer plus credited assists, or `Unassisted`.
+- Simulator/version metadata updated to V6.3; goal/assist scoring logic is unchanged.
+
 # Site 27 — Live bracket fit + standings naming + mobile menu
 
 ## Simulator V6.2 — final-summary cleanup

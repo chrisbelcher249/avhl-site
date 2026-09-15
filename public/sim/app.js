@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V6.2";
+  const SIMULATOR_VERSION = "V6.3";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
@@ -712,7 +712,16 @@
       const scorer = getPlayer(event.playerId);
       const option = document.createElement("option");
       option.value = String(event.id);
-      option.textContent = `${event.periodLabel} ${event.clockText} — ${shortName(scorer)}`;
+      const assistPlayers = (event.details?.assists || [])
+        .map((playerId) => getPlayer(playerId))
+        .filter(Boolean);
+      const assistLabel = assistPlayers.length
+        ? `A: ${assistPlayers.map((player) => shortName(player)).join(", ")}`
+        : "Unassisted";
+      option.textContent = `${event.periodLabel} ${event.clockText} — ${shortName(scorer)} (${assistLabel})`;
+      option.title = assistPlayers.length
+        ? `${scorer?.name || "Goal"} — Assists: ${assistPlayers.map((player) => player.name).join(", ")}`
+        : `${scorer?.name || "Goal"} — Unassisted`;
       elements.goalSelect.append(option);
     }
     elements.goalSelect.disabled = false;
@@ -833,7 +842,7 @@
       elements.replayPlayers.append(group);
       replayPlayerNodes.set(track.playerId, group);
 
-      // V6.2 intentionally draws no scorer/assist trajectory trails.
+      // V6.3 intentionally draws no scorer/assist trajectory trails.
 
     }
 
@@ -1489,6 +1498,14 @@
     loadGoalReplay
   };
   initializeLeagueBranding();
+  if (window.AVHL_LOAD_LIVE_BRANDING) {
+    try {
+      const brandingStatus = await window.AVHL_LOAD_LIVE_BRANDING();
+      console.info(`AVHL simulator branding: ${brandingStatus.liveTeamCount} live teams (${brandingStatus.source})`);
+    } catch (error) {
+      console.warn("Live AVHL team branding unavailable; using bundled team branding.", error);
+    }
+  }
   populateTeamSelectors();
   loadRecentGames();
   renderRecentGames();

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { teams } from "../../data/teams";
+import { getTeams } from "@/lib/teams";
 import { getPlayers } from "@/lib/players";
 
 const divisions = [
@@ -13,7 +13,7 @@ const divisions = [
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const { playerCounts } = await getPlayers();
+  const [{ playerCounts }, { teams }] = await Promise.all([getPlayers(), getTeams()]);
   return (
     <main>
       <section className="relative overflow-hidden bg-[#000B36] text-white">

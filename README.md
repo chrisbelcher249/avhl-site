@@ -7,7 +7,7 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - 40 Major League team directory with official logos
 - 40-team Minor League directory nested under `/teams/minor-league`
 - Official rivalry system with four designated rivals per Major League team, rivalry levels, Top 10 rivalries, and named rivalry groups
-- Integrated V6.2 simulator at `/sim`
+- Integrated V6.3 simulator at `/sim`
 - Updated Saturday Night Showdown schedule
 - Fully branded team pages with arena hero imagery
 - Official Home / Away / Alternate uniform galleries
@@ -30,7 +30,7 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - Historical playoff brackets for 2022–23 through 2025–26 with season-specific formats, seeds, preserved scores, historical names, team marks, and champions
 
 
-## Simulator V6.2 polish
+## Simulator V6.3 polish
 
 - Full Game Stats tabs use the actual matchup nicknames rather than generic Away/Home labels.
 - Redundant abbreviation-circle fallbacks were removed from box-score stat headers.
@@ -127,4 +127,4 @@ The site intentionally excludes repetitive franchise-management fields that are 
 - Southeast Skirmish was removed, leaving six named trio/quad rivalry groups.
 - The rivalry-level legend now sits with the full four-rival matrix where the colored dots are used.
 - `/sim` now loads matchup rosters through `/api/sim-rosters`, backed by the same live Google Sheets player loader used by Players and Cap. If Google Sheets is temporarily unavailable, the site's bundled player database is used by that loader; the simulator's original two demo pools remain the last-resort fallback only if the API route itself fails.
-- The V6.2 simulator uses the full live player-rating set, event-driven injuries, polished injury reporting, matchup-specific stat tabs, and runtime fitting for long team names.
+- The V6.3 simulator uses the full live player-rating set, event-driven injuries, polished injury reporting, matchup-specific stat tabs, and runtime fitting for long team names.

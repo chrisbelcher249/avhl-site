@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V6.2 roster/bootstrap data.
+  AVHL Game Simulator V6.3 roster/bootstrap data.
 
   The roster is intentionally kept in a separate file so it can later be
   replaced by exported AVHL player data, Firebase snapshots, CSV imports, or
@@ -244,7 +244,7 @@ window.AVHL_DATA = {
   }
 
   function applyLiveRoster(team, meta) {
-    const roster = liveRosterByTeam?.[meta?.fullName];
+    const roster = liveRosterByTeam?.[meta?.rosterLookupName ?? meta?.fullName];
     if (!Array.isArray(roster) || roster.length < 18) return team;
 
     const forwards = buildForwardLines(roster, meta.abbreviation);
@@ -264,6 +264,54 @@ window.AVHL_DATA = {
     team.rosterSource = liveRosterSource;
     return team;
   }
+
+  window.AVHL_LOAD_LIVE_BRANDING = async () => {
+    const response = await fetch("/api/teams", { cache: "no-store" });
+    if (!response.ok) throw new Error(`Live branding request returned ${response.status}`);
+    const payload = await response.json();
+    if (!payload?.ok || !Array.isArray(payload.teams)) throw new Error("Live branding response was invalid");
+
+    const catalog = window.AVHL_TEAM_CATALOG ?? {};
+    for (const team of payload.teams) {
+      const abbreviation = team?.abbreviation;
+      if (!abbreviation) continue;
+      const existing = catalog[abbreviation] ?? {};
+      const numberColorWasSecondary = !existing.numberColor || existing.numberColor === existing.secondaryColor;
+      catalog[abbreviation] = {
+        ...existing,
+        abbreviation,
+        city: team.city ?? existing.city ?? "",
+        name: team.nickname ?? existing.name ?? "",
+        playByPlayName: team.playByPlayName ?? existing.playByPlayName ?? team.nickname ?? "",
+        arenaName: team.arena ?? existing.arenaName ?? "AVHL Arena",
+        primaryColor: team.colors?.primary ?? existing.primaryColor ?? "#888888",
+        secondaryColor: team.colors?.secondary ?? existing.secondaryColor ?? "#ffffff",
+        tertiaryColor: team.colors?.tertiary ?? existing.tertiaryColor ?? "#ffffff",
+        mascotName: team.mascot?.name ?? existing.mascotName ?? "",
+        rosterLookupName: existing.rosterLookupName ?? existing.fullName ?? team.name ?? "",
+        fullName: team.name ?? existing.fullName ?? `${team.city ?? ""} ${team.nickname ?? ""}`.trim(),
+        assets: existing.assets ?? {
+          logo: `/logos/26_${abbreviation}_Logo.png`,
+          homeJersey: `/teams/${abbreviation}/home.webp`,
+          awayJersey: `/teams/${abbreviation}/away.webp`,
+          altJersey: `/teams/${abbreviation}/alt.webp`,
+          arena: `/teams/${abbreviation}/arena.webp`,
+          mascot: `/teams/${abbreviation}/mascot.webp`,
+        },
+      };
+      catalog[abbreviation].numberColor = numberColorWasSecondary
+        ? catalog[abbreviation].secondaryColor
+        : existing.numberColor;
+    }
+
+    window.AVHL_TEAM_CATALOG = catalog;
+    window.AVHL_LIVE_BRANDING_STATUS = {
+      source: payload.source || "live",
+      teamCount: payload.teamCount || payload.teams.length,
+      liveTeamCount: payload.liveTeamCount ?? payload.teams.length,
+    };
+    return window.AVHL_LIVE_BRANDING_STATUS;
+  };
 
   window.AVHL_LOAD_LIVE_ROSTERS = async () => {
     const response = await fetch("/api/sim-rosters", { cache: "no-store" });

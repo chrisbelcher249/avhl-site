@@ -3,17 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeamScheduleExplorer from "@/components/TeamScheduleExplorer";
 import { getSchedule } from "@/lib/schedule";
-import { teamBySlug, teams } from "../../../../data/teams";
+import { teams as fallbackTeams } from "../../../../data/teams";
+import { getTeamBySlug } from "@/lib/teams";
 
 export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
-  return teams.map((team) => ({ slug: team.slug }));
+  return fallbackTeams.map((team) => ({ slug: team.slug }));
 }
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const team = teamBySlug[slug];
+  const { team } = await getTeamBySlug(slug);
   if (!team) return {};
   return {
     title: `${team.name} Schedule`,
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }) {
 
 export default async function TeamSchedulePage({ params }) {
   const { slug } = await params;
-  const team = teamBySlug[slug];
+  const { team } = await getTeamBySlug(slug);
   if (!team) notFound();
 
   const { schedule, error } = await getSchedule();

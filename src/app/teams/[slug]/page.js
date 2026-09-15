@@ -6,7 +6,8 @@ import RosterSection from "@/components/RosterSection";
 import DraftPickSection from "@/components/DraftPickSection";
 import SalaryCapSection from "@/components/SalaryCapSection";
 import FranchiseHistorySection from "@/components/FranchiseHistorySection";
-import { teamBySlug, teams } from "../../../../data/teams";
+import { teams as fallbackTeams } from "../../../../data/teams";
+import { getTeamBySlug } from "@/lib/teams";
 import { getDraftPicksForTeam } from "@/lib/draftPicks";
 import { buildTeamRosterAndCap } from "../../../../data/salaryCap";
 import { getPlayers } from "@/lib/players";
@@ -16,12 +17,12 @@ import { getRivalsForTeam, rivalryLevels } from "../../../../data/rivals";
 export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
-  return teams.map((team) => ({ slug: team.slug }));
+  return fallbackTeams.map((team) => ({ slug: team.slug }));
 }
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const team = teamBySlug[slug];
+  const { team } = await getTeamBySlug(slug);
   if (!team) return {};
   return {
     title: team.name,
@@ -59,11 +60,13 @@ function OvrStat({ label, value, emphasized = false }) {
 
 export default async function TeamPage({ params }) {
   const { slug } = await params;
-  const team = teamBySlug[slug];
+  const { team, teams } = await getTeamBySlug(slug);
   if (!team) notFound();
+  const teamBySlug = Object.fromEntries(teams.map((candidate) => [candidate.slug, candidate]));
 
   const { players } = await getPlayers();
-  const roster = buildTeamRosterAndCap(players, team.name);
+  const rosterTeamName = fallbackTeams.find((candidate) => candidate.abbreviation === team.abbreviation)?.name || team.name;
+  const roster = buildTeamRosterAndCap(players, rosterTeamName);
   const { picks: draftPicks, error: draftPickError } = await getDraftPicksForTeam(team.abbreviation);
   const rivals = getRivalsForTeam(team.slug).map((rival, index) => ({ ...rival, index, team: teamBySlug[rival.slug] })).filter((rival) => rival.team);
   const franchiseHistory = getFranchiseHistory(team.abbreviation);

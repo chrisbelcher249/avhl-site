@@ -1,13 +1,16 @@
 import Link from "next/link";
 import TeamDirectory from "@/components/TeamDirectory";
-import { teams } from "../../../data/teams";
+import { getTeams } from "@/lib/teams";
 
 export const metadata = {
   title: "Major League Teams",
   description: "Explore all 40 AVHL Major League clubs for the 2026–27 season.",
 };
 
-export default function TeamsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TeamsPage() {
+  const { teams } = await getTeams();
   return (
     <main className="bg-white px-6 py-12 text-[#000B36] md:px-8 md:py-16">
       <section className="mx-auto max-w-7xl">
