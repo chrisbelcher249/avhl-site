@@ -7,7 +7,7 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - 40 Major League team directory with official logos
 - 40-team Minor League directory nested under `/teams/minor-league`
 - Official rivalry system with four designated rivals per Major League team, rivalry levels, Top 10 rivalries, and named rivalry groups
-- Integrated V6.7.1 simulator at `/sim`
+- Integrated V6.7.3 lineup/simulator site build at `/sim`
 - Updated Saturday Night Showdown schedule
 - Fully branded team pages with arena hero imagery
 - Official Home / Away / Alternate uniform galleries
@@ -29,6 +29,13 @@ Official 2026–27 American Virtual Hockey League website project built with Nex
 - League archive nested under `/info`, with History at `/info/history`, Champions at `/info/champions`, and standardized playoff brackets at `/info/history/brackets`
 - Historical playoff brackets for 2022–23 through 2025–26 with season-specific formats, seeds, preserved scores, historical names, team marks, and champions
 
+
+## V6.7.3 lineup presentation
+
+- Public player cards now render as true full grid cards, fixing the collapsed/inline presentation on forward and defense units.
+- OVR, role, player identity and team-color accent are contained within each card with tighter, consistent spacing across every lineup section.
+- The team selector is strict alphabetical order by full displayed team name.
+- The macro lineup layout and all owner-editing/simulator rules are unchanged.
 
 ## V6.7.1 pre-deploy lineup integrity
 

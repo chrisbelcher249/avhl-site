@@ -43,10 +43,10 @@ function formatUpdated(value) {
 
 function SectionHeading({ eyebrow, title, copy }) {
   return (
-    <div className="max-w-3xl">
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#A90117]">{eyebrow}</p>
-      <h2 className="mt-1.5 text-2xl font-black tracking-tight md:text-3xl">{title}</h2>
-      {copy ? <p className="mt-2 text-sm font-semibold leading-6 text-[#000B36]/48">{copy}</p> : null}
+    <div className="max-w-4xl">
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#A90117]">{eyebrow}</p>
+      <h2 className="mt-1.5 text-2xl font-black tracking-tight md:text-[2rem]">{title}</h2>
+      {copy ? <p className="mt-1.5 text-[13px] font-semibold leading-5 text-[#000B36]/48 md:text-sm">{copy}</p> : null}
     </div>
   );
 }
@@ -70,7 +70,7 @@ function PositionBadge({ player, assignedPosition }) {
 function PlayerCard({ player, assignedPosition = null, roleLabel = null, team, compact = false, order = null }) {
   if (!player) {
     return (
-      <div className={`min-w-0 rounded-2xl border border-dashed border-[#000B36]/15 bg-[#F7F9FC] ${compact ? "p-3" : "p-4"}`}>
+      <div className={`block h-full min-w-0 rounded-xl border border-dashed border-[#000B36]/15 bg-[#F8FAFD] ${compact ? "min-h-[96px] p-3" : "min-h-[108px] p-4"}`}>
         <p className="text-xs font-black uppercase tracking-wide text-[#000B36]/30">Open slot</p>
       </div>
     );
@@ -79,31 +79,29 @@ function PlayerCard({ player, assignedPosition = null, roleLabel = null, team, c
   return (
     <Link
       href={`/players/${player.id}`}
-      className={`group relative min-w-0 overflow-hidden rounded-2xl border border-[#000B36]/10 bg-white shadow-[0_5px_18px_rgba(0,11,54,0.04)] transition hover:-translate-y-0.5 hover:border-[#18BDFC]/70 hover:shadow-[0_10px_25px_rgba(0,11,54,0.09)] ${compact ? "p-3" : "p-4"}`}
+      className={`group relative block h-full min-w-0 overflow-hidden rounded-xl border border-[#D7DFEA] bg-[#FBFCFE] transition duration-150 hover:-translate-y-px hover:border-[#18BDFC]/65 hover:bg-white hover:shadow-[0_7px_20px_rgba(0,11,54,0.08)] ${compact ? "min-h-[96px] p-3" : "min-h-[108px] p-4"}`}
     >
-      <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: team.colors.primary }} />
-      <div className="min-w-0 pl-1">
-        <div className="flex min-w-0 items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            {order ? (
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#000B36] text-[10px] font-black text-white">{order}</span>
-                <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#000B36]/35">SO {order}</span>
-              </div>
-            ) : roleLabel ? (
-              <span className="rounded-full bg-[#000B36] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">{roleLabel}</span>
-            ) : (
-              <PositionBadge player={player} assignedPosition={assignedPosition} />
-            )}
-            <p className={`${compact ? "mt-2 text-sm" : "mt-2.5 text-base"} min-w-0 break-words font-black leading-tight text-[#000B36] group-hover:text-[#A90117]`}>
-              {player.name}
-            </p>
-            <p className="mt-1 text-[10px] font-bold text-[#000B36]/40">{numberText(player)} · {playerPositionLabel(player)}</p>
-          </div>
-          <div className="shrink-0 text-right">
-            <p className={`${compact ? "text-base" : "text-xl"} font-black tabular-nums text-[#000B36]`}>{Number.isFinite(Number(player.overall)) ? player.overall : "—"}</p>
-            <p className="text-[8px] font-black uppercase tracking-[0.12em] text-[#000B36]/30">OVR</p>
-          </div>
+      <span className="absolute inset-y-0 left-0 w-[3px]" style={{ backgroundColor: team.colors.primary }} />
+      <div className="flex h-full min-w-0 items-start justify-between gap-3 pl-1.5">
+        <div className="min-w-0 flex-1">
+          {order ? (
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#000B36] text-[10px] font-black text-white">{order}</span>
+              <span className="rounded-full bg-[#000B36]/6 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#000B36]/55">SO {order}</span>
+            </div>
+          ) : roleLabel ? (
+            <span className="inline-flex rounded-full bg-[#000B36] px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-white">{roleLabel}</span>
+          ) : (
+            <PositionBadge player={player} assignedPosition={assignedPosition} />
+          )}
+          <p className={`${compact ? "mt-2 text-[13px]" : "mt-2.5 text-[15px]"} min-w-0 font-black leading-[1.15] text-[#000B36] transition group-hover:text-[#A90117]`}>
+            {player.name}
+          </p>
+          <p className="mt-1.5 text-[10px] font-bold leading-none text-[#000B36]/42">{numberText(player)} · {playerPositionLabel(player)}</p>
+        </div>
+        <div className="min-w-[50px] shrink-0 rounded-xl border border-[#000B36]/6 bg-white px-2 py-2 text-center shadow-[0_1px_3px_rgba(0,11,54,0.03)]">
+          <p className={`${compact ? "text-base" : "text-lg"} font-black leading-none tabular-nums text-[#000B36]`}>{Number.isFinite(Number(player.overall)) ? player.overall : "—"}</p>
+          <p className="mt-1 text-[7px] font-black uppercase tracking-[0.16em] text-[#000B36]/32">OVR</p>
         </div>
       </div>
     </Link>
@@ -123,7 +121,7 @@ function SelectSlot({
   const player = playerById.get(String(value || ""));
   const valueStillAvailable = options.some((candidate) => String(candidate.id) === String(value));
   return (
-    <div className="relative min-w-0 overflow-hidden rounded-2xl border border-[#18BDFC]/35 bg-white p-3 shadow-[0_5px_18px_rgba(0,11,54,0.04)]">
+    <div className="relative block h-full min-w-0 overflow-hidden rounded-xl border border-[#18BDFC]/40 bg-[#FBFCFE] p-3 shadow-[0_2px_8px_rgba(0,11,54,0.04)]">
       <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: team.colors.primary }} />
       <div className="pl-1">
         <div className="flex items-center justify-between gap-2">
@@ -135,7 +133,7 @@ function SelectSlot({
         <select
           value={valueStillAvailable ? value : ""}
           onChange={(event) => onChange(event.target.value)}
-          className="mt-2.5 w-full min-w-0 rounded-xl border border-[#000B36]/12 bg-[#F7F9FC] px-3 py-2.5 text-sm font-black text-[#000B36] outline-none transition focus:border-[#18BDFC] focus:ring-4 focus:ring-[#18BDFC]/10"
+          className="mt-2.5 w-full min-w-0 rounded-lg border border-[#000B36]/12 bg-white px-3 py-2.5 text-sm font-black text-[#000B36] outline-none transition focus:border-[#18BDFC] focus:ring-4 focus:ring-[#18BDFC]/10"
           aria-label={label}
         >
           <option value="">Choose player…</option>
@@ -477,7 +475,7 @@ export default function EditableLineupPage({
     const formation = powerPlay ? ppFormations[key] : null;
     const roles = powerPlay ? ppRoles(formation) : slotRoles;
     return (
-      <div className="rounded-3xl border border-[#000B36]/10 bg-[#F7F9FC] p-4 md:p-5">
+      <div className="rounded-2xl border border-[#D7DFEA] bg-white p-3.5 shadow-[0_2px_10px_rgba(0,11,54,0.035)] md:p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-black uppercase tracking-[0.14em] text-[#000B36]/65">{label}</h3>
@@ -540,7 +538,7 @@ export default function EditableLineupPage({
                 onChange={(event) => router.push(`/teams/${event.target.value}/lineups`)}
                 className="w-full min-w-0 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white outline-none backdrop-blur transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                {teams.map((candidate) => (
+                {[...teams].sort((a, b) => a.name.localeCompare(b.name)).map((candidate) => (
                   <option key={candidate.slug} value={candidate.slug} className="bg-white text-[#000B36]">{candidate.name}</option>
                 ))}
               </select>
@@ -620,11 +618,11 @@ export default function EditableLineupPage({
           </div>
         ) : null}
         {editing ? (
-          <div className="mb-8 rounded-2xl border border-[#18BDFC]/22 bg-[#18BDFC]/8 px-4 py-3 text-xs font-bold leading-5 text-[#000B36]/65">
+          <div className="mb-7 rounded-xl border border-[#18BDFC]/22 bg-[#18BDFC]/8 px-4 py-2.5 text-[11px] font-bold leading-5 text-[#000B36]/65">
             <span className="font-black text-[#000B36]">Edit mode:</span> choose players directly in each slot. Selecting a player already used in another even-strength slot swaps the two players. Forwards can play LW/C/RW and defensemen LD/RD; unfamiliar same-group positions are allowed but receive the AVHL 3% simulator penalty.
           </div>
         ) : (
-          <div className="mb-8 rounded-2xl border border-[#18BDFC]/20 bg-[#18BDFC]/8 px-4 py-3 text-xs font-bold leading-5 text-[#000B36]/60">
+          <div className="mb-7 rounded-xl border border-[#18BDFC]/20 bg-[#18BDFC]/8 px-4 py-2.5 text-[11px] font-bold leading-5 text-[#000B36]/60">
             {lineupSource === "saved"
               ? "This is the latest owner-saved lineup. New simulator games pull this version before the puck drops."
               : `No valid owner lineup has been saved yet, so this is automatically projected from the ${rosterSource} roster.`}
@@ -642,14 +640,14 @@ export default function EditableLineupPage({
 
         <section>
           <SectionHeading eyebrow="Even strength" title="Forward lines" copy="Four forward units. Any forward can be assigned at LW, C or RW; a non-listed slot receives the 3% sim-input penalty." />
-          <div className="mt-5 space-y-3">
+          <div className="mt-4 space-y-3">
             {[1, 2, 3, 4].map((line) => (
-              <div key={line} className="rounded-3xl border border-[#000B36]/10 bg-white p-4 shadow-sm md:p-5">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-black uppercase tracking-[0.14em]">Line {line}</h3>
+              <div key={line} className="rounded-2xl border border-[#D7DFEA] bg-white p-3.5 shadow-[0_2px_10px_rgba(0,11,54,0.035)] md:p-4">
+                <div className="mb-2.5 flex items-center justify-between gap-3">
+                  <h3 className="text-[12px] font-black uppercase tracking-[0.14em]">Line {line}</h3>
                   <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#000B36]/28">LW · C · RW</span>
                 </div>
-                <div className="grid gap-2.5 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-3">
                   {FORWARD_POSITIONS.map((position) => {
                     const index = record.forwards.findIndex((entry) => entry.line === line && entry.position === position);
                     return <div key={`${line}-${position}`}>{renderEvenSlot("forwards", index, `${position} · Line ${line}`, position, forwardRoster)}</div>;
@@ -660,13 +658,13 @@ export default function EditableLineupPage({
           </div>
         </section>
 
-        <section className="mt-12">
+        <section className="mt-10 md:mt-12">
           <SectionHeading eyebrow="Even strength" title="Defense pairs" copy="Three pairings. LD/RD swaps are legal; an unfamiliar side receives the 3% sim-input penalty." />
-          <div className="mt-5 grid gap-3 lg:grid-cols-3">
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
             {[1, 2, 3].map((pair) => (
-              <div key={pair} className="rounded-3xl border border-[#000B36]/10 bg-white p-4 shadow-sm md:p-5">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-black uppercase tracking-[0.14em]">Pair {pair}</h3>
+              <div key={pair} className="rounded-2xl border border-[#D7DFEA] bg-white p-3.5 shadow-[0_2px_10px_rgba(0,11,54,0.035)] md:p-4">
+                <div className="mb-2.5 flex items-center justify-between gap-3">
+                  <h3 className="text-[12px] font-black uppercase tracking-[0.14em]">Pair {pair}</h3>
                   <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#000B36]/28">LD · RD</span>
                 </div>
                 <div className="grid gap-2.5">
@@ -680,9 +678,9 @@ export default function EditableLineupPage({
           </div>
         </section>
 
-        <section className="mt-12">
+        <section className="mt-10 md:mt-12">
           <SectionHeading eyebrow="Crease" title="Goaltenders" copy="One starter and one backup are dressed. All other rostered goalies are scratched." />
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
             {[0, 1].map((index) => {
               const entry = record.goalies[index];
               const player = playerById.get(String(entry?.playerId || ""));
@@ -696,34 +694,34 @@ export default function EditableLineupPage({
           </div>
         </section>
 
-        <section className="mt-12">
+        <section className="mt-10 md:mt-12">
           <SectionHeading eyebrow="Special teams" title="Power play" copy="Each unit must use 5 dressed skaters in either a 4F/1D or 3F/2D setup." />
-          <div className="mt-5 space-y-3">
+          <div className="mt-4 space-y-3">
             {renderUnit("pp1", "PP1", [], "4F/1D or 3F/2D", { powerPlay: true })}
             {renderUnit("pp2", "PP2", [], "4F/1D or 3F/2D", { powerPlay: true })}
           </div>
         </section>
 
-        <section className="mt-12">
+        <section className="mt-10 md:mt-12">
           <SectionHeading eyebrow="Special teams" title="Penalty kill" copy="Each unit uses exactly 2 forwards and 2 defensemen from the dressed lineup." />
-          <div className="mt-5 space-y-3">
+          <div className="mt-4 space-y-3">
             {renderUnit("pk1", "PK1", ["F1", "F2", "D1", "D2"], "2F/2D")}
             {renderUnit("pk2", "PK2", ["F1", "F2", "D1", "D2"], "2F/2D")}
           </div>
         </section>
 
-        <section className="mt-12">
+        <section className="mt-10 md:mt-12">
           <SectionHeading eyebrow="Extra time" title="3-on-3 overtime" copy="Two groups, each built from 2 forwards and 1 defenseman." />
-          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {[0, 1].map((unitIndex) => {
               const ids = record.overtimeUnits[unitIndex] || [];
               return (
-                <div key={unitIndex} className="rounded-3xl border border-[#000B36]/10 bg-[#F7F9FC] p-4 md:p-5">
-                  <div className="mb-3 flex items-center justify-between gap-3">
+                <div key={unitIndex} className="rounded-2xl border border-[#D7DFEA] bg-white p-3.5 shadow-[0_2px_10px_rgba(0,11,54,0.035)] md:p-4">
+                  <div className="mb-2.5 flex items-center justify-between gap-3">
                     <h3 className="text-sm font-black uppercase tracking-[0.14em] text-[#000B36]/65">OT Group {unitIndex + 1}</h3>
                     <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#000B36]/28">2F · 1D</span>
                   </div>
-                  <div className="grid gap-2.5 sm:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-3">
                     {[0, 1, 2].map((slotIndex) => {
                       const id = ids[slotIndex] || "";
                       const player = playerById.get(String(id));
@@ -742,9 +740,9 @@ export default function EditableLineupPage({
           </div>
         </section>
 
-        <section className="mt-12">
+        <section className="mt-10 md:mt-12">
           <SectionHeading eyebrow="Tiebreaker" title="Shootout order" copy="The first five shooters, in order. The simulator cycles this order if sudden death continues." />
-          <div className="mt-5 rounded-3xl border border-[#000B36]/10 bg-[#F7F9FC] p-4 md:p-5">
+          <div className="mt-4 rounded-2xl border border-[#D7DFEA] bg-white p-3.5 shadow-[0_2px_10px_rgba(0,11,54,0.035)] md:p-4">
             <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
               {[0, 1, 2, 3, 4].map((index) => {
                 const id = record.shootoutOrder[index] || "";
@@ -759,9 +757,9 @@ export default function EditableLineupPage({
           </div>
         </section>
 
-        <section className="mt-12">
+        <section className="mt-10 md:mt-12">
           <SectionHeading eyebrow="Roster status" title="Scratches" copy="Every rostered player not among the dressed 12F, 6D and 2G appears here automatically." />
-          <div className="mt-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {scratches.length ? scratches.map((player) => <PlayerCard key={player.id} player={player} team={team} compact />) : (
               <div className="rounded-2xl border border-dashed border-[#000B36]/15 bg-white p-4 text-sm font-bold text-[#000B36]/40">No scratches.</div>
             )}

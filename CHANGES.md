@@ -1,3 +1,13 @@
+# Site 37 / V6.7.3 — lineup presentation polish
+
+- Fixed the core public lineup-card rendering bug: player links are now block-level, full-height cards instead of inline links inside the even-strength grid. This removes the collapsed card shells, floating OVR values, and excessive dead space seen on forward/defense lines.
+- Refined player cards with contained OVR badges, stronger card boundaries, consistent team-color accents, tighter spacing, and uniform sizing across even strength, goalies, PP/PK, OT, shootout, and scratches.
+- Tightened lineup section spacing and informational banners without changing the page's macro structure or any lineup/editing rules.
+- Kept five shootout cards across on desktop and two OT groups.
+- Team lineup selector is now strict alphabetical order by displayed team name.
+- No authentication, persistence, validation, password, roster, or simulator-lineup logic changed.
+- Re-ran lineup integrity, simulator lineup handoff, storage CAS, position-penalty, seed-repeatability, and simulator regression tests after the presentation-only change.
+
 # Site 36 / V6.7.2 — Vercel Upstash prefix compatibility
 
 - Added support for the exact environment variable names produced by the connected Vercel Upstash integration when the custom prefix is `UPSTASH_REDIS_REST`: `UPSTASH_REDIS_REST_KV_REST_API_URL` + `UPSTASH_REDIS_REST_KV_REST_API_TOKEN`.
