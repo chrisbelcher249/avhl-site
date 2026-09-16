@@ -70,7 +70,7 @@ export default function LineupDirectory({ teams }) {
                 {divisionTeams.map((team) => (
                   <Link
                     key={team.slug}
-                    href={`/lineups/${team.slug}`}
+                    href={`/teams/${team.slug}/lineups`}
                     className="group relative overflow-hidden rounded-3xl border border-[#000B36]/10 bg-white shadow-[0_8px_30px_rgba(0,11,54,0.05)] transition hover:-translate-y-1 hover:border-[#18BDFC]/70 hover:shadow-[0_18px_45px_rgba(0,11,54,0.11)]"
                   >
                     <div className="h-2" style={{ backgroundColor: team.colors.primary }} />

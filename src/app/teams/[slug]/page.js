@@ -99,11 +99,14 @@ export default async function TeamPage({ params }) {
               <h1 className="mt-1 text-5xl font-black uppercase leading-[0.92] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">{team.nickname}</h1>
               <p className="mt-5 max-w-xl text-base font-bold text-white/66 md:text-lg">{team.arena}</p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href={`/schedule/${team.slug}`} className="inline-flex rounded-full bg-white px-6 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">
-                  View 2026–27 schedule
+                <Link href="#roster" className="inline-flex rounded-full bg-white px-5 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">
+                  Roster
                 </Link>
-                <Link href={`/lineups/${team.slug}`} className="inline-flex rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-white hover:text-[#000B36]">
-                  View lineup
+                <Link href={`/teams/${team.slug}/lineups`} className="inline-flex rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-white hover:text-[#000B36]">
+                  Lineups
+                </Link>
+                <Link href={`/schedule/${team.slug}`} className="inline-flex rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-white hover:text-[#000B36]">
+                  Schedule
                 </Link>
               </div>
             </div>
@@ -205,7 +208,7 @@ export default async function TeamPage({ params }) {
 
       <SalaryCapSection roster={roster} primary={team.colors.primary} />
 
-      <section className="mx-auto max-w-7xl px-6 pb-14 md:px-8 md:pb-20">
+      <section id="roster" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 md:px-8 md:pb-20">
         <RosterSection roster={roster} primary={team.colors.primary} />
       </section>
 

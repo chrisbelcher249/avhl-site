@@ -10,7 +10,7 @@ export default function LineupTeamSwitcher({ teams, activeSlug }) {
       <span className="sr-only">Choose team lineup</span>
       <select
         value={activeSlug}
-        onChange={(event) => router.push(`/lineups/${event.target.value}`)}
+        onChange={(event) => router.push(`/teams/${event.target.value}/lineups`)}
         className="w-full min-w-0 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white outline-none backdrop-blur transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/15"
       >
         {teams.map((team) => (

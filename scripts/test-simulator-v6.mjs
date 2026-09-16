@@ -108,6 +108,43 @@ for (const [prop,label] of [
 }
 console.log('Rating identity check: PASS (John Carlson full V6 ratings match bundled current CSV).');
 
+// Verify the AVHL 3% same-group unfamiliar-position rule hits only the intended
+// rating inputs. Forwards: OA/DA/Passing/Puck Control. Defense: DA/Stick
+// Checking/Passing/Puck Control. Speed and the other unaffected attributes stay
+// at their source values.
+{
+  const shifted = structuredClone(data);
+  const forwardRaw = shifted.home.forwards.find((p) => p.position === 'C' && tokens({ position: p.listedPosition }).length === 1);
+  if (!forwardRaw) throw new Error('No single-position center available for familiarity test.');
+  forwardRaw.position = 'LW';
+  const forwardSource = players.find((p) => p.id === forwardRaw.avhlId);
+  const forwardSim = new Simulator(shifted, 111).teams.cha.players.find((p) => p.avhlId === forwardRaw.avhlId);
+  const adjusted = (label) => Math.round(Number(forwardSource.ratings[label]) * 0.97 * 10) / 10;
+  if (forwardSim.positionFamiliarity !== 0.97) throw new Error('Forward off-position familiarity factor was not 0.97.');
+  if (forwardSim.passing !== adjusted('Passing')) throw new Error('Forward Passing did not receive the 3% familiarity penalty.');
+  if (forwardSim.puckControl !== adjusted('Puck Control')) throw new Error('Forward Puck Control did not receive the 3% familiarity penalty.');
+  if (forwardSim.offensiveAwareness !== adjusted('Off. Awareness')) throw new Error('Forward Offensive Awareness did not receive the 3% familiarity penalty.');
+  if (forwardSim.defensiveAwareness !== adjusted('Def. Awareness')) throw new Error('Forward Defensive Awareness did not receive the 3% familiarity penalty.');
+  if (forwardSim.speed !== Number(forwardSource.ratings.Speed)) throw new Error('Forward Speed was incorrectly penalized.');
+  if (forwardSim.stickChecking !== Number(forwardSource.ratings['Stick Checking'])) throw new Error('Forward Stick Checking was incorrectly penalized.');
+
+  const shiftedDefense = structuredClone(data);
+  const defenseRaw = shiftedDefense.home.defense.find((p) => ['LD', 'RD'].includes(p.position) && tokens({ position: p.listedPosition }).length === 1);
+  if (!defenseRaw) throw new Error('No single-side defenseman available for familiarity test.');
+  defenseRaw.position = defenseRaw.position === 'LD' ? 'RD' : 'LD';
+  const defenseSource = players.find((p) => p.id === defenseRaw.avhlId);
+  const defenseSim = new Simulator(shiftedDefense, 112).teams.cha.players.find((p) => p.avhlId === defenseRaw.avhlId);
+  const dAdjusted = (label) => Math.round(Number(defenseSource.ratings[label]) * 0.97 * 10) / 10;
+  if (defenseSim.positionFamiliarity !== 0.97) throw new Error('Defense off-side familiarity factor was not 0.97.');
+  if (defenseSim.passing !== dAdjusted('Passing')) throw new Error('Defense Passing did not receive the 3% familiarity penalty.');
+  if (defenseSim.puckControl !== dAdjusted('Puck Control')) throw new Error('Defense Puck Control did not receive the 3% familiarity penalty.');
+  if (defenseSim.defensiveAwareness !== dAdjusted('Def. Awareness')) throw new Error('Defense Defensive Awareness did not receive the 3% familiarity penalty.');
+  if (defenseSim.stickChecking !== dAdjusted('Stick Checking')) throw new Error('Defense Stick Checking did not receive the 3% familiarity penalty.');
+  if (defenseSim.offensiveAwareness !== Number(defenseSource.ratings['Off. Awareness'])) throw new Error('Defense Offensive Awareness was incorrectly penalized.');
+  if (defenseSim.speed !== Number(defenseSource.ratings.Speed)) throw new Error('Defense Speed was incorrectly penalized.');
+}
+console.log('Position familiarity check: PASS (3% penalty applies only to the specified forward/defense inputs).');
+
 const g1 = new Simulator(data, 123456789).simulateGame();
 const g2 = new Simulator(data, 123456789).simulateGame();
 const sig = (g) => JSON.stringify({score:g.finalSummary.score, injuries:g.finalSummary.injuries, events:g.events.map(e=>[e.type,e.text,e.clockText])});

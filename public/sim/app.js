@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V6.5.1";
+  const SIMULATOR_VERSION = "V6.7.1";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
@@ -177,7 +177,7 @@
     const playedOvertime = events.some((event) => String(event.period) === "4");
     const finish = playedShootout ? "SO" : playedOvertime ? "OT" : "REG";
     const entry = {
-      id: `${SIMULATOR_VERSION}|${away.abbreviation}|${home.abbreviation}|${game.seed}`,
+      id: `${SIMULATOR_VERSION}|${lineupIdentityToken(away)}|${lineupIdentityToken(home)}|${game.seed}`,
       version: SIMULATOR_VERSION,
       seed: game.seed,
       homeCode: home.abbreviation,
@@ -193,7 +193,7 @@
     renderRecentGames();
   }
 
-  function restoreRecentGame(entryId) {
+  async function restoreRecentGame(entryId) {
     const entry = recentGames.find((item) => item.id === entryId);
     if (!entry) return;
     if (elements.homeTeamSelect) elements.homeTeamSelect.value = entry.homeCode;
@@ -202,7 +202,17 @@
     resetJerseyDefault("away");
     syncTeamSelectorLocks();
     if (elements.seedInput) elements.seedInput.value = String(entry.seed);
-    createNewGame({ freshSeed: false, seedOverride: entry.seed });
+
+    const refreshed = await refreshLiveRosterState({ quiet: true });
+    if (!refreshed) {
+      restoreSelectorsToCurrentGame();
+      setStatus("Latest lineup unavailable", "error");
+      if (elements.recentGamesSelect) elements.recentGamesSelect.value = "";
+      return;
+    }
+
+    const created = createNewGame({ freshSeed: false, seedOverride: entry.seed });
+    if (!created) restoreSelectorsToCurrentGame();
     if (elements.recentGamesSelect) elements.recentGamesSelect.value = "";
   }
 
@@ -402,16 +412,63 @@
       : window.AVHL_DATA;
   }
 
-  function handleHomeTeamChange() {
-    resetJerseyDefault("home");
-    syncTeamSelectorLocks();
-    createNewGame();
+  async function refreshLiveRosterState({ quiet = false } = {}) {
+    if (!window.AVHL_LOAD_LIVE_ROSTERS) return null;
+    if (!quiet) setStatus("Refreshing rosters + lineups…", "ready");
+    try {
+      const rosterStatus = await window.AVHL_LOAD_LIVE_ROSTERS();
+      const savedCount = Object.values(rosterStatus.lineupSources || {}).filter((source) => source === "saved").length;
+      console.info(`AVHL simulator rosters: ${rosterStatus.playerCount} players across ${rosterStatus.teamCount} teams (${rosterStatus.source}); ${savedCount} owner lineups`);
+      if (elements.assetStatus) {
+        elements.assetStatus.dataset.ready = rosterStatus.source === "live" ? "true" : "false";
+        elements.assetStatus.textContent = rosterStatus.source === "live"
+          ? `Live CSV rosters + latest lineups loaded (${rosterStatus.playerCount} players · ${savedCount} owner lineups)`
+          : `Roster source: ${rosterStatus.source} (${rosterStatus.playerCount})`;
+      }
+      return rosterStatus;
+    } catch (error) {
+      console.warn("Live AVHL rosters/lineups unavailable; refusing to start a new game with potentially stale lineup data.", error);
+      if (elements.assetStatus) {
+        elements.assetStatus.dataset.ready = "false";
+        elements.assetStatus.textContent = "Latest rosters/lineups unavailable — retry before starting";
+      }
+      return null;
+    }
   }
 
-  function handleAwayTeamChange() {
+  function restoreSelectorsToCurrentGame() {
+    if (!teams || !homeId || !awayId) return;
+    if (elements.homeTeamSelect && teams[homeId]?.abbreviation) {
+      elements.homeTeamSelect.value = teams[homeId].abbreviation;
+    }
+    if (elements.awayTeamSelect && teams[awayId]?.abbreviation) {
+      elements.awayTeamSelect.value = teams[awayId].abbreviation;
+    }
+    syncTeamSelectorLocks();
+  }
+
+  async function handleHomeTeamChange() {
+    resetJerseyDefault("home");
+    syncTeamSelectorLocks();
+    const refreshed = await refreshLiveRosterState({ quiet: true });
+    if (!refreshed) {
+      restoreSelectorsToCurrentGame();
+      setStatus("Latest lineup unavailable", "error");
+      return;
+    }
+    if (!createNewGame()) restoreSelectorsToCurrentGame();
+  }
+
+  async function handleAwayTeamChange() {
     resetJerseyDefault("away");
     syncTeamSelectorLocks();
-    createNewGame();
+    const refreshed = await refreshLiveRosterState({ quiet: true });
+    if (!refreshed) {
+      restoreSelectorsToCurrentGame();
+      setStatus("Latest lineup unavailable", "error");
+      return;
+    }
+    if (!createNewGame()) restoreSelectorsToCurrentGame();
   }
 
   function handleJerseyChange(side) {
@@ -463,7 +520,6 @@
   }
 
   function startPlayback() {
-    if (currentEventIndex >= events.length - 1) createNewGame();
     playing = true;
     elements.playButton.textContent = "Pause";
     setStatus("Live", "live");
@@ -486,11 +542,11 @@
     } else {
       seed = generateSeed();
     }
-    elements.seedInput.value = String(seed);
-
     try {
       const simulator = new window.AVHLGameSimulator(selectedMatchupData(), seed);
-      game = simulator.simulateGame();
+      const nextGame = simulator.simulateGame();
+      elements.seedInput.value = String(seed);
+      game = nextGame;
       events = game.events;
       teams = game.teams;
       homeId = game.homeId;
@@ -500,10 +556,13 @@
       currentReplayEventId = null;
       currentGameHistorySaved = false;
       resetDisplay();
+      return true;
     } catch (error) {
       console.error(error);
+      stopPlayback();
       elements.feed.innerHTML = `<div class="feed-error">Simulator error: ${escapeHtml(error.message)}</div>`;
       setStatus("Error", "error");
+      return false;
     }
   }
 
@@ -882,7 +941,7 @@
       elements.replayPlayers.append(group);
       replayPlayerNodes.set(track.playerId, group);
 
-      // V6.5.1 intentionally draws no scorer/assist trajectory trails.
+      // V6.7.1 intentionally draws no scorer/assist trajectory trails.
 
     }
 
@@ -1280,9 +1339,33 @@
     if (currentEventIndex >= events.length - 1) renderFullBoxScore(game?.finalSummary);
   }
 
+  function lineupIdentityToken(team) {
+    if (!team) return "unknown";
+    const source = team.lineupSource === "saved"
+      ? `r${Number(team.lineupRevision) || 0}`
+      : "projected";
+    const identity = [
+      ...(team.forwards || []).map((player) => player.id),
+      ...(team.defense || []).map((player) => player.id),
+      ...(team.goalies || []).map((player) => player.id),
+      ...(team.specialTeams?.pp1 || []),
+      ...(team.specialTeams?.pp2 || []),
+      ...(team.specialTeams?.pk1 || []),
+      ...(team.specialTeams?.pk2 || []),
+      ...(team.overtimeUnits || []).flat(),
+      ...(team.shootoutOrder || []),
+    ].join("|");
+    let hash = 2166136261;
+    for (let index = 0; index < identity.length; index += 1) {
+      hash ^= identity.charCodeAt(index);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    return `${team.abbreviation || "TEAM"}-${source}-${hash.toString(16).padStart(8, "0")}`;
+  }
+
   function officialGameId() {
     if (!game || !teams) return "";
-    return `${SIMULATOR_VERSION}|${teams[awayId].abbreviation}|${teams[homeId].abbreviation}|${game.seed}`;
+    return `${SIMULATOR_VERSION}|${lineupIdentityToken(teams[awayId])}|${lineupIdentityToken(teams[homeId])}|${game.seed}`;
   }
 
   function openOfficialModal() {
@@ -1300,17 +1383,17 @@
     if (elements.officialError) elements.officialError.textContent = "";
   }
 
-  function bytesToHex(bytes) {
-    return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  }
-
   async function verifyOfficialPassword(password) {
-    const config = window.AVHL_OFFICIAL_CONFIG;
-    if (!config?.salt || !config?.passwordHash) throw new Error("Administrator password is not configured.");
-    if (!window.crypto?.subtle) throw new Error("Secure password verification is unavailable in this browser.");
-    const input = new TextEncoder().encode(`${config.salt}:${password}`);
-    const digest = await window.crypto.subtle.digest(config.algorithm || "SHA-256", input);
-    return bytesToHex(new Uint8Array(digest)).toLowerCase() === String(config.passwordHash).toLowerCase();
+    const response = await fetch("/api/sim-export-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+      cache: "no-store"
+    });
+    if (response.status === 401) return false;
+    if (!response.ok) throw new Error("Administrator password verification is unavailable.");
+    const payload = await response.json();
+    return Boolean(payload?.ok);
   }
 
   function cleanEventForOfficialPacket(event) {
@@ -1335,6 +1418,31 @@
     };
   }
 
+  function officialLineupSnapshot(team) {
+    return {
+      source: team.lineupSource || "automatic",
+      revision: Number(team.lineupRevision) || 0,
+      updatedAt: team.lineupUpdatedAt || null,
+      forwards: (team.forwards || []).map((player) => ({
+        id: player.avhlId || player.id,
+        position: player.position,
+        line: player.line
+      })),
+      defense: (team.defense || []).map((player) => ({
+        id: player.avhlId || player.id,
+        position: player.position,
+        pair: player.pair
+      })),
+      goalies: (team.goalies || []).map((goalie) => ({
+        id: goalie.avhlId || goalie.id,
+        starter: goalie.id === team.starterId
+      })),
+      specialTeams: team.specialTeams || {},
+      overtimeUnits: team.overtimeUnits || [],
+      shootoutOrder: team.shootoutOrder || []
+    };
+  }
+
   function buildOfficialPacket() {
     const summary = game.finalSummary;
     return {
@@ -1347,13 +1455,15 @@
         id: awayId,
         abbreviation: teams[awayId].abbreviation,
         fullName: teams[awayId].fullName,
-        score: summary.score[awayId]
+        score: summary.score[awayId],
+        lineup: officialLineupSnapshot(teams[awayId])
       },
       home: {
         id: homeId,
         abbreviation: teams[homeId].abbreviation,
         fullName: teams[homeId].fullName,
-        score: summary.score[homeId]
+        score: summary.score[homeId],
+        lineup: officialLineupSnapshot(teams[homeId])
       },
       summary,
       events: events.map(cleanEventForOfficialPacket)
@@ -1464,23 +1574,56 @@
     fitLiveStatTeamNames();
   }));
 
-  elements.playButton.addEventListener("click", () => {
-    if (playing) stopPlayback();
-    else startPlayback();
+  elements.playButton.addEventListener("click", async () => {
+    if (playing) {
+      stopPlayback();
+      return;
+    }
+    if (currentEventIndex >= events.length - 1 && events.length) {
+      const refreshed = await refreshLiveRosterState({ quiet: true });
+      if (!refreshed) {
+        setStatus("Latest lineup unavailable", "error");
+        return;
+      }
+      if (!createNewGame({ freshSeed: true })) return;
+    } else if (currentEventIndex < 0) {
+      const existingSeed = Number(elements.seedInput.value);
+      const refreshed = await refreshLiveRosterState({ quiet: true });
+      if (!refreshed) {
+        setStatus("Latest lineup unavailable", "error");
+        return;
+      }
+      if (!createNewGame({ freshSeed: false, seedOverride: existingSeed })) return;
+    }
+    startPlayback();
   });
 
-  elements.nextGoalButton.addEventListener("click", () => {
+  async function refreshBeforeFirstAdvance() {
+    if (currentEventIndex >= 0) return true;
+    const existingSeed = Number(elements.seedInput.value);
+    const refreshed = await refreshLiveRosterState({ quiet: true });
+    if (!refreshed) {
+      setStatus("Latest lineup unavailable", "error");
+      return false;
+    }
+    return createNewGame({ freshSeed: false, seedOverride: existingSeed });
+  }
+
+  elements.nextGoalButton.addEventListener("click", async () => {
+    if (!await refreshBeforeFirstAdvance()) return;
     jumpUntil((event) => event.type === "goal" || event.type === "final");
   });
 
-  elements.periodButton.addEventListener("click", () => {
+  elements.periodButton.addEventListener("click", async () => {
+    if (!await refreshBeforeFirstAdvance()) return;
     const currentPeriod = currentEventIndex < 0 ? 1 : events[currentEventIndex].period;
     jumpUntil((event) =>
       event.type === "period-end" && String(event.period) === String(currentPeriod)
     );
   });
 
-  elements.endButton.addEventListener("click", () => {
+  elements.endButton.addEventListener("click", async () => {
+    if (!await refreshBeforeFirstAdvance()) return;
     jumpUntil((event) => event.type === "final");
   });
 
@@ -1489,7 +1632,14 @@
   elements.homeJerseySelect?.addEventListener("change", () => handleJerseyChange("home"));
   elements.awayJerseySelect?.addEventListener("change", () => handleJerseyChange("away"));
 
-  elements.newGameButton.addEventListener("click", () => createNewGame({ freshSeed: true }));
+  elements.newGameButton.addEventListener("click", async () => {
+    const refreshed = await refreshLiveRosterState({ quiet: false });
+    if (!refreshed) {
+      setStatus("Latest lineup unavailable", "error");
+      return;
+    }
+    createNewGame({ freshSeed: true });
+  });
 
   elements.goalSelect.addEventListener("change", () => {
     const eventId = Number(elements.goalSelect.value);
@@ -1510,12 +1660,18 @@
     checkbox.addEventListener("change", renderEventMap);
   });
 
-  elements.seedInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") createNewGame({ freshSeed: false });
+  elements.seedInput.addEventListener("keydown", async (event) => {
+    if (event.key !== "Enter") return;
+    const refreshed = await refreshLiveRosterState({ quiet: true });
+    if (!refreshed) {
+      setStatus("Latest lineup unavailable", "error");
+      return;
+    }
+    createNewGame({ freshSeed: false });
   });
 
-  elements.recentGamesSelect?.addEventListener("change", () => {
-    if (elements.recentGamesSelect.value) restoreRecentGame(elements.recentGamesSelect.value);
+  elements.recentGamesSelect?.addEventListener("change", async () => {
+    if (elements.recentGamesSelect.value) await restoreRecentGame(elements.recentGamesSelect.value);
   });
 
   elements.boxScoreTabs.forEach((button) => {
@@ -1550,21 +1706,14 @@
   loadRecentGames();
   renderRecentGames();
 
-  if (window.AVHL_LOAD_LIVE_ROSTERS) {
-    setStatus("Loading rosters…", "ready");
-    try {
-      const rosterStatus = await window.AVHL_LOAD_LIVE_ROSTERS();
-      console.info(`AVHL simulator rosters: ${rosterStatus.playerCount} players across ${rosterStatus.teamCount} teams (${rosterStatus.source})`);
-      if (elements.assetStatus) {
-        elements.assetStatus.dataset.ready = rosterStatus.source === "live" ? "true" : "false";
-        elements.assetStatus.textContent = rosterStatus.source === "live"
-          ? `Live CSV rosters + full ratings loaded (${rosterStatus.playerCount})`
-          : `Roster source: ${rosterStatus.source} (${rosterStatus.playerCount})`;
-      }
-    } catch (error) {
-      console.warn("Live AVHL rosters unavailable; using bundled simulator rosters.", error);
+  const initialRosterRefresh = await refreshLiveRosterState({ quiet: false });
+
+  if (initialRosterRefresh) {
+    createNewGame({ freshSeed: true });
+  } else {
+    setStatus("Latest lineup unavailable", "error");
+    if (elements.feed) {
+      elements.feed.innerHTML = `<div class="feed-error">Latest owner lineup data could not be verified. Retry with New Game before starting.</div>`;
     }
   }
-
-  createNewGame({ freshSeed: true });
 })();

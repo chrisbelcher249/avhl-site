@@ -188,7 +188,7 @@ export function buildProjectedLineup(rosterPlayers) {
 
   const overtimeForwards = forwardSlots.slice().sort((a, b) => overtimeScore(b) - overtimeScore(a));
   const overtimeDefense = defenseSlots.slice().sort((a, b) => overtimeScore(b) - overtimeScore(a));
-  const overtimeUnits = [0, 1, 2].map((index) => [
+  const overtimeUnits = [0, 1].map((index) => [
     overtimeForwards[index * 2],
     overtimeForwards[index * 2 + 1],
     overtimeDefense[index],

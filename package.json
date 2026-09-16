@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:sim": "node scripts/test-simulator-v6.mjs",
+    "test:lineups": "node scripts/test-lineups.mjs",
+    "test:sim-lineups": "node scripts/test-sim-lineup-integration.mjs",
+    "test:lineup-storage": "node scripts/test-lineup-storage.mjs"
   },
   "dependencies": {
     "next": "16.2.9",

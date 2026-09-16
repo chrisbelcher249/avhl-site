@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V6.5.1 roster/bootstrap data.
+  AVHL Game Simulator V6.7.1 roster/bootstrap data.
 
   The roster is intentionally kept in a separate file so it can later be
   replaced by exported AVHL player data, Firebase snapshots, CSV imports, or
@@ -99,8 +99,8 @@ window.AVHL_DATA = {
   V6 website integration layer.
   Team identity still comes from the bundled 40-team catalog, while player
   rosters are loaded from the same live AVHL player database used by the site.
-  If that request fails, the original Arizona/Atlanta demo pools remain a safe
-  fallback so the simulator can still run.
+  The bundled Arizona/Atlanta pools remain bootstrap data only. Official matchup
+  creation fails closed unless both selected teams resolve to complete live rosters.
 */
 (() => {
   const clone = (value) => {
@@ -113,6 +113,8 @@ window.AVHL_DATA = {
 
   let liveRosterByTeam = null;
   let liveRosterSource = "demo";
+  let liveLineupByAbbreviation = {};
+  let liveLineupSources = {};
 
   function applyMetadata(team, meta, side) {
     const abbreviation = meta?.abbreviation ?? (side === "home" ? "ARI" : "ATL");
@@ -243,26 +245,128 @@ window.AVHL_DATA = {
       .map((player, index) => simPlayer(player, abbreviation, { position: "G", starter: index === 0 }));
   }
 
-  function applyLiveRoster(team, meta) {
-    const roster = liveRosterByTeam?.[meta?.rosterLookupName ?? meta?.fullName];
-    if (!Array.isArray(roster) || roster.length < 18) return team;
+  function simId(abbreviation, avhlId) {
+    return `${String(abbreviation || "").toLowerCase()}-${avhlId}`;
+  }
 
-    const forwards = buildForwardLines(roster, meta.abbreviation);
-    const defense = buildDefensePairs(roster, meta.abbreviation);
-    const goalies = buildGoalies(roster, meta.abbreviation);
+  function applySavedLineup(team, meta, roster, lineup) {
+    if (!lineup || !Array.isArray(lineup.forwards) || !Array.isArray(lineup.defense) || !Array.isArray(lineup.goalies)) return false;
+    if (lineup.forwards.length !== 12 || lineup.defense.length !== 6 || lineup.goalies.length !== 2) return false;
 
-    if (forwards.length < 12 || defense.length < 6 || goalies.length < 2) return team;
+    const byId = Object.fromEntries(roster.map((player) => [String(player.id), player]));
+    const forwardSlots = new Set();
+    const defenseSlots = new Set();
+    const forwardAvhlIds = new Set();
+    const defenseAvhlIds = new Set();
+    const goalieAvhlIds = new Set();
+
+    for (const entry of lineup.forwards) {
+      const playerId = String(entry?.playerId || "");
+      const position = String(entry?.position || "").toUpperCase();
+      const line = Number(entry?.line);
+      const player = byId[playerId];
+      const slot = `${line}:${position}`;
+      if (!player || player.role !== "Skater" || isDefense(player)) return false;
+      if (!Number.isInteger(line) || line < 1 || line > 4 || !["LW", "C", "RW"].includes(position)) return false;
+      if (forwardSlots.has(slot) || forwardAvhlIds.has(playerId)) return false;
+      forwardSlots.add(slot);
+      forwardAvhlIds.add(playerId);
+    }
+    if (forwardSlots.size !== 12 || forwardAvhlIds.size !== 12) return false;
+
+    for (const entry of lineup.defense) {
+      const playerId = String(entry?.playerId || "");
+      const position = String(entry?.position || "").toUpperCase();
+      const pair = Number(entry?.pair);
+      const player = byId[playerId];
+      const slot = `${pair}:${position}`;
+      if (!player || player.role !== "Skater" || !isDefense(player)) return false;
+      if (!Number.isInteger(pair) || pair < 1 || pair > 3 || !["LD", "RD"].includes(position)) return false;
+      if (defenseSlots.has(slot) || defenseAvhlIds.has(playerId)) return false;
+      defenseSlots.add(slot);
+      defenseAvhlIds.add(playerId);
+    }
+    if (defenseSlots.size !== 6 || defenseAvhlIds.size !== 6) return false;
+
+    let starterCount = 0;
+    for (const entry of lineup.goalies) {
+      const playerId = String(entry?.playerId || "");
+      const player = byId[playerId];
+      if (!player || player.role !== "Goalie" || goalieAvhlIds.has(playerId)) return false;
+      goalieAvhlIds.add(playerId);
+      if (Boolean(entry?.starter)) starterCount += 1;
+    }
+    if (goalieAvhlIds.size !== 2 || starterCount !== 1) return false;
+
+    const allDressedIds = new Set([...forwardAvhlIds, ...defenseAvhlIds, ...goalieAvhlIds]);
+    if (allDressedIds.size !== 20) return false;
+    const dressedSkaterIds = new Set([...forwardAvhlIds, ...defenseAvhlIds]);
+
+    const validUnit = (ids, length, compositions = null) => {
+      if (!Array.isArray(ids) || ids.length !== length) return false;
+      const normalized = ids.map((id) => String(id || ""));
+      if (new Set(normalized).size !== length) return false;
+      if (normalized.some((id) => !dressedSkaterIds.has(id))) return false;
+      if (compositions) {
+        const forwards = normalized.filter((id) => forwardAvhlIds.has(id)).length;
+        const defense = normalized.filter((id) => defenseAvhlIds.has(id)).length;
+        if (!compositions.some(([f, d]) => forwards === f && defense === d)) return false;
+      }
+      return true;
+    };
+
+    if (!validUnit(lineup.specialTeams?.pp1, 5, [[4, 1], [3, 2]])) return false;
+    if (!validUnit(lineup.specialTeams?.pp2, 5, [[4, 1], [3, 2]])) return false;
+    if (!validUnit(lineup.specialTeams?.pk1, 4, [[2, 2]])) return false;
+    if (!validUnit(lineup.specialTeams?.pk2, 4, [[2, 2]])) return false;
+    if (!Array.isArray(lineup.overtimeUnits) || lineup.overtimeUnits.length !== 2) return false;
+    if (!lineup.overtimeUnits.every((unit) => validUnit(unit, 3, [[2, 1]]))) return false;
+    if (!validUnit(lineup.shootoutOrder, 5)) return false;
+
+    const forwards = lineup.forwards.map((entry) => {
+      const player = byId[String(entry.playerId)];
+      return simPlayer(player, meta.abbreviation, { position: entry.position, line: Number(entry.line) });
+    });
+    const defense = lineup.defense.map((entry) => {
+      const player = byId[String(entry.playerId)];
+      return simPlayer(player, meta.abbreviation, { position: entry.position, pair: Number(entry.pair) });
+    });
+    const goalies = lineup.goalies.map((entry) => {
+      const player = byId[String(entry.playerId)];
+      return simPlayer(player, meta.abbreviation, { position: "G", starter: Boolean(entry.starter) });
+    });
 
     team.forwards = forwards;
     team.defense = defense;
     team.goalies = goalies;
-    team.shootoutOrder = forwards
-      .slice()
-      .sort((a, b) => (b.overall || 0) - (a.overall || 0))
-      .slice(0, 5)
-      .map((player) => player.id);
+    team.specialTeams = {
+      pp1: lineup.specialTeams.pp1.map((id) => simId(meta.abbreviation, id)),
+      pp2: lineup.specialTeams.pp2.map((id) => simId(meta.abbreviation, id)),
+      pk1: lineup.specialTeams.pk1.map((id) => simId(meta.abbreviation, id)),
+      pk2: lineup.specialTeams.pk2.map((id) => simId(meta.abbreviation, id)),
+    };
+    team.overtimeUnits = lineup.overtimeUnits.map((unit) => unit.map((id) => simId(meta.abbreviation, id)));
+    team.shootoutOrder = lineup.shootoutOrder.map((id) => simId(meta.abbreviation, id));
+    team.lineupRevision = Number(lineup.revision) || 0;
+    team.lineupUpdatedAt = lineup.updatedAt || null;
+    team.lineupSource = liveLineupSources[meta.abbreviation] || "projected";
+    return true;
+  }
+
+  function applyLiveRoster(team, meta) {
+    const roster = liveRosterByTeam?.[meta?.rosterLookupName ?? meta?.fullName];
+    if (!Array.isArray(roster) || roster.length < 20) return false;
+
+    // /api/sim-rosters supplies one server-validated lineup record for every
+    // team (owner-saved when valid, otherwise the server projection). Do not
+    // invent a second browser-side fallback if that record cannot be applied:
+    // a transform failure must stop the game rather than silently changing the
+    // lineup the owner/public page says will be used.
+    const lineup = liveLineupByAbbreviation?.[meta.abbreviation];
+    if (!lineup || !applySavedLineup(team, meta, roster, lineup)) return false;
+
     team.rosterSource = liveRosterSource;
-    return team;
+    return true;
   }
 
   window.AVHL_LOAD_LIVE_BRANDING = async () => {
@@ -314,7 +418,7 @@ window.AVHL_DATA = {
   };
 
   window.AVHL_LOAD_LIVE_ROSTERS = async () => {
-    const response = await fetch("/api/sim-rosters", { cache: "no-store" });
+    const response = await fetch(`/api/sim-rosters?t=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) throw new Error(`Live roster request returned ${response.status}`);
     const payload = await response.json();
     if (!payload?.ok || !Array.isArray(payload.players)) throw new Error("Live roster response was invalid");
@@ -327,10 +431,14 @@ window.AVHL_DATA = {
 
     liveRosterByTeam = grouped;
     liveRosterSource = payload.source || "live";
+    liveLineupByAbbreviation = payload.lineups || {};
+    liveLineupSources = payload.lineupSources || {};
     window.AVHL_LIVE_ROSTER_STATUS = {
       source: liveRosterSource,
       playerCount: payload.playerCount || payload.players.length,
       teamCount: Object.keys(grouped).length,
+      lineupSources: liveLineupSources,
+      lineupStorage: payload.lineupStorage || null,
     };
     return window.AVHL_LIVE_ROSTER_STATUS;
   };
@@ -342,10 +450,19 @@ window.AVHL_DATA = {
     const awayMeta = catalog[awayAbbreviation] ?? catalog.ATL;
     applyMetadata(data.home, homeMeta, "home");
     applyMetadata(data.away, awayMeta, "away");
-    applyLiveRoster(data.home, homeMeta);
-    applyLiveRoster(data.away, awayMeta);
+    const homeReady = applyLiveRoster(data.home, homeMeta);
+    const awayReady = applyLiveRoster(data.away, awayMeta);
+    if (!homeReady || !awayReady) {
+      const missing = [
+        !homeReady ? homeMeta?.fullName || homeAbbreviation : null,
+        !awayReady ? awayMeta?.fullName || awayAbbreviation : null,
+      ].filter(Boolean).join(" and ");
+      throw new Error(`Complete live roster/lineup data is unavailable for ${missing}.`);
+    }
     return data;
   };
 
-  window.AVHL_DATA = window.AVHL_CREATE_MATCHUP_DATA("ARI", "ATL");
+  // Keep the bootstrap demo object only as inert page-load data. The app does
+  // not construct a playable matchup until AVHL_LOAD_LIVE_ROSTERS succeeds.
+  window.AVHL_DATA = clone(baseData);
 })();

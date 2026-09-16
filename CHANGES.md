@@ -1,3 +1,45 @@
+# Site 36 / V6.7.2 — Vercel Upstash prefix compatibility
+
+- Added support for the exact environment variable names produced by the connected Vercel Upstash integration when the custom prefix is `UPSTASH_REDIS_REST`: `UPSTASH_REDIS_REST_KV_REST_API_URL` + `UPSTASH_REDIS_REST_KV_REST_API_TOKEN`.
+- Existing standard Upstash (`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`) and Vercel KV (`KV_REST_API_URL` / `KV_REST_API_TOKEN`) names remain supported.
+- Re-ran lineup, simulator handoff, rating/position, deterministic seed, and storage CAS tests after the environment compatibility change.
+
+# Site 35 / V6.7.1 — pre-deploy lineup integrity review
+
+- Fixed the special-team editor so generic `F` / `D` role labels never show a false 3% off-position warning. Familiarity warnings remain tied only to actual LW/C/RW and LD/RD even-strength assignments.
+- Team switching and leaving the lineup page are blocked while editing/saving, and authenticated owners now have an explicit sign-out control.
+- Invalid lineups display the actual live validation errors immediately; both Save controls are disabled until every AVHL constraint passes.
+- Dressing a previously scratched skater transfers the outgoing skater's PP/PK/OT/shootout references to the replacement, avoiding a cluster of blank units after a simple roster substitution. Swapping two already-dressed players keeps special-team assignments attached to those players.
+- Saves now carry an `expectedRevision` and use an atomic Redis compare-and-save operation, so even two near-simultaneous owner tabs cannot overwrite the same revision; stale saves receive a conflict instead.
+- Owner editing is disabled whenever persistent storage cannot be verified or the complete live roster feed is unavailable. Public viewing remains available with a clear warning.
+- Production simulation requires configured Redis/KV persistence plus the complete live skater + goalie feed. Storage/roster outages fail closed instead of silently becoming game inputs.
+- If a team already has an owner-saved lineup that becomes invalid after a roster transaction, the simulator refuses that team until the owner re-saves; it does not silently substitute an automatic projection.
+- The simulator refreshes the latest roster + lineup immediately before **every** way a game can first advance: Play, Next Goal, End Period, End Game, New Game, team changes, seed Enter, recent-game restore, and initial page setup.
+- Matchup creation itself is now success/failure guarded. If the refreshed feed is healthy but one selected team cannot apply its verified lineup (for example, an owner lineup needs repair after a trade), Play/jump/team/seed/history controls stop instead of continuing on the previous game snapshot.
+- Fixed simulator bootstrap so the bundled Arizona/Atlanta demo data is inert only; no playable matchup is created until the live roster + lineup refresh succeeds.
+- Removed the browser-side automatic-lineup fallback. `/api/sim-rosters` is now the single lineup source: if its validated record cannot be applied exactly, matchup creation fails instead of rebuilding different lines in the browser.
+- The browser handoff now re-checks exact even-strength slots, 20 unique dressed players, one starting goalie, PP/PK composition, two OT groups, shootout uniqueness and dressed-player membership before accepting the server record.
+- Recent-game and official-game identity includes the lineup source/revision plus a deterministic lineup fingerprint, so owner saves or projected-roster changes cannot be mislabeled as the same game input for the same seed.
+- Redis multi-get responses and saved JSON are validated and fail closed if malformed/unreadable.
+- Added dedicated lineup validation and simulator-lineup handoff tests. The handoff test covers all 40 teams, preservation of PP/PK/OT/shootout units through simulator normalization, and a fail-closed malformed-lineup mutation.
+- Performed static browser-render checks with the actual lineup/card classes at 320, 390, 640, 768, 1024, 1280 and 1440 px. Public and edit layouts have no horizontal overflow; the shootout section is five full cards across on desktop and stacks cleanly on mobile; exactly two OT groups render correctly.
+- Re-ran all 40 projected-lineup validations, credential/hash verification, storage command-shape checks, simulator regression tests, source parsing and local asset checks.
+
+# Site 34 / V6.7 — owner-editable lineups + simulator sync
+
+- Moved public lineup pages under each club: `/teams/[team-slug]/lineups`. Legacy `/lineups` URLs redirect instead of remaining a separate league section, and the main navigation no longer has a Lineups tab.
+- Added a team-specific owner button such as `Heat Owner? Sign In Here to Edit Lines`. Authentication is server-side using salted PBKDF2-SHA256 hashes; the 40 plaintext team passwords are not present in client JavaScript or repository files.
+- Replaced the simulator's old local export-password hash with the separate server-side `/api/sim-export-auth` verification endpoint.
+- Added same-page lineup editing with selectors for 4 forward lines, 3 defense pairs, starter/backup, PP1/PP2, PK1/PK2, **2** OT groups, first five shootout shooters, and automatically derived scratches.
+- Enforced 12F/6D/2G dressed; no F-to-D or D-to-F assignments; goalies only in goal; PP 4F/1D or 3F/2D; PK 2F/2D; OT 2F/1D; unique players within each unit; and special-team/OT/shootout selections restricted to dressed skaters.
+- PP edit mode includes an explicit 4F/1D vs 3F/2D formation control. PK and OT selector slots are role-restricted rather than waiting until save to reject bad compositions.
+- Same-group off-position play remains legal. Fixed the simulator's 3% familiarity application to match the AVHL rule exactly: forwards lose 3% Off Awareness, Def Awareness, Passing and Puck Control; defensemen playing the opposite listed side lose 3% Def Awareness, Stick Checking, Passing and Puck Control.
+- Added Redis/Upstash REST persistence with development-file fallback. Saved records carry `revision` and `updatedAt`; if a roster transaction makes a saved lineup invalid, the public page and simulator safely fall back to a fresh live-roster projection until the owner re-saves.
+- `/api/sim-rosters` now returns the effective lineup record for every team. The simulator applies owner-saved even-strength lines, goalie order, PP/PK, two OT groups and shootout order instead of rebuilding those units independently.
+- The simulator refreshes the roster + lineup feed again immediately before the first Play/opening faceoff and on New Game/team changes. Once play begins, that game's lineup is locked.
+- Rebuilt the shootout display so five shooters remain a clean five-card desktop row instead of the prior collapsed/cropped layout.
+- Team pages now expose `Roster`, `Lineups`, and `Schedule` actions together near the team header.
+
 # Site 33 / V6.6.1 — live branding fetch reliability
 
 - Fixed the live Team Specifications feed silently falling back to bundled team data on `/teams`.

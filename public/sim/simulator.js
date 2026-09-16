@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V6.5.1
+  AVHL Game Simulator V6.7.1
   ----------------------
   Plain JavaScript, no packages, and intentionally separated from the UI.
 
@@ -196,16 +196,24 @@ class AVHLGameSimulator {
       .slice()
       .sort((a, b) => this.overtimeScore(b) - this.overtimeScore(a));
 
-    const pp1 = this.makePowerPlayUnit(powerPlayPool.slice(0, 8));
-    const pp2 = this.makePowerPlayUnit(powerPlayPool.filter((player) => !pp1.includes(player.id)));
-    const pk1 = [
+    const automaticPp1 = this.makePowerPlayUnit(powerPlayPool.slice(0, 8));
+    const automaticPp2 = this.makePowerPlayUnit(powerPlayPool.filter((player) => !automaticPp1.includes(player.id)));
+    const automaticPk1 = [
       ...penaltyKillForwards.slice(0, 2).map((player) => player.id),
       ...penaltyKillDefense.slice(0, 2).map((player) => player.id)
     ];
-    const pk2 = [
+    const automaticPk2 = [
       ...penaltyKillForwards.slice(2, 4).map((player) => player.id),
       ...penaltyKillDefense.slice(2, 4).map((player) => player.id)
     ];
+    const requestedUnit = (ids, required) => {
+      const resolved = [...new Set((ids ?? []).filter((id) => playerById[id]))];
+      return resolved.length === required ? resolved : null;
+    };
+    const pp1 = requestedUnit(rawTeam.specialTeams?.pp1, 5) ?? automaticPp1;
+    const pp2 = requestedUnit(rawTeam.specialTeams?.pp2, 5) ?? automaticPp2;
+    const pk1 = requestedUnit(rawTeam.specialTeams?.pk1, 4) ?? automaticPk1;
+    const pk2 = requestedUnit(rawTeam.specialTeams?.pk2, 4) ?? automaticPk2;
 
     const requestedShootout = (rawTeam.shootoutOrder ?? []).filter((id) => playerById[id]);
     const automaticShootout = forwards
@@ -239,12 +247,21 @@ class AVHLGameSimulator {
       forwardLines,
       defensePairs,
       specialTeams: { pp1, pp2, pk1, pk2 },
-      overtimeUnits: [
-        [overtimeForwards[0]?.id, overtimeForwards[1]?.id, overtimeDefense[0]?.id].filter(Boolean),
-        [overtimeForwards[2]?.id, overtimeForwards[3]?.id, overtimeDefense[1]?.id].filter(Boolean),
-        [overtimeForwards[4]?.id, overtimeForwards[5]?.id, overtimeDefense[2]?.id].filter(Boolean)
-      ],
-      shootoutOrder
+      overtimeUnits: (() => {
+        const requested = (rawTeam.overtimeUnits ?? [])
+          .slice(0, 2)
+          .map((unit) => [...new Set((unit ?? []).filter((id) => playerById[id]))])
+          .filter((unit) => unit.length === 3);
+        if (requested.length === 2) return requested;
+        return [
+          [overtimeForwards[0]?.id, overtimeForwards[1]?.id, overtimeDefense[0]?.id].filter(Boolean),
+          [overtimeForwards[2]?.id, overtimeForwards[3]?.id, overtimeDefense[1]?.id].filter(Boolean)
+        ];
+      })(),
+      shootoutOrder,
+      lineupRevision: Number(rawTeam.lineupRevision) || 0,
+      lineupUpdatedAt: rawTeam.lineupUpdatedAt || null,
+      lineupSource: rawTeam.lineupSource || "automatic"
     };
   }
 
@@ -252,7 +269,8 @@ class AVHLGameSimulator {
     const tier = player.position.includes("D") ? player.pair : player.line;
     const r = (...labels) => this.ratingFrom(player, labels);
     const familiarity = this.positionFamiliarity(player);
-    const awareness = (value) => Math.round(value * familiarity * 10) / 10;
+    const familiarityAdjusted = (value) => Math.round(value * familiarity * 10) / 10;
+    const assignedDefense = ["LD", "RD"].includes(String(player.position || "").toUpperCase());
 
     return {
       ...player,
@@ -261,19 +279,19 @@ class AVHLGameSimulator {
       overall: Number.isFinite(Number(player.overall)) ? Number(player.overall) : r("Overall"),
       deking: r("Deking"),
       handEye: r("Hand Eye", "Hand-Eye"),
-      passing: awareness(r("Passing")),
-      puckControl: awareness(r("Puck Control")),
+      passing: familiarityAdjusted(r("Passing")),
+      puckControl: familiarityAdjusted(r("Puck Control")),
       discipline: r("Discipline"),
-      offensiveAwareness: awareness(r("Off. Awareness", "Offensive Awareness")),
+      offensiveAwareness: assignedDefense ? r("Off. Awareness", "Offensive Awareness") : familiarityAdjusted(r("Off. Awareness", "Offensive Awareness")),
       poise: r("Poise"),
       slapShotAccuracy: r("Slap Shot Accuracy", "Slap Shot Acc."),
       slapShotPower: r("Slap Shot Power"),
       wristShotAccuracy: r("Wrist Shot Accuracy", "Wrist Shot Acc."),
       wristShotPower: r("Wrist Shot Power"),
-      defensiveAwareness: awareness(r("Def. Awareness", "Defensive Awareness")),
+      defensiveAwareness: familiarityAdjusted(r("Def. Awareness", "Defensive Awareness")),
       faceoffs: r("Faceoffs"),
       shotBlocking: r("Shot Blocking"),
-      stickChecking: r("Stick Checking"),
+      stickChecking: assignedDefense ? familiarityAdjusted(r("Stick Checking")) : r("Stick Checking"),
       acceleration: r("Acceleration"),
       agility: r("Agility"),
       balance: r("Balance"),
@@ -5459,7 +5477,7 @@ class AVHLGameSimulator {
         [this.awayId]: aggregateGoalieStats(this.awayId)
       },
       ratingModel: {
-        version: "V6.5.1",
+        version: "V6.7.1",
         syntheticRatings: false,
         skaterRatingsUsed: 26,
         goalieRatingsUsed: 20,

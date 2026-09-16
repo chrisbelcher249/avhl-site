@@ -1,5 +1,7 @@
 import { getPlayers } from "../../../lib/players";
+import { getEffectiveLineupsForSimulator } from "@/lib/lineupService";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -25,9 +27,19 @@ function compactPlayer(player) {
 export async function GET() {
   try {
     const { players, source } = await getPlayers();
+    // Once official owner lineups drive the simulator, a partial/bundled roster
+    // is not safe enough to start a new game: a recent trade or roster move
+    // could otherwise be missed. Require both live skaters and live goalies.
+    if (source !== "live") {
+      return Response.json(
+        { ok: false, source, error: "The complete live player roster is temporarily unavailable." },
+        { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } },
+      );
+    }
     const rostered = players
       .filter((player) => player.currentTeam && player.currentTeam !== "UFA")
       .map(compactPlayer);
+    const lineupState = await getEffectiveLineupsForSimulator(players);
 
     return Response.json(
       {
@@ -35,6 +47,10 @@ export async function GET() {
         source,
         playerCount: rostered.length,
         players: rostered,
+        lineups: lineupState.records,
+        lineupSources: lineupState.sources,
+        invalidSavedLineups: lineupState.invalid,
+        lineupStorage: lineupState.storage,
       },
       {
         headers: {
