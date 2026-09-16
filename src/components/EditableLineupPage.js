@@ -117,6 +117,7 @@ function SelectSlot({
   team,
   onChange,
   order = null,
+  dragHandleProps = null,
 }) {
   const player = playerById.get(String(value || ""));
   const valueStillAvailable = options.some((candidate) => String(candidate.id) === String(value));
@@ -128,7 +129,20 @@ function SelectSlot({
           <span className="rounded-full bg-[#000B36] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
             {order ? `SO ${order}` : label}
           </span>
-          {player ? <span className="text-[10px] font-black text-[#000B36]/35">{player.overall ?? "—"} OVR</span> : null}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {player ? <span className="text-[10px] font-black text-[#000B36]/35">{player.overall ?? "—"} OVR</span> : null}
+            {player && dragHandleProps ? (
+              <span
+                {...dragHandleProps}
+                draggable
+                className="inline-flex cursor-grab select-none items-center gap-1 rounded-full border border-[#000B36]/10 bg-white px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-[#000B36]/50 shadow-sm active:cursor-grabbing"
+                title="Drag player"
+                aria-hidden="true"
+              >
+                ↕ <span className="hidden sm:inline">Drag</span>
+              </span>
+            ) : null}
+          </div>
         </div>
         <select
           value={valueStillAvailable ? value : ""}
@@ -241,6 +255,8 @@ export default function EditableLineupPage({
   const [notice, setNotice] = useState("");
   const [saveErrors, setSaveErrors] = useState([]);
   const [ppFormations, setPpFormations] = useState(() => inferPpFormations(initialRecord, rosterPlayers));
+  const [dragging, setDragging] = useState(null);
+  const [dragOverKey, setDragOverKey] = useState("");
 
   const playerById = useMemo(() => new Map(rosterPlayers.map((player) => [String(player.id), player])), [rosterPlayers]);
   const forwardRoster = useMemo(() => rosterPlayers.filter(isForwardPlayer).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [rosterPlayers]);
@@ -273,6 +289,133 @@ export default function EditableLineupPage({
       : rosterSource !== "live"
         ? "Editing is temporarily unavailable until the complete live roster feed returns."
         : null;
+
+  function groupForPlayer(player) {
+    if (!player) return null;
+    if (isGoaliePlayer(player)) return "goalies";
+    if (isDefensePlayer(player)) return "defense";
+    if (isForwardPlayer(player)) return "forwards";
+    return null;
+  }
+
+  function dressedLocation(playerId) {
+    const id = String(playerId || "");
+    const forwardIndex = record.forwards.findIndex((entry) => String(entry.playerId || "") === id);
+    if (forwardIndex >= 0) return { type: "even", kind: "forwards", index: forwardIndex };
+    const defenseIndex = record.defense.findIndex((entry) => String(entry.playerId || "") === id);
+    if (defenseIndex >= 0) return { type: "even", kind: "defense", index: defenseIndex };
+    const goalieIndex = record.goalies.findIndex((entry) => String(entry.playerId || "") === id);
+    if (goalieIndex >= 0) return { type: "goalie", index: goalieIndex };
+    return null;
+  }
+
+  function canDropPlayer(payload, target) {
+    const player = playerById.get(String(payload?.playerId || ""));
+    if (!editing || !player || !target) return false;
+    const group = groupForPlayer(player);
+    if (target.type === "even") return group === target.kind;
+    if (target.type === "goalie") return group === "goalies";
+    if (target.type === "special") {
+      if (!dressedIds.has(String(player.id)) || group === "goalies") return false;
+      return target.role.startsWith("D") ? group === "defense" : target.role.startsWith("F") ? group === "forwards" : true;
+    }
+    if (target.type === "ot") {
+      if (!dressedIds.has(String(player.id))) return false;
+      return target.role.startsWith("D") ? group === "defense" : group === "forwards";
+    }
+    if (target.type === "shootout") return dressedIds.has(String(player.id)) && group !== "goalies";
+    if (target.type === "scratch") {
+      const location = dressedLocation(player.id);
+      return Boolean(location && group === target.group && String(target.playerId) !== String(player.id));
+    }
+    return false;
+  }
+
+  function startDrag(event, playerId, source) {
+    const payload = { playerId: String(playerId || ""), source };
+    if (!payload.playerId) return;
+    setDragging(payload);
+    setDragOverKey("");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-avhl-lineup", JSON.stringify(payload));
+    event.dataTransfer.setData("text/plain", payload.playerId);
+  }
+
+  function endDrag() {
+    setDragging(null);
+    setDragOverKey("");
+  }
+
+  function readDragPayload(event) {
+    if (dragging) return dragging;
+    try {
+      return JSON.parse(event.dataTransfer.getData("application/x-avhl-lineup") || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function applyDrop(payload, target) {
+    if (!canDropPlayer(payload, target)) return;
+    const playerId = String(payload.playerId);
+    if (target.type === "even") updateEven(target.kind, target.index, playerId);
+    else if (target.type === "goalie") updateGoalie(target.index, playerId);
+    else if (target.type === "special") updateSpecial(target.key, target.index, playerId);
+    else if (target.type === "ot") updateOt(target.unitIndex, target.slotIndex, playerId);
+    else if (target.type === "shootout") updateShootout(target.index, playerId);
+    else if (target.type === "scratch") {
+      const location = dressedLocation(playerId);
+      if (location?.type === "even") updateEven(location.kind, location.index, String(target.playerId));
+      else if (location?.type === "goalie") updateGoalie(location.index, String(target.playerId));
+    }
+    setDragging(null);
+    setDragOverKey("");
+  }
+
+  function dragHandleProps(playerId, source) {
+    if (!editing || !playerId) return null;
+    return {
+      onDragStart: (event) => startDrag(event, playerId, source),
+      onDragEnd: endDrag,
+    };
+  }
+
+  function wrapDropZone(target, child) {
+    if (!editing) return child;
+    const eligible = Boolean(dragging && canDropPlayer(dragging, target));
+    const active = eligible && dragOverKey === target.key;
+    return (
+      <div
+        className={`relative h-full min-w-0 rounded-xl transition ${eligible ? "ring-2 ring-[#18BDFC]/30" : ""} ${active ? "ring-[3px] ring-[#18BDFC] shadow-[0_0_0_4px_rgba(24,189,252,0.10)]" : ""}`}
+        onDragEnter={(event) => {
+          if (!eligible) return;
+          event.preventDefault();
+          setDragOverKey(target.key);
+        }}
+        onDragOver={(event) => {
+          if (!eligible) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          if (dragOverKey !== target.key) setDragOverKey(target.key);
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setDragOverKey((current) => current === target.key ? "" : current);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          const payload = readDragPayload(event);
+          applyDrop(payload, target);
+        }}
+      >
+        {child}
+        {active ? (
+          <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-xl bg-[#18BDFC]/12 backdrop-blur-[1px]">
+            <span className="rounded-full bg-[#000B36] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-white shadow-lg">Drop here</span>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   function updateEven(kind, index, playerId) {
     setRecord((current) => {
@@ -361,7 +504,7 @@ export default function EditableLineupPage({
     setAuthError("");
     setAuthenticating(true);
     try {
-      const response = await fetch("/api/lineups/auth", {
+      const response = await fetch("/api/lineup/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ abbreviation: team.abbreviation, password: passwordInput }),
@@ -424,7 +567,7 @@ export default function EditableLineupPage({
     }
     setSaving(true);
     try {
-      const response = await fetch(`/api/lineups/${team.abbreviation}`, {
+      const response = await fetch(`/api/lineup/${team.abbreviation}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -455,7 +598,10 @@ export default function EditableLineupPage({
   function renderEvenSlot(kind, index, label, assignedPosition, options) {
     const entry = record[kind][index];
     const player = playerById.get(String(entry?.playerId || ""));
-    return editing ? (
+    if (!editing) return <PlayerCard player={player} assignedPosition={assignedPosition} team={team} />;
+    const target = { key: `even-${kind}-${index}`, type: "even", kind, index };
+    return wrapDropZone(
+      target,
       <SelectSlot
         value={entry?.playerId || ""}
         options={options}
@@ -464,9 +610,8 @@ export default function EditableLineupPage({
         assignedPosition={assignedPosition}
         team={team}
         onChange={(value) => updateEven(kind, index, value)}
-      />
-    ) : (
-      <PlayerCard player={player} assignedPosition={assignedPosition} team={team} />
+        dragHandleProps={dragHandleProps(entry?.playerId, { type: "even", kind, index })}
+      />,
     );
   }
 
@@ -499,16 +644,21 @@ export default function EditableLineupPage({
             const player = playerById.get(String(id));
             const options = role.startsWith("D") ? dressedDefense : role.startsWith("F") ? dressedForwards : dressedSkaters;
             return editing ? (
-              <SelectSlot
-                key={`${key}-${index}`}
-                value={id}
-                options={options}
-                playerById={playerById}
-                label={`${label} ${role}`}
-                assignedPosition={role.startsWith("D") ? "D" : role.startsWith("F") ? "F" : null}
-                team={team}
-                onChange={(value) => updateSpecial(key, index, value)}
-              />
+              <div key={`${key}-${index}`}>
+                {wrapDropZone(
+                  { key: `special-${key}-${index}`, type: "special", key, index, role },
+                  <SelectSlot
+                    value={id}
+                    options={options}
+                    playerById={playerById}
+                    label={`${label} ${role}`}
+                    assignedPosition={role.startsWith("D") ? "D" : role.startsWith("F") ? "F" : null}
+                    team={team}
+                    onChange={(value) => updateSpecial(key, index, value)}
+                    dragHandleProps={dragHandleProps(id, { type: "special", key, index })}
+                  />,
+                )}
+              </div>
             ) : (
               <PlayerCard key={`${key}-${index}`} player={player} roleLabel={role} team={team} compact />
             );
@@ -535,7 +685,7 @@ export default function EditableLineupPage({
               <select
                 value={team.slug}
                 disabled={editing || saving}
-                onChange={(event) => router.push(`/teams/${event.target.value}/lineups`)}
+                onChange={(event) => router.push(`/teams/${event.target.value}/lineup`)}
                 className="w-full min-w-0 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white outline-none backdrop-blur transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {[...teams].sort((a, b) => a.name.localeCompare(b.name)).map((candidate) => (
@@ -557,7 +707,7 @@ export default function EditableLineupPage({
                 </span>
               </div>
               <p className="mt-4 text-sm font-black uppercase tracking-[0.24em] text-white/60">{team.city}</p>
-              <h1 className="mt-1 text-4xl font-black uppercase tracking-tight sm:text-5xl md:text-6xl">{team.nickname} Lines</h1>
+              <h1 className="mt-1 text-4xl font-black uppercase tracking-tight sm:text-5xl md:text-6xl">{team.nickname} Lineup</h1>
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/55">
                 12 forwards, 6 defensemen and 2 goalies dressed. Special teams, two 3-on-3 groups and the first five shootout shooters are saved with the lineup.
               </p>
@@ -572,7 +722,7 @@ export default function EditableLineupPage({
                     disabled={Boolean(editAvailabilityIssue)}
                     className="w-full rounded-2xl bg-white px-5 py-4 text-left text-sm font-black leading-5 text-[#000B36] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-white"
                   >
-                    {authenticated ? "Edit Lines" : `${team.nickname} Owner? Sign In Here to Edit Lines`}
+                    {authenticated ? "Edit Lineup" : `${team.nickname} Owner? Sign In Here to Edit Lineup`}
                   </button>
                   {editAvailabilityIssue ? (
                     <p className="mt-2 text-center text-[10px] font-black leading-4 text-amber-100/80">{editAvailabilityIssue}</p>
@@ -619,7 +769,7 @@ export default function EditableLineupPage({
         ) : null}
         {editing ? (
           <div className="mb-7 rounded-xl border border-[#18BDFC]/22 bg-[#18BDFC]/8 px-4 py-2.5 text-[11px] font-bold leading-5 text-[#000B36]/65">
-            <span className="font-black text-[#000B36]">Edit mode:</span> choose players directly in each slot. Selecting a player already used in another even-strength slot swaps the two players. Forwards can play LW/C/RW and defensemen LD/RD; unfamiliar same-group positions are allowed but receive the AVHL 3% simulator penalty.
+            <span className="font-black text-[#000B36]">Edit mode:</span> drag players by the ↕ handle to reassign or swap them, or use the dropdowns as a fallback. Drag a scratch onto a dressed slot (or a dressed player onto a scratch) to change who is dressed. Forwards stay at LW/C/RW, defensemen at LD/RD and goalies in goal; unfamiliar same-group positions still receive the AVHL 3% simulator penalty.
           </div>
         ) : (
           <div className="mb-7 rounded-xl border border-[#18BDFC]/20 bg-[#18BDFC]/8 px-4 py-2.5 text-[11px] font-bold leading-5 text-[#000B36]/60">
@@ -686,7 +836,12 @@ export default function EditableLineupPage({
               const player = playerById.get(String(entry?.playerId || ""));
               const label = index === 0 ? "Starter" : "Backup";
               return editing ? (
-                <SelectSlot key={label} value={entry?.playerId || ""} options={goalieRoster} playerById={playerById} label={label} assignedPosition="G" team={team} onChange={(value) => updateGoalie(index, value)} />
+                <div key={label}>
+                  {wrapDropZone(
+                    { key: `goalie-${index}`, type: "goalie", index },
+                    <SelectSlot value={entry?.playerId || ""} options={goalieRoster} playerById={playerById} label={label} assignedPosition="G" team={team} onChange={(value) => updateGoalie(index, value)} dragHandleProps={dragHandleProps(entry?.playerId, { type: "goalie", index })} />,
+                  )}
+                </div>
               ) : (
                 <PlayerCard key={label} player={player} assignedPosition="G" roleLabel={label} team={team} />
               );
@@ -728,7 +883,12 @@ export default function EditableLineupPage({
                       const role = slotIndex < 2 ? `F${slotIndex + 1}` : "D1";
                       const options = slotIndex < 2 ? dressedForwards : dressedDefense;
                       return editing ? (
-                        <SelectSlot key={slotIndex} value={id} options={options} playerById={playerById} label={`OT ${unitIndex + 1} · ${role}`} team={team} onChange={(value) => updateOt(unitIndex, slotIndex, value)} />
+                        <div key={slotIndex}>
+                          {wrapDropZone(
+                            { key: `ot-${unitIndex}-${slotIndex}`, type: "ot", unitIndex, slotIndex, role },
+                            <SelectSlot value={id} options={options} playerById={playerById} label={`OT ${unitIndex + 1} · ${role}`} team={team} onChange={(value) => updateOt(unitIndex, slotIndex, value)} dragHandleProps={dragHandleProps(id, { type: "ot", unitIndex, slotIndex })} />,
+                          )}
+                        </div>
                       ) : (
                         <PlayerCard key={slotIndex} player={player} roleLabel={role} team={team} compact />
                       );
@@ -748,7 +908,12 @@ export default function EditableLineupPage({
                 const id = record.shootoutOrder[index] || "";
                 const player = playerById.get(String(id));
                 return editing ? (
-                  <SelectSlot key={index} value={id} options={dressedSkaters} playerById={playerById} label={`Shootout ${index + 1}`} order={index + 1} team={team} onChange={(value) => updateShootout(index, value)} />
+                  <div key={index}>
+                    {wrapDropZone(
+                      { key: `shootout-${index}`, type: "shootout", index },
+                      <SelectSlot value={id} options={dressedSkaters} playerById={playerById} label={`Shootout ${index + 1}`} order={index + 1} team={team} onChange={(value) => updateShootout(index, value)} dragHandleProps={dragHandleProps(id, { type: "shootout", index })} />,
+                    )}
+                  </div>
                 ) : (
                   <PlayerCard key={index} player={player} team={team} compact order={index + 1} />
                 );
@@ -760,7 +925,29 @@ export default function EditableLineupPage({
         <section className="mt-10 md:mt-12">
           <SectionHeading eyebrow="Roster status" title="Scratches" copy="Every rostered player not among the dressed 12F, 6D and 2G appears here automatically." />
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {scratches.length ? scratches.map((player) => <PlayerCard key={player.id} player={player} team={team} compact />) : (
+            {scratches.length ? scratches.map((player) => {
+              if (!editing) return <PlayerCard key={player.id} player={player} team={team} compact />;
+              const group = groupForPlayer(player);
+              return (
+                <div key={player.id} className="relative">
+                  {wrapDropZone(
+                    { key: `scratch-${player.id}`, type: "scratch", playerId: String(player.id), group },
+                    <div className="relative">
+                      <PlayerCard player={player} team={team} compact />
+                      <span
+                        {...dragHandleProps(player.id, { type: "scratch" })}
+                        draggable
+                        className="absolute right-2 top-2 z-20 inline-flex cursor-grab select-none items-center gap-1 rounded-full border border-[#000B36]/10 bg-white/95 px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-[#000B36]/55 shadow-sm active:cursor-grabbing"
+                        title="Drag player"
+                        aria-hidden="true"
+                      >
+                        ↕ <span className="hidden sm:inline">Drag</span>
+                      </span>
+                    </div>,
+                  )}
+                </div>
+              );
+            }) : (
               <div className="rounded-2xl border border-dashed border-[#000B36]/15 bg-white p-4 text-sm font-bold text-[#000B36]/40">No scratches.</div>
             )}
           </div>
@@ -803,7 +990,7 @@ export default function EditableLineupPage({
               />
             </label>
             {authError ? <p className="mt-3 text-xs font-black text-[#A90117]">{authError}</p> : null}
-            <button type="submit" disabled={authenticating || !passwordInput} className="mt-5 w-full rounded-2xl bg-[#000B36] px-5 py-3.5 text-sm font-black uppercase tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-45">{authenticating ? "Signing In…" : "Sign In & Edit Lines"}</button>
+            <button type="submit" disabled={authenticating || !passwordInput} className="mt-5 w-full rounded-2xl bg-[#000B36] px-5 py-3.5 text-sm font-black uppercase tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-45">{authenticating ? "Signing In…" : "Sign In & Edit Lineup"}</button>
           </form>
         </div>
       ) : null}

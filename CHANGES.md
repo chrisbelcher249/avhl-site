@@ -1,3 +1,14 @@
+# Site 38 / V6.7.4 — singular lineup URLs + drag-and-drop editing
+
+- Renamed the current team subpage/navigation language from plural `Lineups` to singular `Lineup`, including the canonical route `/teams/[team-slug]/lineup`, team-page action, owner sign-in/edit copy, team switcher, and page heading.
+- Added redirect-only compatibility routes for the previous `/teams/[team-slug]/lineups`, `/lineups/[team-slug]`, and standalone plural paths so existing links do not break.
+- Added singular `/api/lineup/...` owner-auth/save endpoints while retaining the prior plural API routes for backward compatibility.
+- Added desktop drag-and-drop editing on top of the existing selectors. A drag handle appears in edit mode; eligible destinations highlight, illegal F/D/G crossovers never activate, and dropdowns remain available as the mobile/accessibility fallback.
+- Even-strength forwards can swap across LW/C/RW slots, defensemen across LD/RD slots, and goalies between starter/backup. Dragging a scratch onto a dressed slot (or a dressed player onto a same-group scratch) changes the dressed 20 while preserving the existing special-team-reference reconciliation behavior.
+- PP/PK/OT/shootout slots accept only players already eligible for those exact roles; the existing server-side validator still remains the final authority before Save Lineup can succeed.
+- No password, Redis persistence, lineup revision, simulator source-of-truth, or rating-penalty rules changed.
+- Re-ran 40-team lineup validation, simulator lineup handoff, atomic lineup storage, position-familiarity, seed-repeatability, simulator regression, and JS/JSX parser checks after the update.
+
 # Site 37 / V6.7.3 — lineup presentation polish
 
 - Fixed the core public lineup-card rendering bug: player links are now block-level, full-height cards instead of inline links inside the even-strength grid. This removes the collapsed card shells, floating OVR values, and excessive dead space seen on forward/defense lines.

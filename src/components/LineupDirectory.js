@@ -26,7 +26,7 @@ export default function LineupDirectory({ teams }) {
       <div className="sticky top-[65px] z-30 -mx-6 border-y border-[#000B36]/10 bg-white/95 px-6 py-4 backdrop-blur md:mx-0 md:rounded-3xl md:border md:px-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <label className="relative block w-full lg:max-w-sm">
-            <span className="sr-only">Search lineups</span>
+            <span className="sr-only">Search team lineup</span>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -49,7 +49,7 @@ export default function LineupDirectory({ teams }) {
         </div>
       </div>
 
-      <p className="mt-6 text-sm font-bold text-[#000B36]/50">Showing {visibleTeams.length} of {teams.length} Major League lineups</p>
+      <p className="mt-6 text-sm font-bold text-[#000B36]/50">Showing {visibleTeams.length} of {teams.length} Major League teams</p>
 
       <div className="mt-8 space-y-14">
         {filters.slice(1).map((divisionName) => {
@@ -70,7 +70,7 @@ export default function LineupDirectory({ teams }) {
                 {divisionTeams.map((team) => (
                   <Link
                     key={team.slug}
-                    href={`/teams/${team.slug}/lineups`}
+                    href={`/teams/${team.slug}/lineup`}
                     className="group relative overflow-hidden rounded-3xl border border-[#000B36]/10 bg-white shadow-[0_8px_30px_rgba(0,11,54,0.05)] transition hover:-translate-y-1 hover:border-[#18BDFC]/70 hover:shadow-[0_18px_45px_rgba(0,11,54,0.11)]"
                   >
                     <div className="h-2" style={{ backgroundColor: team.colors.primary }} />
@@ -95,7 +95,7 @@ export default function LineupDirectory({ teams }) {
 
       {visibleTeams.length === 0 ? (
         <div className="mt-12 rounded-3xl border border-dashed border-[#000B36]/20 bg-[#F6F8FC] p-10 text-center">
-          <p className="text-xl font-black">No lineups match that search.</p>
+          <p className="text-xl font-black">No teams match that search.</p>
           <button type="button" onClick={() => { setQuery(""); setDivision("All"); }} className="mt-3 text-sm font-black text-[#A90117]">Clear filters</button>
         </div>
       ) : null}

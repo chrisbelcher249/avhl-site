@@ -102,8 +102,8 @@ export default async function TeamPage({ params }) {
                 <Link href="#roster" className="inline-flex rounded-full bg-white px-5 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">
                   Roster
                 </Link>
-                <Link href={`/teams/${team.slug}/lineups`} className="inline-flex rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-white hover:text-[#000B36]">
-                  Lineups
+                <Link href={`/teams/${team.slug}/lineup`} className="inline-flex rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-white hover:text-[#000B36]">
+                  Lineup
                 </Link>
                 <Link href={`/schedule/${team.slug}`} className="inline-flex rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-white hover:text-[#000B36]">
                   Schedule
