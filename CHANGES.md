@@ -1,3 +1,9 @@
+# V6.7.5
+
+- Fixed Vercel/Next.js production build failure in legacy plural lineup API compatibility routes.
+- Legacy `/api/lineups/auth` and `/api/lineups/[abbreviation]` now define their own static route config and forward only handler calls to the canonical singular `/api/lineup/...` routes.
+- No changes to lineup data, Redis keys, owner passwords, drag/drop behavior, or simulator integration.
+
 # Site 38 / V6.7.4 — singular lineup URLs + drag-and-drop editing
 
 - Renamed the current team subpage/navigation language from plural `Lineups` to singular `Lineup`, including the canonical route `/teams/[team-slug]/lineup`, team-page action, owner sign-in/edit copy, team switcher, and page heading.

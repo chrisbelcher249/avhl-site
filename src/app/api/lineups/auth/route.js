@@ -1,3 +1,10 @@
 // Legacy plural endpoint retained for backward compatibility.
 // The canonical owner-auth endpoint is /api/lineup/auth.
-export { runtime, dynamic, POST } from "../../lineup/auth/route";
+import { POST as canonicalPOST } from "../../lineup/auth/route";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(request) {
+  return canonicalPOST(request);
+}
