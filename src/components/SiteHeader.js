@@ -6,15 +6,15 @@ import { useRef } from "react";
 
 const navItems = [
   ["Teams", "/teams"],
-  ["Rivals", "/rivals"],
   ["Players", "/players"],
-  ["Cap", "/cap"],
-  ["Draft", "/draft"],
-  ["Trades", "/trades"],
-  ["Standings", "/standings"],
   ["Schedule", "/schedule"],
+  ["Standings", "/standings"],
   ["Sim", "/sim"],
+  ["Cap", "/cap"],
+  ["Trades", "/trades"],
+  ["Draft", "/draft"],
   ["Statistics", "/statistics"],
+  ["Rivals", "/rivals"],
   ["League Info", "/info"],
 ];
 

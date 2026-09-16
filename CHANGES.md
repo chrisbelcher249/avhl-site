@@ -1,3 +1,12 @@
+# Site 40 — Goal Horns + Navigation Order
+
+- Added `/horns` with searchable/filterable Major League horn cards.
+- Horn audio is manual-only; there is no autoplay and only one horn can play at a time.
+- Added `/horns` discovery links in the footer and Teams page without adding it to the main header navigation.
+- Reordered the main navigation to: Teams, Players, Schedule, Standings, Sim, Cap, Trades, Draft, Statistics, Rivals, League Info.
+- Preserved the Vercel Analytics integration in `src/app/layout.js` and added `@vercel/analytics` to dependencies.
+- Added `public/goal-horns/README.txt` documenting the `26_<ABBR>_Horn.mp3` convention.
+
 # V6.7.5
 
 - Fixed Vercel/Next.js production build failure in legacy plural lineup API compatibility routes.
