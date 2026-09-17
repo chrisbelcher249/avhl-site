@@ -1,3 +1,9 @@
+# Site 46 — Relegation line + footer labels
+
+- Added a clear **RELEGATION LINE · BOTTOM 3** divider between 37th and 38th in the Major League overall standings.
+- Shortened footer **League Info** to **Info** and **Playoff Brackets** to **Brackets** so the More AVHL links fit cleanly on one line at desktop widths.
+- Preserved all Site 45 Minor League, live stats, lineup, simulator, footer social, and schedule functionality.
+
 # Site 45 changes
 
 - Major League Teams: when **All** is selected, the full directory now displays as one A–Z list instead of being grouped by division. Division filters still show the selected division normally.

@@ -59,10 +59,10 @@ const navGroups = [
   {
     title: "More AVHL",
     links: [
-      ["League Info", "/info"],
+      ["Info", "/info"],
       ["History", "/info/history"],
       ["Champions", "/info/champions"],
-      ["Playoff Brackets", "/info/history/brackets"],
+      ["Brackets", "/info/history/brackets"],
       ["Minor League", "/minor-league"],
     ],
   },

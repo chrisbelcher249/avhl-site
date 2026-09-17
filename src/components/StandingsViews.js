@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -56,22 +56,35 @@ function DetailedTable({ records }) {
           </thead>
           <tbody>
             {records.map((record, index) => (
-              <tr key={record.team.slug} className="border-t border-[#000B36]/8 bg-white even:bg-[#FAFBFD]">
-                <td className="px-3 py-3 text-center text-xs font-black text-[#000B36]/45">{index + 1}</td>
-                <td className="min-w-[240px] px-4 py-3"><TeamCell record={record} /></td>
-                <td className="px-3 py-3 text-center font-black">{record.gp}</td>
-                <td className="px-3 py-3 text-center font-black">{record.wins}</td>
-                <td className="px-3 py-3 text-center font-black">{record.losses}</td>
-                <td className="px-3 py-3 text-center font-black">{record.otl}</td>
-                <td className="px-3 py-3 text-center text-base font-black">{record.pts}</td>
-                <td className="px-3 py-3 text-center font-bold">{pct(record.ptsPct)}</td>
-                <td className="px-3 py-3 text-center font-black">{record.rw}</td>
-                <td className="px-3 py-3 text-center font-bold">{perGame(record.gfPerGame)}</td>
-                <td className="px-3 py-3 text-center font-bold">{perGame(record.gaPerGame)}</td>
-                <td className="px-3 py-3 text-center font-bold">{record.gf}</td>
-                <td className="px-3 py-3 text-center font-bold">{record.ga}</td>
-                <td className={`px-3 py-3 text-center font-black ${record.gd > 0 ? "text-emerald-700" : record.gd < 0 ? "text-[#A90117]" : ""}`}>{record.gd > 0 ? `+${record.gd}` : record.gd}</td>
-              </tr>
+              <Fragment key={record.team.slug}>
+                <tr className="border-t border-[#000B36]/8 bg-white even:bg-[#FAFBFD]">
+                  <td className="px-3 py-3 text-center text-xs font-black text-[#000B36]/45">{index + 1}</td>
+                  <td className="min-w-[240px] px-4 py-3"><TeamCell record={record} /></td>
+                  <td className="px-3 py-3 text-center font-black">{record.gp}</td>
+                  <td className="px-3 py-3 text-center font-black">{record.wins}</td>
+                  <td className="px-3 py-3 text-center font-black">{record.losses}</td>
+                  <td className="px-3 py-3 text-center font-black">{record.otl}</td>
+                  <td className="px-3 py-3 text-center text-base font-black">{record.pts}</td>
+                  <td className="px-3 py-3 text-center font-bold">{pct(record.ptsPct)}</td>
+                  <td className="px-3 py-3 text-center font-black">{record.rw}</td>
+                  <td className="px-3 py-3 text-center font-bold">{perGame(record.gfPerGame)}</td>
+                  <td className="px-3 py-3 text-center font-bold">{perGame(record.gaPerGame)}</td>
+                  <td className="px-3 py-3 text-center font-bold">{record.gf}</td>
+                  <td className="px-3 py-3 text-center font-bold">{record.ga}</td>
+                  <td className={`px-3 py-3 text-center font-black ${record.gd > 0 ? "text-emerald-700" : record.gd < 0 ? "text-[#A90117]" : ""}`}>{record.gd > 0 ? `+${record.gd}` : record.gd}</td>
+                </tr>
+                {index === 36 ? (
+                  <tr aria-hidden="true">
+                    <td colSpan={14} className="p-0">
+                      <div className="relative flex h-8 items-center justify-center border-y-2 border-[#A90117]/70 bg-[#A90117]/[0.045]">
+                        <span className="rounded-full bg-white px-4 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-[#A90117] shadow-[0_0_0_1px_rgba(169,1,23,0.12)]">
+                          Relegation line · Bottom 3
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+              </Fragment>
             ))}
           </tbody>
         </table>
