@@ -1,3 +1,10 @@
+# Site 51 changes
+
+- Fixed Team Specs hashtag loading for the very wide live spreadsheet by checking all Google CSV endpoints and choosing the richest/current response instead of accepting the first 40-team response.
+- Named hashtag columns are preferred; the current second-from-right Team Specs field remains the positional fallback.
+- Made each team's official hashtag visible in three places: hero identity, Club Identity, and the Branding section reached by the Branding button.
+- Kept the existing Branding jump button and all Site 50 features.
+
 # Site 50 changes
 
 ## Team Specs hashtags — authoritative live field

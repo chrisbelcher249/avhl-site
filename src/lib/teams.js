@@ -167,7 +167,13 @@ function parseLiveTeams(csv) {
     throw new Error(`Only ${liveByAbbreviation.size} team rows were found`);
   }
 
-  return liveByAbbreviation;
+  return {
+    liveByAbbreviation,
+    headers: header.headers,
+    columnCount: header.headers.length,
+    hasNamedHashtagColumn: header.headers.some((value) => /hash\s*tags?/i.test(value)),
+    secondFromRightHeader: header.headers.length >= 2 ? header.headers[header.headers.length - 2] : "",
+  };
 }
 
 function mergeTeam(base, row) {
@@ -217,7 +223,12 @@ function mergeTeam(base, row) {
 
 async function fetchLiveSheet() {
   const errors = [];
+  const successful = [];
 
+  // Team Specs is extremely wide. Some Google CSV endpoints can return a
+  // perfectly valid-looking table while omitting columns near the far right.
+  // Do not accept the first 40-team response anymore: inspect every available
+  // endpoint and choose the richest version of the sheet.
   for (const candidate of sheetCsvCandidates()) {
     try {
       const response = await fetch(candidate.url, {
@@ -231,23 +242,38 @@ async function fetchLiveSheet() {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const csv = await response.text();
-      const liveByAbbreviation = parseLiveTeams(csv);
-      return {
-        liveByAbbreviation,
-        endpoint: candidate.name,
-        errors,
-      };
+      const parsed = parseLiveTeams(csv);
+      successful.push({ ...candidate, ...parsed });
     } catch (error) {
       errors.push(`${candidate.name}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  throw new Error(errors.join(" | ") || "No Google Sheets CSV endpoint succeeded");
+  if (!successful.length) {
+    throw new Error(errors.join(" | ") || "No Google Sheets CSV endpoint succeeded");
+  }
+
+  // A named hashtag column is strongest evidence that we received the newest
+  // Team Specs layout. Otherwise prefer the response with the most columns,
+  // which preserves the late-sheet fields (including the current hashtag
+  // field located second from the right).
+  successful.sort((a, b) => {
+    const namedDelta = Number(b.hasNamedHashtagColumn) - Number(a.hasNamedHashtagColumn);
+    if (namedDelta) return namedDelta;
+    return b.columnCount - a.columnCount;
+  });
+
+  const best = successful[0];
+  return {
+    liveByAbbreviation: best.liveByAbbreviation,
+    endpoint: best.name,
+    columnCount: best.columnCount,
+    hashtagHeader: best.headers.find((value) => /hash\s*tags?/i.test(value)) || best.secondFromRightHeader || null,
+    errors,
+  };
 }
 
 export async function getTeams() {

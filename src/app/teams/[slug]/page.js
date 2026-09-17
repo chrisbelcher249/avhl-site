@@ -104,6 +104,10 @@ export default async function TeamPage({ params }) {
               <p className="mt-5 text-sm font-black uppercase tracking-[0.26em] text-white">{team.city}</p>
               <h1 className="mt-1 text-5xl font-black uppercase leading-[0.92] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">{team.nickname}</h1>
               <p className="mt-5 max-w-xl text-base font-bold text-white/66 md:text-lg">{team.arena}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">Official hashtag</span>
+                <span className="rounded-full border border-cyan-200/25 bg-cyan-200/10 px-3 py-1.5 text-sm font-black text-cyan-100">{team.hashtag || "—"}</span>
+              </div>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link href="#roster" className="inline-flex rounded-full bg-white px-5 py-3 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">
                   Roster
@@ -230,6 +234,10 @@ export default async function TeamPage({ params }) {
 
       <section id="branding" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 pt-14 md:px-8 md:pb-20 md:pt-20">
         <SectionHeading eyebrow="Team branding" title="Arena, uniforms & presentation" copy={`The complete 2026–27 visual and game-night identity of the ${team.name}.`} />
+        <div className="mt-6 inline-flex items-center gap-3 rounded-2xl border border-[#000B36]/10 bg-white px-4 py-3 shadow-sm">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/40">Official hashtag</span>
+          <span className="text-lg font-black text-[#000B36]">{team.hashtag || "—"}</span>
+        </div>
         <div className="mt-8">
           <SectionHeading eyebrow="Home ice" title={team.arena} copy={`The 2026–27 home of the ${team.name}.`} />
         </div>
