@@ -123,11 +123,12 @@ function liveHashtag(row) {
 
   if (clean(explicit)) return explicit;
 
+  // Team Specs keeps the official team hashtag in the second column from
+  // the right. Treat that position as authoritative when a named hashtag
+  // header is unavailable. The values do not have to include a leading #;
+  // normalizeHashtag() adds it later.
   const positionalValue = clean(row.__secondFromRight);
-  const positionalHeader = clean(row.__secondFromRightHeader);
-  if (/hashtag|hash tag|team tag/i.test(positionalHeader) || positionalValue.startsWith("#")) {
-    return positionalValue;
-  }
+  if (positionalValue) return positionalValue;
 
   return "";
 }

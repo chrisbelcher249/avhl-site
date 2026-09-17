@@ -114,6 +114,9 @@ export default async function TeamPage({ params }) {
                 <Link href={`/schedule/${team.slug}`} className="inline-flex rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-white hover:text-[#000B36]">
                   Schedule
                 </Link>
+                <Link href="#branding" className="inline-flex rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-white hover:text-[#000B36]">
+                  Branding
+                </Link>
               </div>
             </div>
             <div className="hidden min-w-48 rounded-3xl border border-white/15 bg-black/20 p-5 backdrop-blur lg:block">
@@ -225,8 +228,11 @@ export default async function TeamPage({ params }) {
 
       <FranchiseHistorySection team={team} history={franchiseHistory} summary={franchiseSummary} />
 
-      <section className="mx-auto max-w-7xl px-6 pb-14 pt-14 md:px-8 md:pb-20 md:pt-20">
-        <SectionHeading eyebrow="Home ice" title={team.arena} copy={`The 2026–27 home of the ${team.name}.`} />
+      <section id="branding" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 pt-14 md:px-8 md:pb-20 md:pt-20">
+        <SectionHeading eyebrow="Team branding" title="Arena, uniforms & presentation" copy={`The complete 2026–27 visual and game-night identity of the ${team.name}.`} />
+        <div className="mt-8">
+          <SectionHeading eyebrow="Home ice" title={team.arena} copy={`The 2026–27 home of the ${team.name}.`} />
+        </div>
         <div className="mt-6 overflow-hidden rounded-[2rem] border border-[#000B36]/10 bg-[#000B36] shadow-lg">
           <div className="relative aspect-[16/9] w-full">
             <Image src={team.assets.arena} alt={`${team.arena} arena view`} fill sizes="(max-width: 1280px) 100vw, 1200px" className="object-cover" />

@@ -1,19 +1,20 @@
-# Site 49 changes
+# Site 50 changes
 
-## Team hashtags from Team Specs
-- Team pages continue to show **Official hashtag** in Club Identity.
-- The live Team Specs sheet is now the direct source of truth for hashtags.
-- The loader accepts common hashtag header variants, including plural/spacing changes, and also recognizes the current Team Specs placement where the hashtag is the second column from the right.
-- Hashtags are normalized to include a leading `#` and remove spaces.
-- The positional fallback is guarded so an unrelated Team Specs field cannot accidentally become a hashtag.
+## Team Specs hashtags — authoritative live field
+- Team pages continue to show **Official hashtag** in the Club Identity card.
+- The live Team Specs Google Sheet remains the source of truth.
+- Named hashtag headers are still recognized when present.
+- If the header wording is missing or changed, the loader now treats the **second column from the right** in Team Specs as the authoritative hashtag field, matching the current live sheet layout.
+- Hashtags are normalized to remove spaces and include a leading `#`.
 
-## Footer one-line desktop links
-- Increased the footer desktop content width so the navigation no longer gets squeezed into the old 1280px shell.
-- **League**, **League Tools**, and **More AVHL** all stay on one line at normal desktop widths.
-- Slightly tightened link spacing/font sizing where needed while preserving the larger social/branding area above.
-- Mobile/tablet layouts can still wrap naturally.
+## Quick Branding jump on every Major team page
+- Added a **Branding** button beside Roster / Lineup / Schedule in the team-page hero.
+- The button jumps directly to a new **Team branding — Arena, uniforms & presentation** anchor.
+- From that point the page flows through the arena image, home/away/alternate jerseys, mascot, and arena/game-night presentation details.
+- The anchor uses scroll offset so it lands cleanly below the site header.
 
-## Carried forward from Site 48
+## Carried forward from Site 49
+- Footer desktop link groups remain tightened to stay on one line at normal desktop widths.
 - Game Odds, Division Futures, Presidents' Trophy, and Cup odds pages.
 - Minor League expansion, live standings/schedule, and promotion line.
 - Major League relegation line.
@@ -24,4 +25,3 @@
 - `test:lineups` PASS.
 - `test:sim-lineups` PASS.
 - `test:lineup-storage` PASS.
-- Full `next build` could not run in this container because the bundled `node_modules` does not contain the local `next` executable.
