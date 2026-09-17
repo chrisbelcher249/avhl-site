@@ -443,3 +443,10 @@
 - Added Top 5 teams by standings points, Top 5 skaters in points/goals/assists, and Top 5 goalies in SV%/GAA.
 - Full detailed 2026–27 stat tables remain on individual team pages.
 - Team-page skater and goalie stat tables now prefix player names with their live jersey number from the player database (for example, `#6 Brock Boeser`).
+
+## Site 44 — Footer + Socials
+- Rebuilt the site footer into a compact, organized responsive layout.
+- Added a featured Instagram card for @avhl_hockey.
+- Added Twitch, YouTube, and Discord social buttons.
+- Reorganized footer navigation into League, League Tools, and More AVHL sections.
+- Added AVHL logo/branding block and removed the oversized empty desktop footer spacing.
