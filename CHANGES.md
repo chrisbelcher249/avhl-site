@@ -1,28 +1,27 @@
-# Site 48 changes
+# Site 49 changes
 
-## Odds futures
-- Kept `/odds` as the game-odds landing page and added a dedicated odds sub-navigation.
-- Added `/odds/divisions` with all four division-title futures tables.
-- Added `/odds/presidents-trophy` with all 40 clubs ranked by probability of finishing No. 1 overall.
-- Added `/odds/cup` with all 40 clubs ranked by championship probability.
-- Futures run 3,000 complete remaining-season Monte Carlo simulations using the same live roster/lineup strength model as Game Odds.
-- Completed official results are locked into every simulated season.
-- Regular-season simulations use the official AVHL standings tiebreakers.
-- Cup simulations use the current AVHL 20-team conference format: 7–10 qualifiers (best-of-five), then Round 1 through the League Final as best-of-seven.
-- Futures explicitly use the requested assumption that EA-played games and AVHL simulator games are equivalent draws from the same team-strength distribution.
-- Refactored the Game Odds math into `src/lib/oddsModel.js` so game odds and futures share one model instead of separate formulas.
-
-## Team hashtags
-- Major team pages now include **Official hashtag** alongside Arena, Mascot, Division, and Rostered players in Club Identity.
-- The live branding loader now recognizes `Hashtag`, `Team Hashtag`, or `Official Hashtag` columns in the existing team-branding Google Sheet.
+## Team hashtags from Team Specs
+- Team pages continue to show **Official hashtag** in Club Identity.
+- The live Team Specs sheet is now the direct source of truth for hashtags.
+- The loader accepts common hashtag header variants, including plural/spacing changes, and also recognizes the current Team Specs placement where the hashtag is the second column from the right.
 - Hashtags are normalized to include a leading `#` and remove spaces.
-- No hashtags were invented in bundled fallback data; until a hashtag exists in the branding sheet, that team shows `—`.
+- The positional fallback is guarded so an unrelated Team Specs field cannot accidentally become a hashtag.
 
-## Footer
-- Kept the social/footer redesign.
-- Gave **More AVHL** additional desktop width and made its links non-wrapping so **Info · History · Champions · Brackets · Minor League** stays on one line.
+## Footer one-line desktop links
+- Increased the footer desktop content width so the navigation no longer gets squeezed into the old 1280px shell.
+- **League**, **League Tools**, and **More AVHL** all stay on one line at normal desktop widths.
+- Slightly tightened link spacing/font sizing where needed while preserving the larger social/branding area above.
+- Mobile/tablet layouts can still wrap naturally.
+
+## Carried forward from Site 48
+- Game Odds, Division Futures, Presidents' Trophy, and Cup odds pages.
+- Minor League expansion, live standings/schedule, and promotion line.
+- Major League relegation line.
+- Stats leaders redesign, lineup auto-fallbacks, bracket cleanup, live official stats integration, Vercel Analytics, and social footer links.
 
 ## Verification
-- Existing simulator and lineup test suites remain unchanged and pass.
-- The futures core was benchmarked separately at 3,000 full 1,640-game seasons plus playoffs in about one second in the development container using synthetic team models.
-- Full `next build` could not be run in this container because the local `next` executable is not installed in the bundled dependencies.
+- `test:sim` PASS.
+- `test:lineups` PASS.
+- `test:sim-lineups` PASS.
+- `test:lineup-storage` PASS.
+- Full `next build` could not run in this container because the bundled `node_modules` does not contain the local `next` executable.

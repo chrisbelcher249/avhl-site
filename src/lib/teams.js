@@ -98,7 +98,38 @@ function rowObject(headers, row) {
   headers.forEach((header, index) => {
     if (header && object[header] === undefined) object[header] = row[index] ?? "";
   });
+
+  // Be tolerant of small Team Specs header wording changes such as
+  // "Hashtag", "Team Hashtags", or "Official Team Hashtag".
+  const hashtagIndex = headers.findIndex((header) => /hash\s*tags?/i.test(header));
+  object.__hashtagCandidate = hashtagIndex >= 0 ? row[hashtagIndex] ?? "" : "";
+
+  // The current live Team Specs source keeps the official hashtag as the
+  // second column from the right. Preserve the position as a final fallback.
+  object.__secondFromRightHeader = headers.length >= 2 ? headers[headers.length - 2] ?? "" : "";
+  object.__secondFromRight = headers.length >= 2 ? row[headers.length - 2] ?? "" : "";
   return object;
+}
+
+function liveHashtag(row) {
+  const explicit =
+    row["Hashtag"] ||
+    row["Team Hashtag"] ||
+    row["Official Hashtag"] ||
+    row["Official Team Hashtag"] ||
+    row["Social Hashtag"] ||
+    row["Social Media Hashtag"] ||
+    row.__hashtagCandidate;
+
+  if (clean(explicit)) return explicit;
+
+  const positionalValue = clean(row.__secondFromRight);
+  const positionalHeader = clean(row.__secondFromRightHeader);
+  if (/hashtag|hash tag|team tag/i.test(positionalHeader) || positionalValue.startsWith("#")) {
+    return positionalValue;
+  }
+
+  return "";
 }
 
 function findHeaderRow(rows) {
@@ -155,7 +186,7 @@ function mergeTeam(base, row) {
     nickname,
     playByPlayName: clean(row["Play by Play Team Name"]) || base.playByPlayName,
     arena: clean(row["Arena Name"]) || base.arena,
-    hashtag: normalizeHashtag(row["Hashtag"] || row["Team Hashtag"] || row["Official Hashtag"]) || base.hashtag || "",
+    hashtag: normalizeHashtag(liveHashtag(row)) || base.hashtag || "",
     mascot: {
       ...base.mascot,
       name: clean(row["Mascot Name"]) || base.mascot?.name || "",

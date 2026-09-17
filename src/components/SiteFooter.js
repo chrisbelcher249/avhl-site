@@ -72,7 +72,7 @@ const navGroups = [
 export default function SiteFooter() {
   return (
     <footer className="border-t border-white/10 bg-[#000724] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-10 md:px-8 lg:py-12">
+      <div className="mx-auto max-w-[1500px] px-6 py-10 md:px-8 lg:py-12">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div className="max-w-xl">
             <div className="flex items-center gap-3">
@@ -142,13 +142,13 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-9 grid gap-7 border-t border-white/10 pt-8 sm:grid-cols-3 lg:grid-cols-[0.72fr_0.88fr_1.7fr]">
+        <div className="mt-9 grid gap-7 border-t border-white/10 pt-8 sm:grid-cols-3 lg:grid-cols-[0.95fr_1.05fr_1.35fr] lg:gap-6">
           {navGroups.map((group) => (
             <div key={group.title}>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-white/35">{group.title}</p>
-              <div className={`mt-3 flex flex-wrap gap-x-5 gap-y-2.5 ${group.title === "More AVHL" ? "lg:flex-nowrap lg:gap-x-4 lg:whitespace-nowrap" : ""}`}>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2.5 lg:flex-nowrap lg:gap-x-3.5 lg:whitespace-nowrap">
                 {group.links.map(([label, href]) => (
-                  <Link key={href} href={href} className="text-sm font-bold text-white/60 transition hover:text-cyan-200">
+                  <Link key={href} href={href} className="text-[13px] font-bold text-white/60 transition hover:text-cyan-200 xl:text-sm">
                     {label}
                   </Link>
                 ))}
