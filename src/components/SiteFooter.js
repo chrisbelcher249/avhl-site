@@ -142,11 +142,11 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-9 grid gap-7 border-t border-white/10 pt-8 sm:grid-cols-3 lg:grid-cols-[0.82fr_1.03fr_1.35fr]">
+        <div className="mt-9 grid gap-7 border-t border-white/10 pt-8 sm:grid-cols-3 lg:grid-cols-[0.72fr_0.88fr_1.7fr]">
           {navGroups.map((group) => (
             <div key={group.title}>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-white/35">{group.title}</p>
-              <div className={`mt-3 flex flex-wrap gap-x-5 gap-y-2.5 ${group.title === "More AVHL" ? "lg:flex-nowrap lg:gap-x-4" : ""}`}>
+              <div className={`mt-3 flex flex-wrap gap-x-5 gap-y-2.5 ${group.title === "More AVHL" ? "lg:flex-nowrap lg:gap-x-4 lg:whitespace-nowrap" : ""}`}>
                 {group.links.map(([label, href]) => (
                   <Link key={href} href={href} className="text-sm font-bold text-white/60 transition hover:text-cyan-200">
                     {label}

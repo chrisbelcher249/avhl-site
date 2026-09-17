@@ -1,0 +1,31 @@
+import OddsNav from "@/components/OddsNav";
+import OddsFuturesBoard from "@/components/OddsFuturesBoard";
+import { getOddsFuturesData } from "@/lib/oddsFuturesData";
+
+export const metadata = {
+  title: "Presidents' Trophy Odds",
+  description: "AVHL Presidents' Trophy probabilities generated from full-season Monte Carlo simulations.",
+};
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function PresidentsOddsPage() {
+  const { schedule, scheduleError, teams } = await getOddsFuturesData();
+  return (
+    <main className="min-h-screen bg-slate-50 text-[#000B36]">
+      <section className="bg-[#000B36] text-white">
+        <div className="mx-auto max-w-7xl px-5 py-12 md:px-8 md:py-16">
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-cyan-300">AVHL Futures · 2026–27</p>
+          <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Presidents&apos; Trophy</h1>
+          <p className="mt-4 max-w-3xl text-base leading-7 text-white/65 md:text-lg">Probability each club finishes No. 1 overall after the remaining 2026–27 regular season is simulated.</p>
+        </div>
+      </section>
+      <div className="mx-auto max-w-7xl space-y-6 px-5 py-8 md:px-8 md:py-10">
+        <OddsNav />
+        {scheduleError ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scheduleError}</div> : null}
+        <OddsFuturesBoard mode="presidents" schedule={schedule} teams={teams} />
+      </div>
+    </main>
+  );
+}

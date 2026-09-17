@@ -70,6 +70,13 @@ function clean(value) {
   return text;
 }
 
+
+function normalizeHashtag(value) {
+  const text = clean(value).replace(/\s+/g, "");
+  if (!text) return "";
+  return text.startsWith("#") ? text : `#${text}`;
+}
+
 function rgbToHex(value) {
   const text = clean(value);
   if (!text) return "";
@@ -148,6 +155,7 @@ function mergeTeam(base, row) {
     nickname,
     playByPlayName: clean(row["Play by Play Team Name"]) || base.playByPlayName,
     arena: clean(row["Arena Name"]) || base.arena,
+    hashtag: normalizeHashtag(row["Hashtag"] || row["Team Hashtag"] || row["Official Hashtag"]) || base.hashtag || "",
     mascot: {
       ...base.mascot,
       name: clean(row["Mascot Name"]) || base.mascot?.name || "",

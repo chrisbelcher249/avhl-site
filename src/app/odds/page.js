@@ -1,4 +1,5 @@
 import OddsBoard from "@/components/OddsBoard";
+import OddsNav from "@/components/OddsNav";
 import { getSchedule } from "@/lib/schedule";
 import { getTeams } from "@/lib/teams";
 
@@ -63,7 +64,8 @@ export default async function OddsPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-10">
+      <div className="mx-auto max-w-7xl space-y-6 px-5 py-8 md:px-8 md:py-10">
+        <OddsNav />
         {scheduleError ? (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scheduleError}</div>
         ) : null}

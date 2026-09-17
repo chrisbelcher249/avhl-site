@@ -129,11 +129,12 @@ export default async function TeamPage({ params }) {
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-8">
             <SectionHeading eyebrow="Club identity" title="2026–27 team profile" />
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <Fact label="Arena" value={team.arena} />
               <Fact label="Mascot" value={team.mascot?.name} />
               <Fact label="Division" value={team.division} />
               <Fact label="Rostered players" value={String(roster.count)} />
+              <Fact label="Official hashtag" value={team.hashtag} />
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               {[
