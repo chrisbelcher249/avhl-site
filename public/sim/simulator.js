@@ -79,12 +79,13 @@ class SeededRandom {
 }
 
 class AVHLGameSimulator {
-  constructor(data, seed = Date.now()) {
+  constructor(data, seed = Date.now(), options = {}) {
     if (!data?.home || !data?.away) {
       throw new Error("AVHLGameSimulator requires home and away team data.");
     }
 
     this.random = new SeededRandom(seed);
+    this.headless = Boolean(options?.headless);
     this.seed = this.random.seed;
     // Injury rolls use a separate deterministic stream so adding medical logic
     // does not perturb ordinary hockey RNG until an injury actually changes personnel.
@@ -539,6 +540,26 @@ class AVHLGameSimulator {
   }
 
   addEvent(state, type, text, options = {}) {
+    // Monte Carlo odds runs use the exact same hockey engine, but do not need
+    // heavyweight presentation payloads (spatial snapshots, replay data, text,
+    // or full stat snapshots). Keep only the tiny event history needed by the
+    // simulation itself for one-timer/rebound context.
+    if (this.headless) {
+      const event = {
+        id: ++this.eventId,
+        type,
+        teamId: options.teamId ?? null,
+        playerId: options.playerId ?? null,
+        secondaryPlayerId: options.secondaryPlayerId ?? null,
+        outcome: options.outcome ?? null,
+        details: options.details ?? null,
+        period: state.period,
+        absoluteTime: state.absoluteTime,
+      };
+      this.events.push(event);
+      return event;
+    }
+
     const event = {
       id: ++this.eventId,
       type,
@@ -1751,6 +1772,7 @@ class AVHLGameSimulator {
   }
 
   recordSpatialSnapshot(state) {
+    if (this.headless) return;
     const positions = {};
     for (const [id, position] of Object.entries(state.positions)) {
       positions[id] = { ...position };
@@ -3290,6 +3312,7 @@ class AVHLGameSimulator {
   }
 
   createGoalReplay(state, scoringTeamId, scorer, assists, shot, replayOptions = {}) {
+    if (this.headless) return null;
     const defendingTeamId = this.opponent(scoringTeamId);
     const attackingSkaters = [...state.onIce[scoringTeamId]];
     const defendingSkaters = [...state.onIce[defendingTeamId]];
@@ -5490,6 +5513,38 @@ class AVHLGameSimulator {
           0
         )
       }
+    };
+  }
+
+  simulateScoreOnly() {
+    this.headless = true;
+    this.resetStats();
+    this.events = [];
+    this.eventId = 0;
+    const state = this.createInitialState();
+
+    this.simulatePeriod(state, 1, 1200, false);
+    this.simulatePeriod(state, 2, 1200, false);
+    this.simulatePeriod(state, 3, 1200, false);
+
+    let finish = "REG";
+    if (state.score[this.homeId] === state.score[this.awayId]) {
+      finish = "OT";
+      this.simulatePeriod(state, 4, 300, true);
+    }
+
+    if (state.score[this.homeId] === state.score[this.awayId]) {
+      finish = "SO";
+      this.simulateShootout(state);
+    }
+
+    return {
+      seed: this.seed,
+      homeId: this.homeId,
+      awayId: this.awayId,
+      homeScore: state.score[this.homeId],
+      awayScore: state.score[this.awayId],
+      finish,
     };
   }
 
