@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getPlayers } from "@/lib/players";
 import { getHistoricalPlayer, getKnownPlayerIdentity } from "@/lib/playerHistory";
 import { teams } from "../../../../data/teams";
+import { getSeasonStats, playerSeasonStat, secondsToTime } from "@/lib/seasonStats";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export default async function PlayerProfilePage({ params }) {
   const { id } = await params;
   const playerId = normalizeId(id);
   const history = getHistoricalPlayer(playerId);
-  const { players } = await getPlayers();
+  const [{ players }, seasonStats] = await Promise.all([getPlayers(), getSeasonStats()]);
   const current = players.find((player) => player.id === playerId) || null;
 
   if (!current && !history) notFound();
@@ -55,7 +56,7 @@ export default async function PlayerProfilePage({ params }) {
   const goalie = role === "Goalie";
   const currentTeam = current && current.currentTeam !== "UFA" ? teams.find((team) => team.name === current.currentTeam) : null;
   const accent = currentTeam?.colors?.primary || "#18BDFC";
-  const hasCurrentRecord = Boolean(current);
+  const season = current ? playerSeasonStat(seasonStats, current) : null;
 
   const careerBlocks = history
     ? goalie
@@ -129,6 +130,35 @@ export default async function PlayerProfilePage({ params }) {
             <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#000B36]/50">This player remains in the permanent AVHL archive through their historical statistics, but is not part of the current player database.</p>
           </div>
         )}
+
+
+        {current ? (
+          <div className="mt-8 rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-8">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#A90117]">2026–27 live statistics</p>
+                <h2 className="mt-1 text-3xl font-black">Current season</h2>
+              </div>
+              <Link href="/statistics" className="rounded-full bg-[#000B36] px-4 py-2 text-xs font-black uppercase tracking-wide text-white transition hover:bg-[#A90117]">League statistics</Link>
+            </div>
+            {goalie ? (
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+                {[
+                  ["GP", season.gp], ["MIN", secondsToTime(season.toiSeconds)], ["SA", season.sa], ["SV", season.sv],
+                  ["SV%", Number(season.svPct || 0).toFixed(3)], ["GA", season.ga], ["GAA", Number(season.gaa || 0).toFixed(2)],
+                ].map(([label, value]) => <Detail key={label} label={label} value={String(value)} />)}
+              </div>
+            ) : (
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+                {[
+                  ["GP", season.gp], ["MIN", secondsToTime(season.toiSeconds)], ["G", season.g], ["A", season.a], ["PTS", season.pts], ["+/-", season.plusMinus], ["S", season.s], ["S%", `${(season.shootingPct * 100).toFixed(1)}%`],
+                  ["PPT", secondsToTime(season.ppToiSeconds)], ["PIM", season.pim], ["Hits", season.hits], ["PPG", season.ppg], ["SHG", season.shg], ["FOT", season.fot], ["FOW", season.fow], ["FO%", `${(season.foPct * 100).toFixed(1)}%`],
+                ].map(([label, value]) => <Detail key={label} label={label} value={String(value)} />)}
+              </div>
+            )}
+            {seasonStats.error ? <p className="mt-4 text-xs font-bold text-amber-700">{seasonStats.error}</p> : null}
+          </div>
+        ) : null}
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[0.7fr_1.3fr]">
           <div className="rounded-3xl bg-[#000B36] p-6 text-white shadow-sm md:p-8">

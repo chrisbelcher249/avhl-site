@@ -6,6 +6,7 @@ import RosterSection from "@/components/RosterSection";
 import DraftPickSection from "@/components/DraftPickSection";
 import SalaryCapSection from "@/components/SalaryCapSection";
 import FranchiseHistorySection from "@/components/FranchiseHistorySection";
+import TeamSeasonStats from "@/components/TeamSeasonStats";
 import { teams as fallbackTeams } from "../../../../data/teams";
 import { getTeamBySlug } from "@/lib/teams";
 import { getDraftPicksForTeam } from "@/lib/draftPicks";
@@ -13,6 +14,7 @@ import { buildTeamRosterAndCap } from "../../../../data/salaryCap";
 import { getPlayers } from "@/lib/players";
 import { getFranchiseHistory, getFranchiseSummary } from "@/lib/history";
 import { getRivalsForTeam, rivalryLevels } from "../../../../data/rivals";
+import { getSeasonStats, teamSeasonStat } from "@/lib/seasonStats";
 
 export const dynamic = "force-dynamic";
 
@@ -64,9 +66,10 @@ export default async function TeamPage({ params }) {
   if (!team) notFound();
   const teamBySlug = Object.fromEntries(teams.map((candidate) => [candidate.slug, candidate]));
 
-  const { players } = await getPlayers();
+  const [{ players }, seasonStats] = await Promise.all([getPlayers(), getSeasonStats()]);
   const rosterTeamName = fallbackTeams.find((candidate) => candidate.abbreviation === team.abbreviation)?.name || team.name;
   const roster = buildTeamRosterAndCap(players, rosterTeamName);
+  const teamStats = teamSeasonStat(seasonStats, team.abbreviation);
   const { picks: draftPicks, error: draftPickError } = await getDraftPicksForTeam(team.abbreviation);
   const rivals = getRivalsForTeam(team.slug).map((rival, index) => ({ ...rival, index, team: teamBySlug[rival.slug] })).filter((rival) => rival.team);
   const franchiseHistory = getFranchiseHistory(team.abbreviation);
@@ -205,6 +208,8 @@ export default async function TeamPage({ params }) {
           </div>
         </div>
       </section>
+
+      <TeamSeasonStats team={team} roster={roster} seasonStats={seasonStats} teamStats={teamStats} />
 
       <SalaryCapSection roster={roster} primary={team.colors.primary} />
 

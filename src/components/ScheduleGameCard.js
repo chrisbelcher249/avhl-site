@@ -28,7 +28,7 @@ export default function ScheduleGameCard({ game, focusTeamSlug = null }) {
     <article className="rounded-3xl border border-[#000B36]/10 bg-white p-3 shadow-[0_8px_28px_rgba(0,11,54,0.045)] transition hover:border-[#18BDFC]/60 hover:shadow-[0_12px_34px_rgba(0,11,54,0.08)]">
       <div className="flex items-center justify-between gap-4 px-3 pb-2 pt-1 text-[9px] font-black uppercase tracking-[0.15em] text-[#000B36]/35">
         <span>Game {game.id}</span>
-        <span>{complete ? `${game.overtime ? "Final · OT" : "Final"}` : "Scheduled"}</span>
+        <span>{complete ? (game.finish === "SO" ? "Final · SO" : game.overtime ? "Final · OT" : "Final") : "Scheduled"}</span>
       </div>
       <TeamRow slug={game.away} venue="Away" score={game.awayScore} winner={awayWinner} focusTeamSlug={focusTeamSlug} />
       <div className="mx-3 border-t border-[#000B36]/8" />

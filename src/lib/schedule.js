@@ -1,47 +1,12 @@
 import { schedule as fallbackSchedule } from "../../data/schedule";
 import { teams } from "../../data/teams";
+import { fetchSeasonTab, SEASON_STATS_SHEET_ID, SEASON_STATS_TABS } from "@/lib/seasonStats";
 
-export const SCHEDULE_SHEET_ID = "1dyD6lh5CwO6ODeoJztKEwo3Xxm0mctmHf75V2DBJ0MI";
-export const SCHEDULE_SHEET_GID = "0";
-export const SCHEDULE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${SCHEDULE_SHEET_ID}/export?format=csv&gid=${SCHEDULE_SHEET_GID}`;
+export const SCHEDULE_SHEET_ID = SEASON_STATS_SHEET_ID;
+export const SCHEDULE_SHEET_NAME = SEASON_STATS_TABS.schedule;
 
 const teamByName = Object.fromEntries(teams.map((team) => [team.name.toLowerCase(), team]));
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let value = "";
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index];
-    const next = text[index + 1];
-
-    if (character === '"') {
-      if (quoted && next === '"') {
-        value += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
-      }
-    } else if (character === "," && !quoted) {
-      row.push(value);
-      value = "";
-    } else if ((character === "\n" || character === "\r") && !quoted) {
-      if (character === "\r" && next === "\n") index += 1;
-      row.push(value);
-      if (row.some((cell) => cell.trim() !== "")) rows.push(row);
-      row = [];
-      value = "";
-    } else {
-      value += character;
-    }
-  }
-
-  row.push(value);
-  if (row.some((cell) => cell.trim() !== "")) rows.push(row);
-  return rows;
-}
+const teamByAbbreviation = Object.fromEntries(teams.map((team) => [team.abbreviation.toUpperCase(), team]));
 
 function integer(value) {
   const parsed = Number.parseInt(String(value ?? "").trim(), 10);
@@ -55,14 +20,6 @@ function score(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function overtime(value) {
-  const text = String(value ?? "").trim().toLowerCase();
-  if (!text) return null;
-  if (["yes", "y", "true", "1", "ot", "overtime", "so", "shootout"].includes(text)) return true;
-  if (["no", "n", "false", "0", "reg", "regulation"].includes(text)) return false;
-  return null;
-}
-
 function isoDate(value) {
   const text = String(value ?? "").trim();
   const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
@@ -72,55 +29,63 @@ function isoDate(value) {
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
-function requiredIndex(headers, name) {
-  const index = headers.indexOf(name);
-  if (index < 0) throw new Error(`Schedule sheet is missing ${name}`);
-  return index;
+function buildResults(teamRows) {
+  const grouped = new Map();
+  for (const row of teamRows) {
+    const id = integer(row["Game ID"]);
+    if (!id) continue;
+    if (!grouped.has(id)) grouped.set(id, []);
+    grouped.get(id).push(row);
+  }
+  return grouped;
+}
+
+function resultForGame(rows, awayTeam, homeTeam) {
+  if (!rows?.length) return { awayScore: null, homeScore: null, overtime: null, finish: null };
+  const awayRow = rows.find((row) => String(row.Team || "").trim().toUpperCase() === awayTeam.abbreviation);
+  const homeRow = rows.find((row) => String(row.Team || "").trim().toUpperCase() === homeTeam.abbreviation);
+
+  let awayScore = score(awayRow?.Score);
+  let homeScore = score(homeRow?.Score);
+  if (awayScore === null && homeRow) awayScore = score(homeRow["Opp Score"]);
+  if (homeScore === null && awayRow) homeScore = score(awayRow["Opp Score"]);
+
+  const finish = String(awayRow?.Finish || homeRow?.Finish || "").trim().toUpperCase() || null;
+  const overtime = finish ? finish === "OT" || finish === "SO" : null;
+  return { awayScore, homeScore, overtime, finish };
 }
 
 export async function getSchedule() {
   try {
-    const response = await fetch(SCHEDULE_SHEET_URL, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Google Sheets returned ${response.status}`);
+    const [fixtureRows, teamRows] = await Promise.all([
+      fetchSeasonTab(SEASON_STATS_TABS.schedule),
+      fetchSeasonTab(SEASON_STATS_TABS.team).catch((error) => {
+        console.error("Unable to load live team results while loading schedule", error);
+        return [];
+      }),
+    ]);
+    if (!fixtureRows.length) throw new Error("Schedule tab did not contain game rows");
+    const results = buildResults(teamRows);
 
-    const csv = await response.text();
-    const rows = parseCsv(csv);
-    if (rows.length < 2) throw new Error("Schedule sheet did not contain game rows");
-
-    const headers = rows[0].map((header) => String(header || "").trim());
-    const gameIdIndex = requiredIndex(headers, "Game ID");
-    const dayIndex = requiredIndex(headers, "Day");
-    const dateIndex = requiredIndex(headers, "Date");
-    const awayTeamIndex = requiredIndex(headers, "Away Team");
-    const homeTeamIndex = requiredIndex(headers, "Home Team");
-    const awayScoreIndex = requiredIndex(headers, "Away Score");
-    const homeScoreIndex = requiredIndex(headers, "Home Score");
-    const overtimeIndex = requiredIndex(headers, "OT?");
-
-    const games = rows.slice(1).map((row, index) => {
-      const awayName = String(row[awayTeamIndex] || "").trim();
-      const homeName = String(row[homeTeamIndex] || "").trim();
+    const games = fixtureRows.map((row, index) => {
+      const awayName = String(row["Away Team"] || "").trim();
+      const homeName = String(row["Home Team"] || "").trim();
       const awayTeam = teamByName[awayName.toLowerCase()];
       const homeTeam = teamByName[homeName.toLowerCase()];
-
       if (!awayName && !homeName) return null;
-      if (!awayTeam || !homeTeam) {
-        throw new Error(`Unknown team name in schedule row ${index + 2}: ${awayName} vs ${homeName}`);
-      }
-
+      if (!awayTeam || !homeTeam) throw new Error(`Unknown team name in schedule row ${index + 2}: ${awayName} vs ${homeName}`);
+      const id = integer(row["Game ID"]) ?? index + 1;
       return {
-        id: integer(row[gameIdIndex]) ?? index + 1,
-        day: integer(row[dayIndex]) ?? 0,
-        date: isoDate(row[dateIndex]),
+        id,
+        day: integer(row.Day) ?? 0,
+        date: isoDate(row.Date),
         away: awayTeam.slug,
         home: homeTeam.slug,
-        awayScore: score(row[awayScoreIndex]),
-        homeScore: score(row[homeScoreIndex]),
-        overtime: overtime(row[overtimeIndex]),
+        ...resultForGame(results.get(id), awayTeam, homeTeam),
       };
     }).filter(Boolean);
 
-    if (!games.length) throw new Error("Schedule sheet did not contain recognizable games");
+    if (!games.length) throw new Error("Schedule tab did not contain recognizable games");
     games.sort((a, b) => a.id - b.id);
     return { schedule: games, source: "live", error: null };
   } catch (error) {
@@ -131,6 +96,28 @@ export async function getSchedule() {
       error: "The live schedule is temporarily unavailable, so the bundled schedule is being shown.",
     };
   }
+}
+
+export async function getOfficialScheduleGame(gameId) {
+  const id = Number.parseInt(String(gameId ?? ""), 10);
+  if (!Number.isInteger(id) || id < 1 || id > 1640) return null;
+  const rows = await fetchSeasonTab(SEASON_STATS_TABS.schedule);
+  const row = rows.find((candidate) => integer(candidate["Game ID"]) === id);
+  if (!row) return null;
+  const awayTeam = teamByName[String(row["Away Team"] || "").trim().toLowerCase()];
+  const homeTeam = teamByName[String(row["Home Team"] || "").trim().toLowerCase()];
+  if (!awayTeam || !homeTeam) return null;
+  return {
+    id,
+    day: integer(row.Day) ?? 0,
+    date: isoDate(row.Date),
+    away: awayTeam,
+    home: homeTeam,
+  };
+}
+
+export function getTeamByAbbreviation(abbreviation) {
+  return teamByAbbreviation[String(abbreviation || "").trim().toUpperCase()] || null;
 }
 
 export function groupScheduleByTeam(schedule) {
