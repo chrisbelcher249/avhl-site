@@ -1,3 +1,16 @@
+# Site 45 changes
+
+- Major League Teams: when **All** is selected, the full directory now displays as one A–Z list instead of being grouped by division. Division filters still show the selected division normally.
+- Minor League Teams: the **All** view now also displays all 40 affiliates alphabetically A–Z, and every Minor League club card now opens a dedicated Minor League club page.
+- Added a fully isolated `/minor-league` section with its own **Teams / Standings / Schedule** navigation. Minor League data is not mixed into the Major League schedule, standings, or statistics pages.
+- Wired the public 2026–27 Minor League Google Sheet (`1tl45yj9ewpOFPfm_1YezfID92lnnsQ4z6FfBArRoK0Q`, `Sheet1`) as the live schedule/results source. Scores entered in `Away Score`, `Home Score`, and `OT/SO` drive the Minor League standings automatically.
+- Added one 40-team Minor League standings table using the exact Major League tiebreaker order: **PTS → PTS% → RW → W → GF/G → GA/G → GD**.
+- Added a prominent **Promotion Line** directly between 3rd and 4th place. The top three rows become promotion-position highlights once games have been completed.
+- Added a dedicated Minor League schedule explorer with team, search, month, exact-date, and home/away filtering.
+- Added 40 Minor League team pages with branding, arena, Major League affiliate link, live record/points/league position, recent results, next games, and the club's full 82-game schedule.
+- Kept the old `/teams/minor-league` URL as a compatibility redirect to `/minor-league`.
+- Search results remain alphabetical in both Major and Minor directories.
+
 ## 2026-09-17 — Site 42: auto-optimized invalid lineups + bracket cleanup
 
 - Roster transactions now immediately demote an invalid owner-saved lineup from active status and replace it with a fresh server-generated auto-optimized lineup from the live roster.

@@ -22,7 +22,7 @@ export default async function TeamsPage() {
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link
-              href="/teams/minor-league"
+              href="/minor-league"
               className="inline-flex items-center gap-2 rounded-full border border-[#000B36]/12 bg-[#000B36] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#A90117]"
             >
               Minor League Teams

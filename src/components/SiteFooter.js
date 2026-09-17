@@ -63,7 +63,7 @@ const navGroups = [
       ["History", "/info/history"],
       ["Champions", "/info/champions"],
       ["Playoff Brackets", "/info/history/brackets"],
-      ["Minor League", "/teams/minor-league"],
+      ["Minor League", "/minor-league"],
     ],
   },
 ];
