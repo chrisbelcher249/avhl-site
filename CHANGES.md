@@ -437,3 +437,9 @@
 - Lineup pages currently auto-project from the same live roster source used by the website/simulator; they are intentionally read-only until owner editing/auth is designed.
 - Added a team switcher on lineup pages, a `Lineups` item in the main navigation, and `View lineup` links on team pages.
 - Added `src/lib/lineups.js` so the preview arrangement logic is isolated and can later be replaced by saved owner lineups without redesigning the page.
+
+## Site 43 — Statistics cleanup
+- Replaced the oversized 2026–27 statistics explorer with a compact league-leaders landing page.
+- Added Top 5 teams by standings points, Top 5 skaters in points/goals/assists, and Top 5 goalies in SV%/GAA.
+- Full detailed 2026–27 stat tables remain on individual team pages.
+- Team-page skater and goalie stat tables now prefix player names with their live jersey number from the player database (for example, `#6 Brock Boeser`).

@@ -76,6 +76,7 @@ export default async function TeamPage({ params }) {
   const currentSeasonTeamStats = seasonStats.teamByAbbreviation[team.abbreviation] || null;
   const currentSeasonSkaters = seasonStats.skaters.filter((player) => player.team === team.abbreviation);
   const currentSeasonGoalies = seasonStats.goalies.filter((player) => player.team === team.abbreviation);
+  const currentPlayerDirectory = Object.fromEntries(players.map((player) => [player.id, { number: player.number, position: player.position }]));
   const uniforms = [
     ["Home", team.assets.home],
     ["Away", team.assets.away],
@@ -213,7 +214,7 @@ export default async function TeamPage({ params }) {
 
       <SalaryCapSection roster={roster} primary={team.colors.primary} />
 
-      <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} scheduleById={seasonStats.scheduleById} />
+      <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} scheduleById={seasonStats.scheduleById} playerDirectory={currentPlayerDirectory} />
 
       <section id="roster" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 md:px-8 md:pb-20">
         <RosterSection roster={roster} primary={team.colors.primary} />
