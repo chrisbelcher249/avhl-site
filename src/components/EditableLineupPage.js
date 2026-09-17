@@ -703,7 +703,7 @@ export default function EditableLineupPage({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-white/70">{team.abbreviation}</span>
                 <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] ${lineupSource === "saved" ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100" : "border-cyan-300/20 bg-cyan-300/10 text-cyan-100"}`}>
-                  {lineupSource === "saved" ? "Owner lineup" : "Projected lineup"}
+                  {lineupSource === "saved" ? "Owner lineup" : lineupSource === "auto-optimized" ? "Auto-optimized lineup" : "Projected lineup"}
                 </span>
               </div>
               <p className="mt-4 text-sm font-black uppercase tracking-[0.24em] text-white/60">{team.city}</p>
@@ -711,7 +711,11 @@ export default function EditableLineupPage({
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/55">
                 12 forwards, 6 defensemen and 2 goalies dressed. Special teams, two 3-on-3 groups and the first five shootout shooters are saved with the lineup.
               </p>
-              {updatedText ? <p className="mt-2 text-[11px] font-bold text-white/38">Last owner update: {updatedText}</p> : null}
+              {updatedText ? (
+                <p className="mt-2 text-[11px] font-bold text-white/38">
+                  {lineupSource === "auto-optimized" ? "Previous owner save" : "Last owner update"}: {updatedText}
+                </p>
+              ) : null}
             </div>
             <div className="shrink-0 md:w-72">
               {!editing ? (
@@ -764,7 +768,7 @@ export default function EditableLineupPage({
         ) : null}
         {savedErrors.length ? (
           <div className="mb-6 rounded-2xl border border-[#A90117]/20 bg-[#A90117]/6 px-4 py-3 text-xs font-bold leading-5 text-[#7A0010]">
-            The previously saved lineup no longer matches the live roster, so this page is using a fresh projection until the owner saves again.
+            A roster change made the previous owner lineup invalid. It was immediately replaced as the active lineup by a fresh auto-optimized lineup; the owner can save a new lineup at any time.
           </div>
         ) : null}
         {editing ? (
@@ -775,7 +779,9 @@ export default function EditableLineupPage({
           <div className="mb-7 rounded-xl border border-[#18BDFC]/20 bg-[#18BDFC]/8 px-4 py-2.5 text-[11px] font-bold leading-5 text-[#000B36]/60">
             {lineupSource === "saved"
               ? "This is the latest owner-saved lineup. New simulator games pull this version before the puck drops."
-              : `No valid owner lineup has been saved yet, so this is automatically projected from the ${rosterSource} roster.`}
+              : lineupSource === "auto-optimized"
+                ? "The previous owner lineup became invalid after a roster change, so the active lineup was automatically re-optimized from the live roster. New simulator games use this lineup until the owner saves again."
+                : `No valid owner lineup has been saved yet, so this is automatically projected from the ${rosterSource} roster.`}
           </div>
         )}
 

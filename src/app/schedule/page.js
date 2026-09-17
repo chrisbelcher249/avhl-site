@@ -25,7 +25,7 @@ export default async function Schedule() {
             <p className="text-sm font-black uppercase tracking-[0.24em] text-[#A90117]">2026–27 Major League</p>
             <h1 className="mt-3 text-5xl font-black tracking-tight md:text-7xl">Full season schedule</h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-[#000B36]/58">
-              Live fixtures from the official 2026–27 AVHL workbook, joined automatically with finalized Team Stats results. Game cards, team schedules, standings, and the playoff picture update from the same season data source.
+              The official AVHL fixture list and live results are joined from the 2026–27 season workbook. Finalized game stats update game cards, team schedules, standings, and the playoff picture automatically.
             </p>
           </div>
           <Link href="/teams" className="w-fit rounded-full border border-[#000B36]/14 bg-white px-6 py-3 text-sm font-black uppercase tracking-wide transition hover:border-[#18BDFC]">Browse teams</Link>

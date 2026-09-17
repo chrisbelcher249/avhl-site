@@ -119,21 +119,26 @@ function CompactTable({ title, eyebrow, records, labelForIndex, accent = false }
 }
 
 const LIVE_BOARD_WIDTH = 1180;
-const LIVE_BOARD_HEIGHT = 580;
+const LIVE_BOARD_HEIGHT = 610;
 const LIVE_NODE = 44;
 
 const LIVE_X = {
-  west: { qualifier: 82, round1: 228, round2: 382, conference: 510 },
-  east: { qualifier: 1098, round1: 952, round2: 798, conference: 670 },
+  west: { qualifier: 82, round1: 230, round2: 390, conference: 515 },
+  east: { qualifier: 1098, round1: 950, round2: 790, conference: 665 },
 };
 
+// Every next-round slot is centered exactly between the two teams feeding it.
+// Keeping that geometry consistent makes the connectors short, square and easy
+// to follow instead of forcing long vertical detours between rounds.
 const LIVE_Y = {
-  qualifier: [[98, 144], [390, 436]],
-  round1: [[70, 116], [205, 251], [350, 396], [485, 531]],
-  round2: [[140, 186], [400, 446]],
-  conference: [[270, 316]],
-  final: [[270, 316]],
+  qualifier: [[118, 170], [402, 454]],
+  round1: [[92, 144], [214, 266], [376, 428], [498, 550]],
+  round2: [[118, 240], [402, 524]],
+  conference: [[179, 463]],
+  final: 321,
 };
+
+const LIVE_FINAL_X = { west: 560, east: 620 };
 
 function liveSeed(data, number) {
   return data?.seeds?.find((record) => record.seed === number) || null;
@@ -143,17 +148,21 @@ function LiveLogoNode({ record, seed, x, y, side, placeholder }) {
   const actualSeed = seed ?? record?.seed;
   const content = (
     <div
-      className={`absolute z-20 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 ${side === "east" ? "flex-row-reverse" : ""}`}
+      className="absolute z-20 h-11 w-11 -translate-x-1/2 -translate-y-1/2"
       style={{ left: x, top: y }}
       title={record ? `#${actualSeed} ${record.team.name}` : placeholder || "Projected winner"}
     >
-      <span className="text-[9px] font-black tabular-nums text-[#000B36]/45">{record ? `#${actualSeed}` : ""}</span>
+      {record ? (
+        <span className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[9px] font-black tabular-nums text-[#000B36]/45 ${side === "east" ? "left-full ml-2" : "right-full mr-2"}`}>
+          #{actualSeed}
+        </span>
+      ) : null}
       {record ? (
         <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#000B36]/10 bg-white p-2 shadow-sm transition hover:-translate-y-0.5 hover:border-[#18BDFC] hover:shadow-md">
           <Image src={record.team.assets.logo} alt={record.team.name} width={40} height={40} className="h-full w-full object-contain" />
         </span>
       ) : (
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-[#000B36]/16 bg-white/80 text-[8px] font-black uppercase tracking-[0.08em] text-[#000B36]/26">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-dashed border-[#000B36]/16 bg-white/80 text-[8px] font-black uppercase tracking-[0.08em] text-[#000B36]/26">
           {placeholder || "W"}
         </span>
       )}
@@ -168,12 +177,21 @@ function LiveLogoNode({ record, seed, x, y, side, placeholder }) {
   );
 }
 
-function branchPath(x, y1, y2, targetX, targetY, direction) {
-  const nodeEdge = direction === "right" ? x + LIVE_NODE / 2 : x - LIVE_NODE / 2;
-  const targetEdge = direction === "right" ? targetX - 20 : targetX + 20;
-  const branchX = nodeEdge + (direction === "right" ? 42 : -42);
-  const midX = (branchX + targetEdge) / 2;
-  return `M ${nodeEdge} ${y1} H ${branchX} V ${y2} H ${nodeEdge} M ${branchX} ${(y1 + y2) / 2} H ${midX} V ${targetY} H ${targetEdge}`;
+function seriesPath(x, y1, y2, targetX, targetY, direction) {
+  const sign = direction === "right" ? 1 : -1;
+  const sourceEdge = x + sign * (LIVE_NODE / 2);
+  const targetEdge = targetX - sign * (LIVE_NODE / 2);
+  const mergeX = sourceEdge + sign * Math.min(54, Math.max(28, Math.abs(targetEdge - sourceEdge) * 0.42));
+  const midpointY = (y1 + y2) / 2;
+  const targetLeadX = targetEdge - sign * 18;
+
+  // Most slots sit exactly on midpointY. The small optional final elbow keeps
+  // this robust if a future layout nudges a target a few pixels vertically.
+  const tail = Math.abs(targetY - midpointY) < 0.5
+    ? `H ${targetEdge}`
+    : `H ${targetLeadX} V ${targetY} H ${targetEdge}`;
+
+  return `M ${sourceEdge} ${y1} H ${mergeX} M ${sourceEdge} ${y2} H ${mergeX} M ${mergeX} ${y1} V ${y2} M ${mergeX} ${midpointY} ${tail}`;
 }
 
 function LiveBracketLines() {
@@ -184,25 +202,32 @@ function LiveBracketLines() {
     const x = LIVE_X[side];
 
     // Qualifiers feed the open Round 1 slots.
-    paths.push(branchPath(x.qualifier, ...LIVE_Y.qualifier[0], x.round1, LIVE_Y.round1[0][1], direction));
-    paths.push(branchPath(x.qualifier, ...LIVE_Y.qualifier[1], x.round1, LIVE_Y.round1[2][1], direction));
+    paths.push(seriesPath(x.qualifier, ...LIVE_Y.qualifier[0], x.round1, LIVE_Y.round1[0][1], direction));
+    paths.push(seriesPath(x.qualifier, ...LIVE_Y.qualifier[1], x.round1, LIVE_Y.round1[2][1], direction));
 
-    // Round 1 games feed the two Round 2 series.
-    paths.push(branchPath(x.round1, ...LIVE_Y.round1[0], x.round2, LIVE_Y.round2[0][0], direction));
-    paths.push(branchPath(x.round1, ...LIVE_Y.round1[1], x.round2, LIVE_Y.round2[0][1], direction));
-    paths.push(branchPath(x.round1, ...LIVE_Y.round1[2], x.round2, LIVE_Y.round2[1][0], direction));
-    paths.push(branchPath(x.round1, ...LIVE_Y.round1[3], x.round2, LIVE_Y.round2[1][1], direction));
+    // Each Round 1 series feeds one precisely centered Round 2 slot.
+    paths.push(seriesPath(x.round1, ...LIVE_Y.round1[0], x.round2, LIVE_Y.round2[0][0], direction));
+    paths.push(seriesPath(x.round1, ...LIVE_Y.round1[1], x.round2, LIVE_Y.round2[0][1], direction));
+    paths.push(seriesPath(x.round1, ...LIVE_Y.round1[2], x.round2, LIVE_Y.round2[1][0], direction));
+    paths.push(seriesPath(x.round1, ...LIVE_Y.round1[3], x.round2, LIVE_Y.round2[1][1], direction));
 
-    // Round 2 feeds the Conference Final.
-    paths.push(branchPath(x.round2, ...LIVE_Y.round2[0], x.conference, LIVE_Y.conference[0][0], direction));
-    paths.push(branchPath(x.round2, ...LIVE_Y.round2[1], x.conference, LIVE_Y.conference[0][1], direction));
+    // Round 2 winners form the Conference Final.
+    paths.push(seriesPath(x.round2, ...LIVE_Y.round2[0], x.conference, LIVE_Y.conference[0][0], direction));
+    paths.push(seriesPath(x.round2, ...LIVE_Y.round2[1], x.conference, LIVE_Y.conference[0][1], direction));
 
-    // Conference champion advances into the league final.
-    paths.push(branchPath(x.conference, ...LIVE_Y.conference[0], 590, side === "west" ? LIVE_Y.final[0][0] : LIVE_Y.final[0][1], direction));
+    // Conference Final winner advances straight into its League Final slot.
+    paths.push(seriesPath(
+      x.conference,
+      ...LIVE_Y.conference[0],
+      LIVE_FINAL_X[side],
+      LIVE_Y.final,
+      direction,
+    ));
   }
 
-  // The league-final pairing resolves into the champion marker below.
-  paths.push(`M 610 ${LIVE_Y.final[0][0]} H 630 V ${LIVE_Y.final[0][1]} H 610 M 630 293 V 352 H 610`);
+  // League Final teams sit side-by-side. Their short center connector drops
+  // directly to the champion marker instead of looping around the middle.
+  paths.push(`M ${LIVE_FINAL_X.west + LIVE_NODE / 2} ${LIVE_Y.final} H ${LIVE_FINAL_X.east - LIVE_NODE / 2} M 590 ${LIVE_Y.final} V 382`);
 
   return (
     <svg className="pointer-events-none absolute inset-0 z-0" width={LIVE_BOARD_WIDTH} height={LIVE_BOARD_HEIGHT} viewBox={`0 0 ${LIVE_BOARD_WIDTH} ${LIVE_BOARD_HEIGHT}`} aria-hidden="true">
@@ -271,9 +296,9 @@ function LiveBracketBoard({ conferences }) {
         <LiveBracketSide data={west} side="west" />
         <LiveBracketSide data={east} side="east" />
 
-        <LiveLogoNode x={590} y={LIVE_Y.final[0][0]} side="west" placeholder="W" />
-        <LiveLogoNode x={590} y={LIVE_Y.final[0][1]} side="east" placeholder="E" />
-        <div className="absolute left-1/2 top-[365px] z-20 -translate-x-1/2 rounded-full bg-[#000B36] px-4 py-2 text-[8px] font-black uppercase tracking-[0.14em] text-cyan-200">
+        <LiveLogoNode x={LIVE_FINAL_X.west} y={LIVE_Y.final} side="west" placeholder="W" />
+        <LiveLogoNode x={LIVE_FINAL_X.east} y={LIVE_Y.final} side="east" placeholder="E" />
+        <div className="absolute left-1/2 top-[382px] z-20 -translate-x-1/2 rounded-full bg-[#000B36] px-4 py-2 text-[8px] font-black uppercase tracking-[0.14em] text-cyan-200">
           Champion
         </div>
       </div>

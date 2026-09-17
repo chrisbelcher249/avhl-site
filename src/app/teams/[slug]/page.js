@@ -6,7 +6,7 @@ import RosterSection from "@/components/RosterSection";
 import DraftPickSection from "@/components/DraftPickSection";
 import SalaryCapSection from "@/components/SalaryCapSection";
 import FranchiseHistorySection from "@/components/FranchiseHistorySection";
-import TeamSeasonStats from "@/components/TeamSeasonStats";
+import TeamSeasonStatsSection from "@/components/TeamSeasonStatsSection";
 import { teams as fallbackTeams } from "../../../../data/teams";
 import { getTeamBySlug } from "@/lib/teams";
 import { getDraftPicksForTeam } from "@/lib/draftPicks";
@@ -14,7 +14,7 @@ import { buildTeamRosterAndCap } from "../../../../data/salaryCap";
 import { getPlayers } from "@/lib/players";
 import { getFranchiseHistory, getFranchiseSummary } from "@/lib/history";
 import { getRivalsForTeam, rivalryLevels } from "../../../../data/rivals";
-import { getSeasonStats, teamSeasonStat } from "@/lib/seasonStats";
+import { getSeasonStats } from "@/lib/seasonStats";
 
 export const dynamic = "force-dynamic";
 
@@ -69,11 +69,13 @@ export default async function TeamPage({ params }) {
   const [{ players }, seasonStats] = await Promise.all([getPlayers(), getSeasonStats()]);
   const rosterTeamName = fallbackTeams.find((candidate) => candidate.abbreviation === team.abbreviation)?.name || team.name;
   const roster = buildTeamRosterAndCap(players, rosterTeamName);
-  const teamStats = teamSeasonStat(seasonStats, team.abbreviation);
   const { picks: draftPicks, error: draftPickError } = await getDraftPicksForTeam(team.abbreviation);
   const rivals = getRivalsForTeam(team.slug).map((rival, index) => ({ ...rival, index, team: teamBySlug[rival.slug] })).filter((rival) => rival.team);
   const franchiseHistory = getFranchiseHistory(team.abbreviation);
   const franchiseSummary = getFranchiseSummary(team.abbreviation);
+  const currentSeasonTeamStats = seasonStats.teamByAbbreviation[team.abbreviation] || null;
+  const currentSeasonSkaters = seasonStats.skaters.filter((player) => player.team === team.abbreviation);
+  const currentSeasonGoalies = seasonStats.goalies.filter((player) => player.team === team.abbreviation);
   const uniforms = [
     ["Home", team.assets.home],
     ["Away", team.assets.away],
@@ -209,9 +211,9 @@ export default async function TeamPage({ params }) {
         </div>
       </section>
 
-      <TeamSeasonStats team={team} roster={roster} seasonStats={seasonStats} teamStats={teamStats} />
-
       <SalaryCapSection roster={roster} primary={team.colors.primary} />
+
+      <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} scheduleById={seasonStats.scheduleById} />
 
       <section id="roster" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 md:px-8 md:pb-20">
         <RosterSection roster={roster} primary={team.colors.primary} />

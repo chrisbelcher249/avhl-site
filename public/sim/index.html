@@ -381,27 +381,28 @@
       <section class="official-modal-card" role="dialog" aria-modal="true" aria-labelledby="official-modal-title">
         <p class="panel-kicker">AVHL administrator</p>
         <h2 id="official-modal-title">Verify Official Game</h2>
-        <p>Verify the administrator password, then enter the official schedule game number. The server checks the matchup before appending the finalized box score to the 2026–27 season workbook.</p>
+        <p>Verify the Commish password, match this simulation to its official schedule Game #, then save the result directly into the 2026–27 Team, Skater, and Goalie Stats sheets.</p>
         <form id="official-form">
-          <div id="official-password-step" class="official-step">
+          <div id="official-password-step">
             <label class="official-password-field">
-              Administrator password
+              Commish password
               <input id="official-password" type="password" autocomplete="current-password" required />
             </label>
             <div class="official-modal-buttons">
               <button type="button" data-official-close>Cancel</button>
-              <button type="submit" class="primary">Verify Password</button>
+              <button type="submit" class="primary">Continue</button>
             </div>
           </div>
-          <div id="official-game-step" class="official-step" hidden>
+          <div id="official-game-step" hidden>
             <label class="official-password-field">
-              Official game number (1–1640)
-              <input id="official-game-id" type="number" inputmode="numeric" min="1" max="1640" step="1" />
+              Official Game # (1–1640)
+              <input id="official-game-number" type="number" min="1" max="1640" inputmode="numeric" />
             </label>
-            <div id="official-matchup" class="official-matchup">Enter the scheduled game number to verify this matchup.</div>
+            <div id="official-matchup" class="official-matchup" hidden></div>
             <div class="official-modal-buttons">
               <button type="button" data-official-close>Cancel</button>
-              <button type="submit" id="official-save-button" class="primary" disabled>Save Official Result</button>
+              <button type="button" id="official-check-game" class="primary">Verify Matchup</button>
+              <button type="button" id="official-save-game" class="primary" disabled>Save Official Result</button>
             </div>
           </div>
           <p id="official-error" class="official-error" aria-live="polite"></p>

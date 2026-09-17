@@ -21,7 +21,7 @@ export default async function StandingsPage() {
           <p className="text-sm font-black uppercase tracking-[0.26em] text-cyan-200">2026–27 Major League</p>
           <h1 className="mt-3 text-5xl font-black uppercase tracking-tight md:text-7xl">Standings</h1>
           <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-white/65 md:text-lg">
-            One live table, five ways to view the race. Every ranking and projected playoff seed updates from official finalized results in the 2026–27 season workbook using the AVHL&apos;s full tiebreaker order.
+            One live table, five ways to view the race. Every ranking and projected playoff seed updates from official Team Stats results joined to the season schedule using the AVHL&apos;s full tiebreaker order.
           </p>
           <div className="mt-8 grid max-w-3xl grid-cols-2 gap-3 md:grid-cols-3">
             {[[completedGames, "Games completed"], [schedule.length - completedGames, "Games remaining"], [source === "live" ? "Live" : "Fallback", "Schedule source"]].map(([value, label]) => (

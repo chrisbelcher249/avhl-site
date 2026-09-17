@@ -1,71 +1,12 @@
+import { teams } from "../../../../data/teams";
 import { verifySimExportPassword } from "@/lib/credentials";
-import { getOfficialScheduleGame } from "@/lib/schedule";
 import { buildOfficialSheetRows } from "@/lib/officialGame";
-import { gameAlreadySaved, writeOfficialGameRows } from "@/lib/googleSheetsWrite";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-function gameNumber(value) {
-  const parsed = Number.parseInt(String(value ?? ""), 10);
-  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 1640 ? parsed : null;
-}
-
-function matchupMatches(game, packet) {
-  return game?.away?.abbreviation === String(packet?.away?.abbreviation || "").toUpperCase()
-    && game?.home?.abbreviation === String(packet?.home?.abbreviation || "").toUpperCase();
-}
-
-export async function GET(request) {
-  try {
-    const id = gameNumber(new URL(request.url).searchParams.get("gameId"));
-    if (!id) return Response.json({ ok: false, error: "Enter a game number from 1 to 1640." }, { status: 400 });
-    const game = await getOfficialScheduleGame(id);
-    if (!game) return Response.json({ ok: false, error: `Game ${id} was not found in the official schedule.` }, { status: 404 });
-    return Response.json({ ok: true, game: { id: game.id, date: game.date, away: game.away.abbreviation, awayName: game.away.name, home: game.home.abbreviation, homeName: game.home.name } }, { headers: { "Cache-Control": "no-store, max-age=0" } });
-  } catch (error) {
-    console.error("Official game lookup failed", error);
-    return Response.json({ ok: false, error: "Unable to check the official schedule right now." }, { status: 500 });
-  }
-}
-
-export async function POST(request) {
-  try {
-    const body = await request.json();
-    const password = String(body?.password || "");
-    if (!verifySimExportPassword(password)) {
-      return Response.json({ ok: false, error: "Incorrect administrator password." }, { status: 401 });
-    }
-    const id = gameNumber(body?.gameId);
-    if (!id) return Response.json({ ok: false, error: "Enter a game number from 1 to 1640." }, { status: 400 });
-    const packet = body?.packet;
-    if (!packet?.away || !packet?.home || !packet?.summary) return Response.json({ ok: false, error: "The completed simulator game could not be read." }, { status: 400 });
-
-    const scheduled = await getOfficialScheduleGame(id);
-    if (!scheduled) return Response.json({ ok: false, error: `Game ${id} was not found in the official schedule.` }, { status: 404 });
-    if (!matchupMatches(scheduled, packet)) {
-      return Response.json({
-        ok: false,
-        error: `Game ${id} is ${scheduled.away.abbreviation} at ${scheduled.home.abbreviation}, but this simulation is ${packet.away.abbreviation} at ${packet.home.abbreviation}.`,
-      }, { status: 409 });
-    }
-    if (await gameAlreadySaved(id)) {
-      return Response.json({ ok: false, error: `Game ${id} has already been submitted.` }, { status: 409 });
-    }
-
-    const rows = buildOfficialSheetRows(id, packet);
-    await writeOfficialGameRows({ gameId: id, teamRows: rows.teamRows, skaterRows: rows.skaterRows, goalieRows: rows.goalieRows });
-    return Response.json({
-      ok: true,
-      gameId: id,
-      matchup: `${scheduled.away.abbreviation} at ${scheduled.home.abbreviation}`,
-      score: `${packet.away.abbreviation} ${packet.away.score} – ${packet.home.abbreviation} ${packet.home.score}`,
-      finish: rows.finish,
-      written: { teams: rows.teamRows.length, skaters: rows.skaterRows.length, goalies: rows.goalieRows.length },
-    }, { headers: { "Cache-Control": "no-store, max-age=0" } });
-  } catch (error) {
-    console.error("Official simulator game submission failed", error);
-    const status = error?.code === "DUPLICATE_GAME" ? 409 : 500;
-    return Response.json({ ok: false, error: error?.message || "Unable to save the official game." }, { status });
-  }
-}
+import { getSchedule } from "@/lib/schedule";
+import { getTeamGameRows } from "@/lib/seasonStats";
+import { writeOfficialGameRows } from "@/lib/googleSheetsWrite";
+export const runtime="nodejs"; export const dynamic="force-dynamic";
+const teamBySlug=Object.fromEntries(teams.map((team)=>[team.slug,team]));
+const gameNumber=(value)=>{const n=Number.parseInt(String(value??""),10); return Number.isInteger(n)&&n>=1&&n<=1640?n:null;};
+async function scheduledGame(number){const {schedule}=await getSchedule(); const game=schedule.find((g)=>g.id===number); if(!game) throw new Error(`Game ${number} was not found in the official schedule.`); const away=teamBySlug[game.away],home=teamBySlug[game.home]; if(!away||!home) throw new Error(`Game ${number} contains an unknown team.`); return {game,away,home};}
+const sameMatchup=(official,away,home)=>official.away.abbreviation===String(away||"").toUpperCase()&&official.home.abbreviation===String(home||"").toUpperCase();
+export async function POST(request){try{const body=await request.json(); const password=String(body?.password||""); if(!verifySimExportPassword(password)) return Response.json({ok:false,error:"Incorrect administrator password."},{status:401}); const number=gameNumber(body?.gameNumber); if(!number) return Response.json({ok:false,error:"Enter an official Game # from 1 to 1640."},{status:400}); const official=await scheduledGame(number); const awayAbbreviation=body?.packet?.away?.abbreviation||body?.awayAbbreviation, homeAbbreviation=body?.packet?.home?.abbreviation||body?.homeAbbreviation; if(!sameMatchup(official,awayAbbreviation,homeAbbreviation)) return Response.json({ok:false,error:`Game ${number} is ${official.away.abbreviation} @ ${official.home.abbreviation}, not ${String(awayAbbreviation||"?").toUpperCase()} @ ${String(homeAbbreviation||"?").toUpperCase()}.`,game:{id:number,date:official.game.date,away:official.away.abbreviation,awayName:official.away.name,home:official.home.abbreviation,homeName:official.home.name}},{status:409}); const {rows:existingRows}=await getTeamGameRows(); if(existingRows.some((row)=>row.gameId===number)) return Response.json({ok:false,error:`Game ${number} has already been submitted.`},{status:409}); if(body?.action==="check") return Response.json({ok:true,game:{id:number,date:official.game.date,away:official.away.abbreviation,awayName:official.away.name,home:official.home.abbreviation,homeName:official.home.name}},{headers:{"Cache-Control":"no-store, max-age=0"}}); if(body?.action!=="save"||!body?.packet) return Response.json({ok:false,error:"Official game data was not supplied."},{status:400}); const {teamRows,skaterRows,goalieRows,finish}=buildOfficialSheetRows(number,body.packet); const result=await writeOfficialGameRows({gameId:number,teamRows,skaterRows,goalieRows}); return Response.json({ok:true,game:{id:number,away:official.away.abbreviation,home:official.home.abbreviation,awayScore:Number(body.packet.away.score)||0,homeScore:Number(body.packet.home.score)||0,finish},rows:{team:result.teamRows,skaters:result.skaterRows,goalies:result.goalieRows}},{headers:{"Cache-Control":"no-store, max-age=0"}});}catch(error){console.error("Official simulator game submission failed",error); const message=error instanceof Error?error.message:"Unable to save the official game."; const status=/credentials are not configured|permission|PERMISSION_DENIED/i.test(message)?503:500; return Response.json({ok:false,error:message},{status});}}

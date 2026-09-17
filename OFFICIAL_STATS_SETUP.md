@@ -1,47 +1,49 @@
-# 2026–27 Official Stats Workbook Setup
+# 2026-27 live schedule + stats setup
 
-The site reads the 2026–27 season from Google Sheet:
+The 2026-27 site uses one Google workbook as the season source of truth:
 
-`1oE_GTm72iMRlTAZBZTBw305vBWnGUeJfY7_fGvcWr5M`
+- `Schedule` — official 1-1640 fixture list (`Game ID`, `Day`, `Date`, `Away Team`, `Home Team`)
+- `Team Stats` — two rows per completed game
+- `Skater Stats` — one row per dressed skater per completed game
+- `Goalie Stats` — one row per dressed goalie, including backups with 0:00 TOI
 
-Expected tabs (exact names):
-
-- `Schedule`
-- `Team Stats`
-- `Skater Stats`
-- `Goalie Stats`
+The production workbook ID is already configured in `src/lib/seasonSheets.js`. It can be overridden with `AVHL_SEASON_SHEET_ID`.
 
 ## Public read access
 
-The site reads all four tabs with the Google Sheets CSV endpoint. The workbook must remain accessible to the deployed site (for example, Anyone with the link can view).
+The website reads the four tabs through Google Sheets CSV output with `cache: no-store`. The workbook therefore needs to remain readable by the deployed site (the current shared-link/public-read setup is sufficient).
 
-## Official simulator write access
+The site aggregates the game-by-game rows at request time. No separate season-total sheet is required. Skater S%, FO%, goalie SV%, and GAA are recalculated from season totals rather than averaging game percentages.
 
-The Commish save is server-side and uses the Google Sheets API. It never exposes Google credentials in the browser.
+## Verified SIM write access
 
-1. In Google Cloud, create or choose a project.
-2. Enable **Google Sheets API**.
-3. Create a **service account**.
-4. Create a JSON key for that service account.
-5. Share the AVHL stats workbook with the service account email as **Editor**.
-6. In Vercel Project Settings → Environment Variables, add:
-   - `GOOGLE_SERVICE_ACCOUNT_EMAIL` = the service account `client_email`
-   - `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` = the service account `private_key`
-7. Redeploy.
+Verified SIM games write directly to the three stats tabs. The write endpoint never edits the `Schedule` tab; it uses that tab only to verify that Game # and matchup agree.
 
-The server supports either literal PEM newlines or `\\n`-escaped newlines in the private key environment variable.
+1. In Google Cloud, create/select a project and enable **Google Sheets API**.
+2. Create a **service account** and a JSON key.
+3. Share the 2026-27 season workbook with the service account's `client_email` as **Editor**.
+4. Add these environment variables in Vercel:
+   - `GOOGLE_SHEETS_CLIENT_EMAIL` = the service account `client_email`
+   - `GOOGLE_SHEETS_PRIVATE_KEY` = the service account `private_key` (the `\\n` escaped form from JSON is accepted)
+   - optional `AVHL_SEASON_SHEET_ID` = workbook ID if using a staging copy
+5. Redeploy after saving the environment variables.
 
-## Official game workflow
+The existing Commish password remains controlled by the site's existing simulator export/admin credential logic.
 
-1. Finish a simulator game.
+## Official SIM flow
+
+1. Finish a simulation.
 2. Click **Verify Official Game**.
-3. Enter the Commish/admin password.
-4. Enter official Game ID `1`–`1640`.
-5. The site checks the `Schedule` tab to confirm the simulated away/home matchup.
-6. **Save Official Result** appends:
-   - 2 rows to `Team Stats`
-   - 36 skater rows to `Skater Stats`
-   - all 4 dressed goalies to `Goalie Stats` (including unused backups)
-7. The API rejects a Game ID already present in `Team Stats`.
+3. Enter the Commish password.
+4. Enter Game # `1` through `1640`.
+5. The server looks up that Game # from the live `Schedule` tab and requires the away/home matchup to match the simulation.
+6. **Save Official Result** appends the game to the next unused rows in `Team Stats`, `Skater Stats`, and `Goalie Stats`.
+7. A Game ID already present in any stats tab is rejected, so an official game cannot be saved twice accidentally.
 
-The write uses the next open row in each stat tab and does not clear or replace previous games.
+Player IDs are normalized to four text digits (`1` -> `0001`, `174` -> `0174`). Both dressed goalies are written, including a backup with `0:00`, `0` SA/SV, `0.000` SV%, and `0.00` GAA.
+
+## SNS games
+
+SNS / EA games can be entered manually into the same three stats tabs using the same columns. Once both `Team Stats` rows for a Game ID are present and consistent, the website treats that game as final and joins the result back to the static fixture in `Schedule`.
+
+For an OT or shootout loss to count correctly in standings, enter `Finish` as `OT` or `SO` on both team rows. Use `REG` for regulation finals.

@@ -90,9 +90,10 @@
     officialPassword: document.getElementById("official-password"),
     officialPasswordStep: document.getElementById("official-password-step"),
     officialGameStep: document.getElementById("official-game-step"),
-    officialGameId: document.getElementById("official-game-id"),
+    officialGameNumber: document.getElementById("official-game-number"),
     officialMatchup: document.getElementById("official-matchup"),
-    officialSaveButton: document.getElementById("official-save-button"),
+    officialCheckGame: document.getElementById("official-check-game"),
+    officialSaveGame: document.getElementById("official-save-game"),
     officialError: document.getElementById("official-error"),
     officialCloseButtons: [...document.querySelectorAll("[data-official-close]")]
   };
@@ -118,9 +119,8 @@
   let currentGameHistorySaved = false;
   let activeBoxTab = "team";
   let officialVerifiedGameId = null;
-  let officialPasswordVerified = false;
-  let officialPasswordCache = "";
-  let officialMatchupVerified = false;
+  let officialPasswordValue = "";
+  let officialCheckedGameNumber = null;
 
   function generateSeed() {
     try {
@@ -425,12 +425,14 @@
     if (!quiet) setStatus("Refreshing rosters + lineups…", "ready");
     try {
       const rosterStatus = await window.AVHL_LOAD_LIVE_ROSTERS();
-      const savedCount = Object.values(rosterStatus.lineupSources || {}).filter((source) => source === "saved").length;
-      console.info(`AVHL simulator rosters: ${rosterStatus.playerCount} players across ${rosterStatus.teamCount} teams (${rosterStatus.source}); ${savedCount} owner lineups`);
+      const lineupSources = Object.values(rosterStatus.lineupSources || {});
+      const savedCount = lineupSources.filter((source) => source === "saved").length;
+      const autoCount = lineupSources.filter((source) => source === "auto-optimized").length;
+      console.info(`AVHL simulator rosters: ${rosterStatus.playerCount} players across ${rosterStatus.teamCount} teams (${rosterStatus.source}); ${savedCount} owner lineups; ${autoCount} auto-optimized`);
       if (elements.assetStatus) {
         elements.assetStatus.dataset.ready = rosterStatus.source === "live" ? "true" : "false";
         elements.assetStatus.textContent = rosterStatus.source === "live"
-          ? `Live CSV rosters + latest lineups loaded (${rosterStatus.playerCount} players · ${savedCount} owner lineups)`
+          ? `Live CSV rosters + latest lineups loaded (${rosterStatus.playerCount} players · ${savedCount} owner · ${autoCount} auto-optimized)`
           : `Roster source: ${rosterStatus.source} (${rosterStatus.playerCount})`;
       }
       return rosterStatus;
@@ -1376,25 +1378,25 @@
     return `${SIMULATOR_VERSION}|${lineupIdentityToken(teams[awayId])}|${lineupIdentityToken(teams[homeId])}|${game.seed}`;
   }
 
-  function resetOfficialModalSteps() {
-    officialPasswordVerified = false;
-    officialPasswordCache = "";
-    officialMatchupVerified = false;
-    if (elements.officialPasswordStep) elements.officialPasswordStep.hidden = false;
-    if (elements.officialGameStep) elements.officialGameStep.hidden = true;
-    if (elements.officialGameId) elements.officialGameId.value = "";
-    if (elements.officialSaveButton) elements.officialSaveButton.disabled = true;
-    if (elements.officialMatchup) {
-      elements.officialMatchup.textContent = "Enter the scheduled game number to verify this matchup.";
-      elements.officialMatchup.classList.remove("match", "mismatch");
-    }
+  function officialFinish() {
+    const finalEvent = [...events].reverse().find((event) => event.type === "final") || events[events.length - 1];
+    if (finalEvent?.period === "SO") return "SO";
+    if (Number(finalEvent?.period) === 4) return "OT";
+    return "REG";
   }
 
   function openOfficialModal() {
     if (!game?.finalSummary || currentEventIndex < events.length - 1) return;
+    officialPasswordValue = "";
+    officialCheckedGameNumber = null;
     elements.officialError.textContent = "";
     elements.officialPassword.value = "";
-    resetOfficialModalSteps();
+    elements.officialGameNumber.value = "";
+    elements.officialPasswordStep.hidden = false;
+    elements.officialGameStep.hidden = true;
+    elements.officialMatchup.hidden = true;
+    elements.officialMatchup.innerHTML = "";
+    elements.officialSaveGame.disabled = true;
     elements.officialModal.hidden = false;
     requestAnimationFrame(() => elements.officialPassword.focus());
   }
@@ -1402,184 +1404,78 @@
   function closeOfficialModal() {
     if (!elements.officialModal) return;
     elements.officialModal.hidden = true;
+    officialPasswordValue = "";
+    officialCheckedGameNumber = null;
     if (elements.officialPassword) elements.officialPassword.value = "";
+    if (elements.officialGameNumber) elements.officialGameNumber.value = "";
     if (elements.officialError) elements.officialError.textContent = "";
-    resetOfficialModalSteps();
+    if (elements.officialMatchup) { elements.officialMatchup.hidden = true; elements.officialMatchup.innerHTML = ""; }
+    if (elements.officialSaveGame) elements.officialSaveGame.disabled = true;
   }
 
   async function verifyOfficialPassword(password) {
-    const response = await fetch("/api/sim-export-auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-      cache: "no-store"
-    });
+    const response = await fetch("/api/sim-export-auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }), cache: "no-store" });
     if (response.status === 401) return false;
     if (!response.ok) throw new Error("Administrator password verification is unavailable.");
     const payload = await response.json();
     return Boolean(payload?.ok);
   }
 
-  function cleanEventForOfficialPacket(event) {
-    return {
-      id: event.id,
-      type: event.type,
-      period: event.period,
-      periodLabel: event.periodLabel,
-      clock: event.clock,
-      clockText: event.clockText,
-      absoluteTime: event.absoluteTime,
-      strength: event.strength,
-      text: event.text,
-      teamId: event.teamId,
-      playerId: event.playerId,
-      secondaryPlayerId: event.secondaryPlayerId,
-      location: event.location,
-      mapType: event.mapType,
-      outcome: event.outcome,
-      details: event.details || null,
-      score: event.score
-    };
-  }
-
-  function officialLineupSnapshot(team) {
-    return {
-      source: team.lineupSource || "automatic",
-      revision: Number(team.lineupRevision) || 0,
-      updatedAt: team.lineupUpdatedAt || null,
-      forwards: (team.forwards || []).map((player) => ({
-        id: player.avhlId || player.id,
-        position: player.position,
-        line: player.line
-      })),
-      defense: (team.defense || []).map((player) => ({
-        id: player.avhlId || player.id,
-        position: player.position,
-        pair: player.pair
-      })),
-      goalies: (team.goalies || []).map((goalie) => ({
-        id: goalie.avhlId || goalie.id,
-        starter: goalie.id === team.starterId
-      })),
-      specialTeams: team.specialTeams || {},
-      overtimeUnits: team.overtimeUnits || [],
-      shootoutOrder: team.shootoutOrder || []
-    };
-  }
-
   function buildOfficialPacket() {
     const summary = game.finalSummary;
-    return {
-      schema: "avhl-official-game-v3",
-      simulatorVersion: SIMULATOR_VERSION,
-      gameId: officialGameId(),
-      verifiedAt: new Date().toISOString(),
-      seed: game.seed,
-      away: {
-        id: awayId,
-        abbreviation: teams[awayId].abbreviation,
-        fullName: teams[awayId].fullName,
-        score: summary.score[awayId],
-        lineup: officialLineupSnapshot(teams[awayId])
-      },
-      home: {
-        id: homeId,
-        abbreviation: teams[homeId].abbreviation,
-        fullName: teams[homeId].fullName,
-        score: summary.score[homeId],
-        lineup: officialLineupSnapshot(teams[homeId])
-      },
-      summary,
-      events: events.map(cleanEventForOfficialPacket)
-    };
+    return { schema: "avhl-official-game-v3", simulatorVersion: SIMULATOR_VERSION, simGameId: officialGameId(), verifiedAt: new Date().toISOString(), seed: game.seed, finish: officialFinish(), away: { id: awayId, abbreviation: teams[awayId].abbreviation, fullName: teams[awayId].fullName, score: summary.score[awayId] }, home: { id: homeId, abbreviation: teams[homeId].abbreviation, fullName: teams[homeId].fullName, score: summary.score[homeId] }, summary };
   }
 
-  async function checkOfficialGameNumber() {
-    if (!officialPasswordVerified || !elements.officialGameId) return;
-    const id = Number.parseInt(elements.officialGameId.value, 10);
-    officialMatchupVerified = false;
-    elements.officialSaveButton.disabled = true;
-    elements.officialMatchup.classList.remove("match", "mismatch");
-    if (!Number.isInteger(id) || id < 1 || id > 1640) {
-      elements.officialMatchup.textContent = "Enter a game number from 1 to 1640.";
-      return;
-    }
-    elements.officialMatchup.textContent = `Checking Game ${id}…`;
-    try {
-      const response = await fetch(`/api/sim-official-game?gameId=${encodeURIComponent(id)}`, { cache: "no-store" });
-      const payload = await response.json();
-      if (!response.ok || !payload?.game) throw new Error(payload?.error || "Unable to find that game.");
-      const actualAway = String(teams[awayId]?.abbreviation || "").toUpperCase();
-      const actualHome = String(teams[homeId]?.abbreviation || "").toUpperCase();
-      const matches = payload.game.away === actualAway && payload.game.home === actualHome;
-      officialMatchupVerified = matches;
-      elements.officialSaveButton.disabled = !matches;
-      elements.officialMatchup.classList.add(matches ? "match" : "mismatch");
-      elements.officialMatchup.textContent = matches
-        ? `Game ${id} · ${payload.game.away} at ${payload.game.home} · Match confirmed`
-        : `Game ${id} is ${payload.game.away} at ${payload.game.home}. This simulation is ${actualAway} at ${actualHome}.`;
-    } catch (error) {
-      elements.officialMatchup.classList.add("mismatch");
-      elements.officialMatchup.textContent = error.message || "Unable to verify that game number.";
-    }
+  async function officialApi(payload) {
+    const response = await fetch("/api/sim-official-game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), cache: "no-store" });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result?.ok) throw new Error(result?.error || "Official game request failed.");
+    return result;
   }
 
   async function submitOfficialGame(event) {
     event.preventDefault();
     if (!game?.finalSummary || currentEventIndex < events.length - 1) return;
-
-    if (!officialPasswordVerified) {
-      const password = elements.officialPassword.value;
-      elements.officialError.textContent = "Verifying password…";
-      try {
-        const valid = await verifyOfficialPassword(password);
-        if (!valid) {
-          elements.officialError.textContent = "Incorrect administrator password.";
-          elements.officialPassword.select();
-          return;
-        }
-        officialPasswordVerified = true;
-        officialPasswordCache = password;
-        elements.officialPasswordStep.hidden = true;
-        elements.officialGameStep.hidden = false;
-        elements.officialError.textContent = "Password verified. Enter the official schedule game number.";
-        requestAnimationFrame(() => elements.officialGameId.focus());
-      } catch (error) {
-        console.error(error);
-        elements.officialError.textContent = error.message || "Could not verify administrator password.";
-      }
-      return;
-    }
-
-    if (!officialMatchupVerified) {
-      elements.officialError.textContent = "Verify a matching official game number before saving.";
-      return;
-    }
-
-    const gameId = Number.parseInt(elements.officialGameId.value, 10);
-    elements.officialError.textContent = `Saving Game ${gameId}…`;
-    elements.officialSaveButton.disabled = true;
+    const password = elements.officialPassword.value;
+    elements.officialError.textContent = "Verifying Commish password…";
     try {
-      const packet = buildOfficialPacket();
-      const response = await fetch("/api/sim-official-game", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: officialPasswordCache, gameId, packet }),
-        cache: "no-store"
-      });
-      const payload = await response.json();
-      if (!response.ok || !payload?.ok) throw new Error(payload?.error || "Unable to save the official game.");
-      officialVerifiedGameId = String(gameId);
+      const valid = await verifyOfficialPassword(password);
+      if (!valid) { elements.officialError.textContent = "Incorrect administrator password."; elements.officialPassword.select(); return; }
+      officialPasswordValue = password;
+      elements.officialPassword.value = "";
+      elements.officialPasswordStep.hidden = true;
+      elements.officialGameStep.hidden = false;
+      elements.officialError.textContent = "Password verified. Enter the official Game #.";
+      requestAnimationFrame(() => elements.officialGameNumber.focus());
+    } catch (error) { console.error(error); elements.officialError.textContent = error.message || "Could not verify administrator password."; }
+  }
+
+  async function checkOfficialGame() {
+    const gameNumber = Number.parseInt(elements.officialGameNumber.value, 10);
+    if (!Number.isInteger(gameNumber) || gameNumber < 1 || gameNumber > 1640) { elements.officialError.textContent = "Enter a Game # from 1 to 1640."; return; }
+    elements.officialCheckGame.disabled = true; elements.officialSaveGame.disabled = true; elements.officialError.textContent = "Checking the official schedule…";
+    try {
+      const result = await officialApi({ action: "check", password: officialPasswordValue, gameNumber, awayAbbreviation: teams[awayId].abbreviation, homeAbbreviation: teams[homeId].abbreviation });
+      officialCheckedGameNumber = gameNumber;
+      elements.officialMatchup.innerHTML = `<strong>Game ${escapeHtml(result.game.id)}</strong> · ${escapeHtml(result.game.awayName)} @ ${escapeHtml(result.game.homeName)}<br><strong>Sim final:</strong> ${escapeHtml(teams[awayId].abbreviation)} ${escapeHtml(game.finalSummary.score[awayId])} – ${escapeHtml(teams[homeId].abbreviation)} ${escapeHtml(game.finalSummary.score[homeId])} · ${escapeHtml(officialFinish())}`;
+      elements.officialMatchup.hidden = false; elements.officialSaveGame.disabled = false; elements.officialError.textContent = "Matchup confirmed. Save when ready.";
+    } catch (error) { console.error(error); officialCheckedGameNumber = null; elements.officialMatchup.hidden = true; elements.officialError.textContent = error.message || "Could not verify the official Game #."; }
+    finally { elements.officialCheckGame.disabled = false; }
+  }
+
+  async function saveOfficialGame() {
+    if (!officialCheckedGameNumber) { elements.officialError.textContent = "Verify the Game # first."; return; }
+    elements.officialSaveGame.disabled = true; elements.officialCheckGame.disabled = true; elements.officialError.textContent = "Saving official stats…";
+    try {
+      const result = await officialApi({ action: "save", password: officialPasswordValue, gameNumber: officialCheckedGameNumber, packet: buildOfficialPacket() });
+      officialVerifiedGameId = result.game.id;
       closeOfficialModal();
-      elements.officialStatus.textContent = `Official · Game ${gameId} saved`;
+      elements.officialStatus.textContent = `Official · Game ${result.game.id} saved`;
       elements.officialStatus.classList.add("verified");
-      elements.officialExportButton.textContent = `Game ${gameId} Saved`;
+      elements.officialExportButton.textContent = `Game ${result.game.id} Saved`;
       elements.officialExportButton.disabled = true;
-    } catch (error) {
-      console.error(error);
-      elements.officialError.textContent = error.message || "Could not save the official result.";
-      elements.officialSaveButton.disabled = false;
-    }
+    } catch (error) { console.error(error); elements.officialError.textContent = error.message || "Could not save the official game."; elements.officialSaveGame.disabled = false; }
+    finally { elements.officialCheckGame.disabled = false; }
   }
 
   function summaryLeaderText(homeValue, awayValue) {
@@ -1753,7 +1649,9 @@
   });
   elements.officialExportButton?.addEventListener("click", openOfficialModal);
   elements.officialForm?.addEventListener("submit", submitOfficialGame);
-  elements.officialGameId?.addEventListener("change", checkOfficialGameNumber);
+  elements.officialCheckGame?.addEventListener("click", checkOfficialGame);
+  elements.officialSaveGame?.addEventListener("click", saveOfficialGame);
+  elements.officialGameNumber?.addEventListener("input", () => { officialCheckedGameNumber = null; elements.officialSaveGame.disabled = true; elements.officialMatchup.hidden = true; });
   elements.officialCloseButtons.forEach((button) => button.addEventListener("click", closeOfficialModal));
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !elements.officialModal?.hidden) closeOfficialModal();

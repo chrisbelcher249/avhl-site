@@ -358,10 +358,10 @@ window.AVHL_DATA = {
     if (!Array.isArray(roster) || roster.length < 20) return false;
 
     // /api/sim-rosters supplies one server-validated lineup record for every
-    // team (owner-saved when valid, otherwise the server projection). Do not
-    // invent a second browser-side fallback if that record cannot be applied:
-    // a transform failure must stop the game rather than silently changing the
-    // lineup the owner/public page says will be used.
+    // team: owner-saved when valid, projected when no owner lineup exists, and
+    // auto-optimized immediately after a roster move invalidates an owner lineup.
+    // The browser never invents a second fallback; if the server record itself
+    // cannot be applied, fail closed rather than silently changing it.
     const lineup = liveLineupByAbbreviation?.[meta.abbreviation];
     if (!lineup || !applySavedLineup(team, meta, roster, lineup)) return false;
 

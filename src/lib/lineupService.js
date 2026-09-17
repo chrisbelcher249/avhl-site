@@ -45,9 +45,10 @@ export async function getEffectiveLineup(abbreviation) {
       source = "saved";
     } else {
       savedErrors = validation.errors;
-      // Keep the stored revision on the projected replacement so a re-save can
-      // safely prove which saved version it is replacing. This prevents a stale
-      // browser tab from overwriting a newer owner update.
+      source = "auto-optimized";
+      // A roster move immediately invalidates the owner lineup as the active
+      // lineup. Use a fresh optimized projection right away while retaining the
+      // old revision only for compare-and-save safety when the owner returns.
       record = {
         ...projectedRecord,
         revision: Math.max(0, Number(saved.revision) || 0),
@@ -106,13 +107,14 @@ export async function getEffectiveLineupsForSimulator(players) {
         sources[team.abbreviation] = "saved";
         continue;
       }
-      // A team that already has an owner-saved lineup must not silently switch
-      // to a server projection after a roster transaction. Leave its simulator
-      // record absent so matchup creation fails until the owner repairs/saves
-      // the lineup against the new roster. The public lineup page can still
-      // show a projection as an editing aid.
+      // A roster transaction invalidates the owner lineup immediately. The
+      // active lineup becomes a fresh server-generated optimized projection so
+      // the commissioner can still simulate without manually repairing lines.
+      // Keep the validation errors for UI/status messaging, but always provide
+      // the valid projected record to the simulator.
+      records[team.abbreviation] = projected;
       invalid[team.abbreviation] = validation.errors;
-      sources[team.abbreviation] = "invalid-saved";
+      sources[team.abbreviation] = "auto-optimized";
       continue;
     }
     records[team.abbreviation] = projected;

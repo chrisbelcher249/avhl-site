@@ -1,16 +1,23 @@
-# Site 41 — 2026–27 Live Schedule + Statistics Workbook
+## 2026-09-17 — Site 42: auto-optimized invalid lineups + bracket cleanup
 
-- Rewired the 2026–27 schedule source to the consolidated season workbook `1oE_GTm72iMRlTAZBZTBw305vBWnGUeJfY7_fGvcWr5M`, using the `Schedule` tab for fixtures and `Team Stats` for finalized results.
-- Preserved the existing full-schedule and individual-team schedule presentation while changing the underlying data source; standings and playoff calculations continue to use the central `getSchedule()` result.
-- Added live current-season compilation from `Team Stats`, `Skater Stats`, and `Goalie Stats`. Percentages are recalculated from season totals where the underlying components exist.
-- Added 2026–27 team, skater, and goalie tables to `/statistics`, live season lines to player profiles, and live team/player stat tables to every team profile.
-- Replaced JSON packet download as the official simulator workflow. Commish verification is now: password → Game ID 1–1640 → scheduled-matchup check → server-side save.
-- Added duplicate-Game-ID protection and server-side Google Sheets write-back that writes to the next open rows without clearing or overwriting prior games.
-- Official simulator saves append 2 team rows, 36 skater rows, and all 4 dressed goalie rows, including unused backups with 0:00 and 0.000 SV%.
-- Player IDs are normalized to the AVHL four-digit text format before write-back (for example 1 → 0001, 174 → 0174).
-- Added support for REG / OT / SO result labels; schedule cards display `Final · SO` distinctly from overtime.
-- Added `OFFICIAL_STATS_SETUP.md` and Vercel environment-variable placeholders for Google Sheets API service-account write access.
-- Preserved Vercel Analytics, horns/navigation, owner lineup editing, Redis persistence, and simulator logic. All existing simulator/lineup regression suites pass after the integration.
+- Roster transactions now immediately demote an invalid owner-saved lineup from active status and replace it with a fresh server-generated auto-optimized lineup from the live roster.
+- Public lineup pages label that state `Auto-optimized lineup`, explain why the owner lineup became invalid, and keep the prior revision only so the owner can safely save a new version later.
+- The simulator now accepts the same server-authoritative auto-optimized fallback instead of blocking the commissioner until the owner repairs the lineup manually.
+- Simulator roster status shows owner-saved and auto-optimized lineup counts separately. Malformed server lineup records still fail closed.
+- Cleaned the live playoff bracket geometry: every advancement slot is centered between its feeder teams, connector lines use short square branches, seed labels no longer shift logo boxes off the connector coordinates, and projected-winner boxes now match team-logo box sizing.
+- League Final participants now sit side-by-side with a short centered champion connector instead of the previous looping middle paths.
+- Re-ran lineup integrity, simulator-lineup handoff, lineup storage, and simulator regression suites after the changes.
+
+## 2026-09-17 — 2026-27 live schedule/stats + official SIM write-back
+
+- Rewired the 2026-27 schedule to the new season workbook `Schedule` tab while preserving the existing schedule UI and all per-team schedule filtering.
+- Joined completed results from `Team Stats` back to the static schedule by official Game ID, including REG/OT/SO final labels.
+- Added live 2026-27 aggregation for `Team Stats`, `Skater Stats`, and `Goalie Stats` across `/statistics`, team pages, and player pages.
+- Added skater/goalie/team game logs and season totals; percentages and goalie GAA are recalculated from season totals.
+- Backup goalie rows are retained as dressed appearances while GP only increments when TOI is greater than zero.
+- Replaced official SIM JSON download with Commish-password + Game # verification against the live 1-1640 schedule.
+- Added server-side Google Sheets write-back that appends to the next unused rows without overwriting prior games, rejects duplicate Game IDs, preserves four-digit AVHL player IDs, and writes both dressed goalies.
+- Added Google service-account environment-variable setup documentation in `OFFICIAL_STATS_SETUP.md`.
 
 # Site 40 — Goal Horns + Navigation Order
 

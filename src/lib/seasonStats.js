@@ -1,258 +1,100 @@
 import { teams } from "../../data/teams";
+import { fetchSeasonSheet, integer, isoDate, normalizePlayerId, numberValue, percentageValue, SEASON_TABS, timeToSeconds } from "./seasonSheets.js";
 
-export const SEASON_STATS_SHEET_ID = "1oE_GTm72iMRlTAZBZTBw305vBWnGUeJfY7_fGvcWr5M";
-export const SEASON_STATS_TABS = Object.freeze({
-  schedule: "Schedule",
-  team: "Team Stats",
-  skater: "Skater Stats",
-  goalie: "Goalie Stats",
-});
+const teamByAbbreviation = Object.fromEntries(teams.map((team) => [team.abbreviation, team]));
+const teamByName = Object.fromEntries(teams.map((team) => [team.name.toLowerCase(), team]));
+const text = (value) => String(value ?? "").trim();
 
-const teamByAbbreviation = Object.fromEntries(teams.map((team) => [team.abbreviation.toUpperCase(), team]));
-
-export function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let value = "";
-  let quoted = false;
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index];
-    const next = text[index + 1];
-    if (character === '"') {
-      if (quoted && next === '"') {
-        value += '"';
-        index += 1;
-      } else quoted = !quoted;
-    } else if (character === "," && !quoted) {
-      row.push(value);
-      value = "";
-    } else if ((character === "\n" || character === "\r") && !quoted) {
-      if (character === "\r" && next === "\n") index += 1;
-      row.push(value);
-      if (row.some((cell) => String(cell).trim() !== "")) rows.push(row);
-      row = [];
-      value = "";
-    } else value += character;
-  }
-  row.push(value);
-  if (row.some((cell) => String(cell).trim() !== "")) rows.push(row);
-  return rows;
+function penaltyMinutes(value) {
+  const raw = text(value);
+  if (!raw) return 0;
+  return raw.includes(":") ? timeToSeconds(raw) / 60 : numberValue(raw);
 }
 
-export function rowsToObjects(rows) {
-  if (rows.length < 2) return [];
-  const headers = rows[0].map((value) => String(value || "").trim());
-  return rows.slice(1)
-    .filter((row) => row.some((value) => String(value ?? "").trim() !== ""))
-    .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])));
+function parsePowerPlay(value) {
+  const match = text(value).match(/(-?\d+)\s*\/\s*(-?\d+)/);
+  return match ? { goals: integer(match[1]), opportunities: integer(match[2]) } : { goals: 0, opportunities: 0 };
 }
 
-function tabCsvUrl(tabName) {
-  return `https://docs.google.com/spreadsheets/d/${SEASON_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
-}
-
-export async function fetchSeasonTab(tabName) {
-  const response = await fetch(tabCsvUrl(tabName), { cache: "no-store" });
-  if (!response.ok) throw new Error(`Google Sheets returned ${response.status} for ${tabName}`);
-  const rows = parseCsv(await response.text());
-  if (!rows.length) throw new Error(`${tabName} did not contain a header row`);
-  return rowsToObjects(rows);
-}
-
-function number(value) {
-  const text = String(value ?? "").replace(/,/g, "").trim();
-  if (!text) return 0;
-  const parsed = Number.parseFloat(text);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function integer(value) {
-  return Math.trunc(number(value));
-}
-
-function percentage(value) {
-  const text = String(value ?? "").trim();
-  if (!text) return 0;
-  const parsed = Number.parseFloat(text.replace("%", ""));
-  if (!Number.isFinite(parsed)) return 0;
-  return text.includes("%") ? parsed / 100 : parsed;
-}
-
-export function timeToSeconds(value) {
-  const text = String(value ?? "").trim();
-  if (!text) return 0;
-  if (/^\d+(?:\.\d+)?$/.test(text)) return Number.parseFloat(text) || 0;
-  const parts = text.split(":").map((part) => Number.parseFloat(part));
-  if (parts.some((part) => !Number.isFinite(part))) return 0;
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  return 0;
-}
-
-export function secondsToTime(value) {
-  const total = Math.max(0, Math.round(Number(value) || 0));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const seconds = total % 60;
-  return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}` : `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-export function normalizePlayerId(value) {
-  return String(value ?? "").replace(/\D/g, "").padStart(4, "0").slice(-4);
-}
-
-function emptySkater(id, name = "") {
-  return { id, name, team: "", pos: "", gp: 0, toiSeconds: 0, g: 0, a: 0, pts: 0, plusMinus: 0, s: 0, shootingPct: 0, ppToiSeconds: 0, pim: 0, hits: 0, ppg: 0, shg: 0, fot: 0, fow: 0, foPct: 0 };
-}
-
-function emptyGoalie(id, name = "") {
-  return { id, name, team: "", gp: 0, toiSeconds: 0, sa: 0, sv: 0, svPct: 0, ga: 0, gaa: 0, eng: 0, pim: 0, g: 0, a: 0, pts: 0 };
-}
-
-export function aggregateSkaterRows(rows) {
-  const index = new Map();
-  for (const row of rows) {
-    const id = normalizePlayerId(row["Player ID"]);
-    if (!id || id === "0000") continue;
-    const stat = index.get(id) || emptySkater(id, String(row.Name || "").trim());
-    stat.name = String(row.Name || stat.name).trim();
-    stat.team = String(row.Team || stat.team).trim().toUpperCase();
-    stat.pos = String(row.Pos || stat.pos).trim();
-    stat.gp += 1;
-    stat.toiSeconds += timeToSeconds(row.Min);
-    stat.g += integer(row.G);
-    stat.a += integer(row.A);
-    stat.pts += integer(row.PTS);
-    stat.plusMinus += integer(row["+/-"]);
-    stat.s += integer(row.S);
-    stat.ppToiSeconds += timeToSeconds(row.PPT);
-    stat.pim += integer(row.PIM);
-    stat.hits += integer(row.Hits);
-    stat.ppg += integer(row.PPG);
-    stat.shg += integer(row.SHG);
-    stat.fot += integer(row.FOT);
-    stat.fow += integer(row.FOW);
-    index.set(id, stat);
-  }
-  for (const stat of index.values()) {
-    stat.shootingPct = stat.s ? stat.g / stat.s : 0;
-    stat.foPct = stat.fot ? stat.fow / stat.fot : 0;
-  }
-  return index;
-}
-
-export function aggregateGoalieRows(rows) {
-  const index = new Map();
-  for (const row of rows) {
-    const id = normalizePlayerId(row["Player ID"]);
-    if (!id || id === "0000") continue;
-    const stat = index.get(id) || emptyGoalie(id, String(row.Name || "").trim());
-    stat.name = String(row.Name || stat.name).trim();
-    stat.team = String(row.Team || stat.team).trim().toUpperCase();
-    const toi = timeToSeconds(row.Min);
-    if (toi > 0) stat.gp += 1;
-    stat.toiSeconds += toi;
-    stat.sa += integer(row.SA);
-    stat.sv += integer(row.SV);
-    stat.ga += integer(row.GA);
-    stat.eng += integer(row.ENG);
-    stat.pim += integer(row.PIM);
-    stat.g += integer(row.G);
-    stat.a += integer(row.A);
-    stat.pts += integer(row.PTS);
-    index.set(id, stat);
-  }
-  for (const stat of index.values()) {
-    stat.svPct = stat.sa ? stat.sv / stat.sa : 0;
-    stat.gaa = stat.toiSeconds ? (stat.ga * 3600) / stat.toiSeconds : 0;
-  }
-  return index;
-}
-
-export function aggregateTeamRows(rows) {
-  const index = new Map();
-  for (const row of rows) {
-    const abbreviation = String(row.Team || "").trim().toUpperCase();
-    if (!teamByAbbreviation[abbreviation]) continue;
-    const stat = index.get(abbreviation) || {
-      abbreviation, team: teamByAbbreviation[abbreviation], gp: 0, w: 0, l: 0, otl: 0,
-      gf: 0, ga: 0, shots: 0, hits: 0, toaSeconds: 0, passingTotal: 0, passingGames: 0,
-      faceoffsWon: 0, pim: 0, ppg: 0, ppo: 0, ppSeconds: 0, shg: 0, injuries: 0, manGamesLost: 0,
+export function parseTeamGameRows(rows) {
+  return rows.map((row) => {
+    const pp = parsePowerPlay(row.Powerplays);
+    const score = integer(row.Score);
+    const oppScore = integer(row["Opp Score"]);
+    const finish = text(row.Finish).toUpperCase() || "REG";
+    return {
+      gameId: integer(row["Game ID"]), source: text(row.Source).toUpperCase(), team: text(row.Team).toUpperCase(), teamName: text(row["Team Name"]), opponent: text(row.Opponent).toUpperCase(), homeAway: text(row["H/A"]).toUpperCase(), score, oppScore,
+      result: text(row.Result).toUpperCase() || (score > oppScore ? "W" : score < oppScore ? "L" : ""), finish,
+      shots: integer(row["Total Shots"]), hits: integer(row.Hits), timeOnAttack: timeToSeconds(row["Time On Attack"]), passing: percentageValue(row.Passing), faceoffsWon: integer(row["Faceoffs Won"]), penaltyMinutes: penaltyMinutes(row["Penalty Minutes"]),
+      powerPlayGoals: pp.goals, powerPlayOpportunities: pp.opportunities, powerPlayTime: timeToSeconds(row["Powerplay Minutes"]), shorthandedGoals: integer(row["Shorthanded Goals"]), injuries: integer(row.Injuries), manGamesLost: integer(row["Man-Games Lost"]),
     };
-    stat.gp += 1;
-    const result = String(row.Result || "").trim().toUpperCase();
-    const finish = String(row.Finish || "REG").trim().toUpperCase();
-    if (result === "W") stat.w += 1;
-    else if (result === "L" && (finish === "OT" || finish === "SO")) stat.otl += 1;
-    else if (result === "L") stat.l += 1;
-    stat.gf += integer(row.Score);
-    stat.ga += integer(row["Opp Score"]);
-    stat.shots += integer(row["Total Shots"]);
-    stat.hits += integer(row.Hits);
-    stat.toaSeconds += timeToSeconds(row["Time On Attack"]);
-    const passPct = percentage(row.Passing);
-    if (String(row.Passing ?? "").trim()) { stat.passingTotal += passPct; stat.passingGames += 1; }
-    stat.faceoffsWon += integer(row["Faceoffs Won"]);
-    stat.pim += integer(row["Penalty Minutes"]);
-    const pp = String(row.Powerplays || "").split("/");
-    stat.ppg += integer(pp[0]);
-    stat.ppo += integer(pp[1]);
-    stat.ppSeconds += timeToSeconds(row["Powerplay Minutes"]);
-    stat.shg += integer(row["Shorthanded Goals"]);
-    stat.injuries += integer(row.Injuries);
-    stat.manGamesLost += integer(row["Man-Games Lost"]);
-    index.set(abbreviation, stat);
+  }).filter((row) => row.gameId > 0 && row.team);
+}
+
+export function parseSkaterGameRows(rows) {
+  return rows.map((row) => ({
+    gameId: integer(row["Game ID"]), source: text(row.Source).toUpperCase(), team: text(row.Team).toUpperCase(), opponent: text(row.Opponent).toUpperCase(), homeAway: text(row["H/A"]).toUpperCase(), playerId: normalizePlayerId(row["Player ID"]), name: text(row.Name), position: text(row.Pos), toi: timeToSeconds(row.Min), goals: integer(row.G), assists: integer(row.A), points: integer(row.PTS), plusMinus: integer(row["+/-"]), shots: integer(row.S), shotPct: percentageValue(row["S%"]), ppToi: timeToSeconds(row.PPT), penaltyMinutes: penaltyMinutes(row.PIM), hits: integer(row.Hits), powerPlayGoals: integer(row.PPG), shorthandedGoals: integer(row.SHG), faceoffsTaken: integer(row.FOT), faceoffsWon: integer(row.FOW), faceoffPct: percentageValue(row["FO%"]),
+  })).filter((row) => row.gameId > 0 && row.playerId);
+}
+
+export function parseGoalieGameRows(rows) {
+  return rows.map((row) => ({
+    gameId: integer(row["Game ID"]), source: text(row.Source).toUpperCase(), team: text(row.Team).toUpperCase(), opponent: text(row.Opponent).toUpperCase(), homeAway: text(row["H/A"]).toUpperCase(), playerId: normalizePlayerId(row["Player ID"]), name: text(row.Name), toi: timeToSeconds(row.Min), shotsAgainst: integer(row.SA), saves: integer(row.SV), savePct: numberValue(row["SV%"]), goalsAgainst: integer(row.GA), gaa: numberValue(row.GAA), emptyNetGoals: integer(row.ENG), penaltyMinutes: penaltyMinutes(row.PIM), goals: integer(row.G), assists: integer(row.A), points: integer(row.PTS),
+  })).filter((row) => row.gameId > 0 && row.playerId);
+}
+
+export function parseScheduleRows(rows) {
+  return rows.map((row) => {
+    const awayName = text(row["Away Team"]), homeName = text(row["Home Team"]);
+    const awayTeam = teamByName[awayName.toLowerCase()], homeTeam = teamByName[homeName.toLowerCase()];
+    return { id: integer(row["Game ID"]), day: integer(row.Day), date: isoDate(row.Date), awayName, homeName, away: awayTeam?.slug || "", home: homeTeam?.slug || "", awayAbbreviation: awayTeam?.abbreviation || "", homeAbbreviation: homeTeam?.abbreviation || "" };
+  }).filter((row) => row.id > 0 && row.away && row.home);
+}
+
+function aggregateSkaters(rows) {
+  const byPlayer = new Map();
+  for (const row of rows) {
+    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, position: row.position, team: row.team, gp: 0, toi: 0, goals: 0, assists: 0, points: 0, plusMinus: 0, shots: 0, ppToi: 0, penaltyMinutes: 0, hits: 0, powerPlayGoals: 0, shorthandedGoals: 0, faceoffsTaken: 0, faceoffsWon: 0, gameRows: [] };
+    current.name = row.name || current.name; current.position = row.position || current.position; current.team = row.team || current.team; current.gp += 1; current.toi += row.toi; current.goals += row.goals; current.assists += row.assists; current.points += row.points; current.plusMinus += row.plusMinus; current.shots += row.shots; current.ppToi += row.ppToi; current.penaltyMinutes += row.penaltyMinutes; current.hits += row.hits; current.powerPlayGoals += row.powerPlayGoals; current.shorthandedGoals += row.shorthandedGoals; current.faceoffsTaken += row.faceoffsTaken; current.faceoffsWon += row.faceoffsWon; current.gameRows.push(row); byPlayer.set(row.playerId, current);
   }
-  for (const stat of index.values()) {
-    stat.pts = stat.w * 2 + stat.otl;
-    stat.shotsPerGame = stat.gp ? stat.shots / stat.gp : 0;
-    stat.hitsPerGame = stat.gp ? stat.hits / stat.gp : 0;
-    stat.gfPerGame = stat.gp ? stat.gf / stat.gp : 0;
-    stat.gaPerGame = stat.gp ? stat.ga / stat.gp : 0;
-    stat.passing = stat.passingGames ? stat.passingTotal / stat.passingGames : 0;
-    stat.ppPct = stat.ppo ? stat.ppg / stat.ppo : 0;
+  return [...byPlayer.values()].map((player) => ({ ...player, shotPct: player.shots ? player.goals / player.shots : 0, faceoffPct: player.faceoffsTaken ? player.faceoffsWon / player.faceoffsTaken : 0, toiPerGame: player.gp ? player.toi / player.gp : 0, ppToiPerGame: player.gp ? player.ppToi / player.gp : 0, teamInfo: teamByAbbreviation[player.team] || null, gameRows: player.gameRows.sort((a, b) => b.gameId - a.gameId) }));
+}
+
+function aggregateGoalies(rows) {
+  const byPlayer = new Map();
+  for (const row of rows) {
+    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, team: row.team, dressed: 0, gp: 0, toi: 0, shotsAgainst: 0, saves: 0, goalsAgainst: 0, emptyNetGoals: 0, penaltyMinutes: 0, goals: 0, assists: 0, points: 0, gameRows: [] };
+    current.name = row.name || current.name; current.team = row.team || current.team; current.dressed += 1; if (row.toi > 0) current.gp += 1; current.toi += row.toi; current.shotsAgainst += row.shotsAgainst; current.saves += row.saves; current.goalsAgainst += row.goalsAgainst; current.emptyNetGoals += row.emptyNetGoals; current.penaltyMinutes += row.penaltyMinutes; current.goals += row.goals; current.assists += row.assists; current.points += row.points; current.gameRows.push(row); byPlayer.set(row.playerId, current);
   }
-  return index;
+  return [...byPlayer.values()].map((goalie) => ({ ...goalie, savePct: goalie.shotsAgainst ? goalie.saves / goalie.shotsAgainst : 0, gaa: goalie.toi ? (goalie.goalsAgainst * 3600) / goalie.toi : 0, teamInfo: teamByAbbreviation[goalie.team] || null, gameRows: goalie.gameRows.sort((a, b) => b.gameId - a.gameId) }));
+}
+
+function emptyTeam(team) {
+  return { abbreviation: team.abbreviation, gp: 0, wins: 0, losses: 0, otl: 0, points: 0, goalsFor: 0, goalsAgainst: 0, shots: 0, hits: 0, timeOnAttack: 0, passingTotal: 0, faceoffsWon: 0, penaltyMinutes: 0, powerPlayGoals: 0, powerPlayOpportunities: 0, powerPlayTime: 0, shorthandedGoals: 0, injuries: 0, manGamesLost: 0, gameRows: [] };
+}
+
+function aggregateTeams(rows) {
+  const byTeam = new Map(teams.map((team) => [team.abbreviation, emptyTeam(team)]));
+  for (const row of rows) {
+    const current = byTeam.get(row.team) || emptyTeam({ abbreviation: row.team });
+    current.gp += 1; if (row.result === "W") { current.wins += 1; current.points += 2; } else if (row.result === "L" && ["OT", "SO"].includes(row.finish)) { current.otl += 1; current.points += 1; } else if (row.result === "L") current.losses += 1;
+    current.goalsFor += row.score; current.goalsAgainst += row.oppScore; current.shots += row.shots; current.hits += row.hits; current.timeOnAttack += row.timeOnAttack; current.passingTotal += row.passing; current.faceoffsWon += row.faceoffsWon; current.penaltyMinutes += row.penaltyMinutes; current.powerPlayGoals += row.powerPlayGoals; current.powerPlayOpportunities += row.powerPlayOpportunities; current.powerPlayTime += row.powerPlayTime; current.shorthandedGoals += row.shorthandedGoals; current.injuries += row.injuries; current.manGamesLost += row.manGamesLost; current.gameRows.push(row); byTeam.set(row.team, current);
+  }
+  return [...byTeam.values()].map((team) => ({ ...team, goalDifferential: team.goalsFor - team.goalsAgainst, pointsPct: team.gp ? team.points / (team.gp * 2) : 0, goalsForPerGame: team.gp ? team.goalsFor / team.gp : 0, goalsAgainstPerGame: team.gp ? team.goalsAgainst / team.gp : 0, shotsPerGame: team.gp ? team.shots / team.gp : 0, hitsPerGame: team.gp ? team.hits / team.gp : 0, timeOnAttackPerGame: team.gp ? team.timeOnAttack / team.gp : 0, passing: team.gp ? team.passingTotal / team.gp : 0, faceoffsWonPerGame: team.gp ? team.faceoffsWon / team.gp : 0, penaltyMinutesPerGame: team.gp ? team.penaltyMinutes / team.gp : 0, powerPlayPct: team.powerPlayOpportunities ? team.powerPlayGoals / team.powerPlayOpportunities : 0, teamInfo: teamByAbbreviation[team.abbreviation] || null, gameRows: team.gameRows.sort((a, b) => b.gameId - a.gameId) }));
+}
+
+export async function getTeamGameRows() {
+  try { const { rows } = await fetchSeasonSheet(SEASON_TABS.teamStats); return { rows: parseTeamGameRows(rows), source: "live", error: null }; }
+  catch (error) { console.error("Unable to load 2026-27 team game stats", error); return { rows: [], source: "unavailable", error: "Current team statistics are temporarily unavailable." }; }
 }
 
 export async function getSeasonStats() {
-  try {
-    const [teamRows, skaterRows, goalieRows] = await Promise.all([
-      fetchSeasonTab(SEASON_STATS_TABS.team),
-      fetchSeasonTab(SEASON_STATS_TABS.skater),
-      fetchSeasonTab(SEASON_STATS_TABS.goalie),
-    ]);
-    return {
-      teamRows, skaterRows, goalieRows,
-      teams: aggregateTeamRows(teamRows),
-      skaters: aggregateSkaterRows(skaterRows),
-      goalies: aggregateGoalieRows(goalieRows),
-      source: "live",
-      error: null,
-    };
-  } catch (error) {
-    console.error("Unable to load live 2026–27 AVHL statistics", error);
-    return {
-      teamRows: [], skaterRows: [], goalieRows: [],
-      teams: new Map(), skaters: new Map(), goalies: new Map(),
-      source: "unavailable",
-      error: "Live 2026–27 statistics are temporarily unavailable.",
-    };
-  }
-}
-
-export function playerSeasonStat(stats, player) {
-  const id = normalizePlayerId(player?.id);
-  if (player?.role === "Goalie") return stats.goalies.get(id) || emptyGoalie(id, player?.name || "");
-  return stats.skaters.get(id) || emptySkater(id, player?.name || "");
-}
-
-export function teamSeasonStat(stats, abbreviation) {
-  const key = String(abbreviation || "").toUpperCase();
-  return stats.teams.get(key) || {
-    abbreviation: key, team: teamByAbbreviation[key] || null, gp: 0, w: 0, l: 0, otl: 0, pts: 0,
-    gf: 0, ga: 0, shots: 0, hits: 0, toaSeconds: 0, passing: 0, faceoffsWon: 0, pim: 0,
-    ppg: 0, ppo: 0, ppSeconds: 0, ppPct: 0, shg: 0, injuries: 0, manGamesLost: 0,
-    shotsPerGame: 0, hitsPerGame: 0, gfPerGame: 0, gaPerGame: 0,
-  };
+  const tabs = [SEASON_TABS.teamStats, SEASON_TABS.skaterStats, SEASON_TABS.goalieStats, SEASON_TABS.schedule];
+  const requests = await Promise.allSettled(tabs.map((tab) => fetchSeasonSheet(tab)));
+  const errors = [];
+  const rows = requests.map((request, index) => { if (request.status === "fulfilled") return request.value.rows; errors.push(`${tabs[index]}: ${request.reason instanceof Error ? request.reason.message : String(request.reason)}`); return []; });
+  const teamGameRows = parseTeamGameRows(rows[0]), skaterGameRows = parseSkaterGameRows(rows[1]), goalieGameRows = parseGoalieGameRows(rows[2]), scheduleRows = parseScheduleRows(rows[3]);
+  const scheduleById = Object.fromEntries(scheduleRows.map((game) => [game.id, game]));
+  const skaters = aggregateSkaters(skaterGameRows), goalies = aggregateGoalies(goalieGameRows), teamStats = aggregateTeams(teamGameRows);
+  return { teamGameRows, skaterGameRows, goalieGameRows, scheduleRows, scheduleById, skaters, goalies, teams: teamStats, skaterById: Object.fromEntries(skaters.map((player) => [player.playerId, player])), goalieById: Object.fromEntries(goalies.map((player) => [player.playerId, player])), teamByAbbreviation: Object.fromEntries(teamStats.map((team) => [team.abbreviation, team])), source: errors.length ? (errors.length === 4 ? "unavailable" : "partial") : "live", error: errors.length ? "Some 2026–27 live statistics could not be loaded." : null };
 }
