@@ -9,8 +9,17 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function TeamsPage() {
+export default async function TeamsPage({ searchParams }) {
   const { teams } = await getTeams();
+  const params = await searchParams;
+  const requestedDivision = String(params?.division || "").toLowerCase();
+  const divisionLookup = {
+    pacific: "Pacific",
+    central: "Central",
+    atlantic: "Atlantic",
+    metropolitan: "Metropolitan",
+  };
+  const initialDivision = divisionLookup[requestedDivision] || "All";
   return (
     <main className="bg-white px-6 py-12 text-[#000B36] md:px-8 md:py-16">
       <section className="mx-auto max-w-7xl">
@@ -38,7 +47,7 @@ export default async function TeamsPage() {
           </div>
         </div>
         <div className="mt-10">
-          <TeamDirectory teams={teams} />
+          <TeamDirectory teams={teams} initialDivision={initialDivision} />
         </div>
       </section>
     </main>

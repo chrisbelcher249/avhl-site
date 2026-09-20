@@ -6,9 +6,9 @@ import { useMemo, useState } from "react";
 
 const filters = ["All", "Pacific", "Central", "Atlantic", "Metropolitan"];
 
-export default function TeamDirectory({ teams }) {
+export default function TeamDirectory({ teams, initialDivision = "All" }) {
   const [query, setQuery] = useState("");
-  const [division, setDivision] = useState("All");
+  const [division, setDivision] = useState(filters.includes(initialDivision) ? initialDivision : "All");
 
   const visibleTeams = useMemo(() => {
     const normalized = query.trim().toLowerCase();

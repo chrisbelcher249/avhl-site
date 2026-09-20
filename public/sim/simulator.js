@@ -1,5 +1,5 @@
 /*
-  AVHL Game Simulator V6.7.1
+  AVHL Game Simulator V6.7.2
   ----------------------
   Plain JavaScript, no packages, and intentionally separated from the UI.
 
@@ -497,6 +497,7 @@ class AVHLGameSimulator {
       lastContext: "faceoff",
       assistQueue: [],
       onIce: { [this.homeId]: [], [this.awayId]: [] },
+      goaliePulled: { [this.homeId]: false, [this.awayId]: false },
       currentForwardLine: { [this.homeId]: 0, [this.awayId]: 0 },
       currentDefensePair: { [this.homeId]: 0, [this.awayId]: 0 },
       forwardRotationIndex: { [this.homeId]: 0, [this.awayId]: 0 },
@@ -747,18 +748,98 @@ class AVHLGameSimulator {
     return counts;
   }
 
+  skaterCounts(state) {
+    const counts = this.strengthCounts(state);
+    for (const teamId of [this.homeId, this.awayId]) {
+      if (state.goaliePulled?.[teamId]) counts[teamId] += 1;
+    }
+    return counts;
+  }
+
   strengthLabel(state) {
     if (state.period === "SO") return "Shootout";
-    const counts = this.strengthCounts(state);
+    const counts = this.skaterCounts(state);
     return `${counts[this.homeId]}-on-${counts[this.awayId]}`;
   }
 
   teamSituation(state, teamId) {
+    // Special-teams classification is based only on penalties. Pulling the
+    // goalie adds an attacker but must not create fake PP time/goals.
     const counts = this.strengthCounts(state);
     const opponentId = this.opponent(teamId);
     if (counts[teamId] > counts[opponentId]) return "PP";
     if (counts[teamId] < counts[opponentId]) return "PK";
     return state.period === 4 ? "OT" : "EV";
+  }
+
+  goalieOnIce(state, teamId) {
+    return !state.goaliePulled?.[teamId];
+  }
+
+  goaliePullThreshold(state, teamId) {
+    if (state.period !== 3 || state.clock <= 0) return null;
+    const deficit = state.score[this.opponent(teamId)] - state.score[teamId];
+    if (deficit < 1 || deficit > 3) return null;
+    const base = { 1: 120, 2: 180, 3: 240 }[deficit];
+    return base + (this.teamSituation(state, teamId) === "PP" ? 30 : 0);
+  }
+
+  shouldPullGoalie(state, teamId) {
+    const threshold = this.goaliePullThreshold(state, teamId);
+    if (!threshold || state.clock > threshold) return false;
+    if (this.teamSituation(state, teamId) === "PK") return false;
+
+    // Once committed, keep the extra attacker out until the score/penalty
+    // situation changes. Before the first pull, wait for controlled possession
+    // or an offensive-zone draw so the goalie is not abandoned on a turnover.
+    if (state.goaliePulled?.[teamId]) return true;
+    if (state.possessionTeam === teamId) return true;
+    if (state.nextFaceoff) {
+      const direction = this.attackDirection(teamId, state.period);
+      const offensiveDepth = (state.nextFaceoff.x - 100) * direction;
+      return offensiveDepth >= 22;
+    }
+    return false;
+  }
+
+  setGoaliePulled(state, teamId, pulled) {
+    state.goaliePulled ??= { [this.homeId]: false, [this.awayId]: false };
+    if (Boolean(state.goaliePulled[teamId]) === Boolean(pulled)) return false;
+
+    const team = this.teams[teamId];
+    state.goaliePulled[teamId] = Boolean(pulled);
+    if (pulled) {
+      delete state.positions[team.goalie.id];
+      if (state.movementOverrides) delete state.movementOverrides[team.goalie.id];
+    }
+
+    this.setOnIce(state, teamId, this.chooseUnit(state, teamId, false), true);
+    if (!pulled) this.ensureCurrentPositions(state, teamId);
+
+    const counts = this.skaterCounts(state);
+    this.addEvent(
+      state,
+      pulled ? "goalie-pull" : "goalie-return",
+      pulled
+        ? `${team.name} pull ${team.goalie.name} for an extra attacker (${counts[teamId]} skaters).`
+        : `${team.goalie.name} returns to the ${team.name} net.`,
+      {
+        teamId,
+        playerId: team.goalie.id,
+        details: { pulled: Boolean(pulled), skaters: counts[teamId], strength: this.strengthLabel(state) }
+      }
+    );
+    return true;
+  }
+
+  updateGoaliePulls(state) {
+    if (!state.goaliePulled) return;
+    for (const teamId of [this.homeId, this.awayId]) {
+      const shouldPull = this.shouldPullGoalie(state, teamId);
+      if (shouldPull !== Boolean(state.goaliePulled[teamId])) {
+        this.setGoaliePulled(state, teamId, shouldPull);
+      }
+    }
   }
 
   unavailablePlayerIds(state, teamId) {
@@ -1010,13 +1091,15 @@ class AVHLGameSimulator {
       desired = [...team.forwardLines[lineIndex], ...team.defensePairs[pairIndex]];
     }
 
-    const needed = this.strengthCounts(state)[teamId];
+    const needed = this.skaterCounts(state)[teamId];
     const eligible = desired.filter((id) => !unavailable.has(id));
     const remaining = team.players
       .filter((player) => !unavailable.has(player.id) && !eligible.includes(player.id))
       .sort((a, b) => {
-        const scoreA = situation === "PK" ? this.penaltyKillScore(a) : this.powerPlayScore(a);
-        const scoreB = situation === "PK" ? this.penaltyKillScore(b) : this.powerPlayScore(b);
+        const extraAttackerBonusA = state.goaliePulled?.[teamId] && !a.position.includes("D") ? 18 : 0;
+        const extraAttackerBonusB = state.goaliePulled?.[teamId] && !b.position.includes("D") ? 18 : 0;
+        const scoreA = (situation === "PK" ? this.penaltyKillScore(a) : this.powerPlayScore(a)) + extraAttackerBonusA;
+        const scoreB = (situation === "PK" ? this.penaltyKillScore(b) : this.powerPlayScore(b)) + extraAttackerBonusB;
         return scoreB - scoreA;
       })
       .map((player) => player.id);
@@ -1272,7 +1355,9 @@ class AVHLGameSimulator {
   }
 
   ensureCurrentPositions(state, teamId) {
-    const activeIds = [...state.onIce[teamId], this.teams[teamId].goalie.id];
+    const team = this.teams[teamId];
+    const activeIds = [...state.onIce[teamId], ...(this.goalieOnIce(state, teamId) ? [team.goalie.id] : [])];
+    if (!this.goalieOnIce(state, teamId)) delete state.positions[team.goalie.id];
     for (const [index, id] of activeIds.entries()) {
       if (!state.positions[id]) {
         state.positions[id] = this.defaultPositionForPlayer(state, teamId, id, index);
@@ -1717,7 +1802,7 @@ class AVHLGameSimulator {
 
     for (const teamId of [this.homeId, this.awayId]) {
       const team = this.teams[teamId];
-      const ids = [...state.onIce[teamId], team.goalie.id];
+      const ids = [...state.onIce[teamId], ...(this.goalieOnIce(state, teamId) ? [team.goalie.id] : [])];
       ids.forEach((id, index) => {
         const player = id === team.goalie.id ? team.goalie : team.playerById[id];
         const current = state.positions[id] ?? this.defaultPositionForPlayer(state, teamId, id, index);
@@ -1833,12 +1918,16 @@ class AVHLGameSimulator {
         }
       }
 
-      team.goalie.stats.toi += seconds;
-      team.goalie.fatigue = this.clamp(
-        team.goalie.fatigue + seconds * (0.00009 - (team.goalie.endurance - 70) * 0.00000055),
-        0,
-        1
-      );
+      if (this.goalieOnIce(state, teamId)) {
+        team.goalie.stats.toi += seconds;
+        team.goalie.fatigue = this.clamp(
+          team.goalie.fatigue + seconds * (0.00009 - (team.goalie.endurance - 70) * 0.00000055),
+          0,
+          1
+        );
+      } else {
+        team.goalie.fatigue = this.clamp(team.goalie.fatigue - seconds * 0.0012, 0, 1);
+      }
       state.shiftAge[teamId] += seconds;
     }
 
@@ -2257,8 +2346,12 @@ class AVHLGameSimulator {
         state.positions[player.id] = clampPoint({ x: location.x + offset.x, y: location.y + offset.y });
       });
 
-      const goalieX = this.ownGoalX(teamId, state.period) + direction * 3;
-      state.positions[team.goalie.id] = clampPoint({ x: goalieX, y: 42.5 }, true);
+      if (this.goalieOnIce(state, teamId)) {
+        const goalieX = this.ownGoalX(teamId, state.period) + direction * 3;
+        state.positions[team.goalie.id] = clampPoint({ x: goalieX, y: 42.5 }, true);
+      } else {
+        delete state.positions[team.goalie.id];
+      }
     }
     state.puck = { ...location };
   }
@@ -3316,13 +3409,13 @@ class AVHLGameSimulator {
     const defendingTeamId = this.opponent(scoringTeamId);
     const attackingSkaters = [...state.onIce[scoringTeamId]];
     const defendingSkaters = [...state.onIce[defendingTeamId]];
-    const attackingGoalieId = this.teams[scoringTeamId].goalie.id;
-    const defendingGoalieId = this.teams[defendingTeamId].goalie.id;
+    const attackingGoalieId = this.goalieOnIce(state, scoringTeamId) ? this.teams[scoringTeamId].goalie.id : null;
+    const defendingGoalieId = this.goalieOnIce(state, defendingTeamId) ? this.teams[defendingTeamId].goalie.id : null;
     const participants = [
       ...attackingSkaters.map((id) => ({ id, teamId: scoringTeamId })),
-      { id: attackingGoalieId, teamId: scoringTeamId },
+      ...(attackingGoalieId ? [{ id: attackingGoalieId, teamId: scoringTeamId }] : []),
       ...defendingSkaters.map((id) => ({ id, teamId: defendingTeamId })),
-      { id: defendingGoalieId, teamId: defendingTeamId }
+      ...(defendingGoalieId ? [{ id: defendingGoalieId, teamId: defendingTeamId }] : [])
     ];
 
     const buildupSeconds = 6;
@@ -4334,6 +4427,7 @@ class AVHLGameSimulator {
       )
     );
     const goalie = defendingTeam.goalie;
+    const emptyNet = !this.goalieOnIce(state, defendingTeamId);
     const goalPoint = { x: this.attackingGoalX(teamId, state.period), y: 42.5 };
     const blocker = this.chooseBlocker(state, defendingTeamId, origin, goalPoint);
     const shotPower = this.shotPowerRating(shooter, technique);
@@ -4391,16 +4485,19 @@ class AVHLGameSimulator {
       return { goal: false, stopped: false };
     }
 
-    const target = this.chooseIntendedAndActualTarget(state, shooter, goalie, origin, technique, pressure);
+    const target = emptyNet
+      ? { intended: "open net", actual: "open net", openness: 1, execution: 1 }
+      : this.chooseIntendedAndActualTarget(state, shooter, goalie, origin, technique, pressure);
     const accuracy = this.shotAccuracyRating(shooter, technique);
     const onNetProbability = this.clamp(
       0.72 +
+      (emptyNet ? 0.10 : 0) +
       (accuracy - 80) * 0.008 +
       (shooter.poise - 80) * 0.003 -
       pressure * 0.11 -
       shooter.fatigue * 0.06,
       0.52,
-      0.88
+      emptyNet ? 0.95 : 0.88
     );
     const postProbability = this.clamp(0.026 + (accuracy - 80) * 0.0007, 0.018, 0.045);
 
@@ -4453,7 +4550,7 @@ class AVHLGameSimulator {
 
     shooter.stats.shots += 1;
     state.shots[teamId] += 1;
-    goalie.stats.shotsAgainst += 1;
+    if (!emptyNet) goalie.stats.shotsAgainst += 1;
 
     const shot = {
       origin,
@@ -4465,9 +4562,10 @@ class AVHLGameSimulator {
       intendedTarget: target.intended,
       actualTarget: target.actual,
       openness: target.openness,
-      execution: target.execution
+      execution: target.execution,
+      emptyNet
     };
-    const goalProbability = this.calculateGoalProbability(state, shooter, goalie, shot);
+    const goalProbability = emptyNet ? 1 : this.calculateGoalProbability(state, shooter, goalie, shot);
 
     if (this.random.chance(goalProbability)) {
       const scoringSituation = this.teamSituation(state, teamId);
@@ -4497,7 +4595,8 @@ class AVHLGameSimulator {
       state.score[teamId] += 1;
       shooter.stats.goals += 1;
       shooter.stats.points += 1;
-      goalie.stats.goalsAgainst += 1;
+      if (emptyNet) goalie.stats.emptyNetGoals += 1;
+      else goalie.stats.goalsAgainst += 1;
       const forcedAssistIds = Array.isArray(options.forcedAssistIds)
         ? options.forcedAssistIds
             .filter((id) => id && id !== shooter.id && team.playerById[id])
@@ -4525,7 +4624,9 @@ class AVHLGameSimulator {
       this.addEvent(
         state,
         "goal",
-        `GOAL — ${shooter.name} scores on a ${this.shotDescription(shot)}.${assistText}`,
+        emptyNet
+          ? `GOAL — ${shooter.name} scores into the empty net on a ${this.shotDescription(shot)}.${assistText}`
+          : `GOAL — ${shooter.name} scores on a ${this.shotDescription(shot)}.${assistText}`,
         {
           teamId,
           playerId: shooter.id,
@@ -4535,7 +4636,7 @@ class AVHLGameSimulator {
           details: {
             ...shot,
             goalProbability,
-            goalieAttributeUsed: shot.actualTarget,
+            goalieAttributeUsed: emptyNet ? null : shot.actualTarget,
             screeningPlayerId: screened ? screenCandidate?.id ?? null : null,
             plannedAssistCount: Number.isInteger(options.plannedAssistCount) ? options.plannedAssistCount : null,
             assists: assistIds
@@ -4543,7 +4644,7 @@ class AVHLGameSimulator {
           replay
         }
       );
-      this.maybeGoalieCollisionInjury(state, goalie, shot);
+      if (!emptyNet) this.maybeGoalieCollisionInjury(state, goalie, shot);
       this.releaseMinorAfterPowerPlayGoal(state, teamId);
       state.assistQueue = [];
       state.possessionTeam = null;
@@ -5030,6 +5131,8 @@ class AVHLGameSimulator {
   }
 
   simulatePossessionStep(state) {
+    this.updateGoaliePulls(state);
+
     if (state.nextFaceoff) {
       this.simulateFaceoff(state, state.nextFaceoff, state.nextFaceoff.reason);
       return;
@@ -5261,6 +5364,8 @@ class AVHLGameSimulator {
     state.assistQueue = [];
     state.puck = { x: 100, y: 42.5 };
     state.lastContext = "faceoff";
+    state.goaliePulled[this.homeId] = false;
+    state.goaliePulled[this.awayId] = false;
     state.activePenalties = state.activePenalties.filter((penalty) => penalty.remaining > 0);
     this.refreshUnits(state, true);
     this.initializePeriodPositions(state);

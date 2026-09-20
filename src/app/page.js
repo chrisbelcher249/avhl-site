@@ -96,7 +96,7 @@ export default async function Home() {
             {divisions.map((division) => {
               const divisionTeams = teams.filter((team) => team.division === division.name);
               return (
-                <Link key={division.name} href={`/teams#${division.name.toLowerCase()}`} className="group rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-[0_8px_30px_rgba(0,11,54,0.05)] transition hover:-translate-y-1 hover:border-[#18BDFC]">
+                <Link key={division.name} href={`/teams?division=${division.name.toLowerCase()}`} className="group rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-[0_8px_30px_rgba(0,11,54,0.05)] transition hover:-translate-y-1 hover:border-[#18BDFC]">
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-[#000B36]/40">{division.conference} Conference</p>
                   <h3 className="mt-2 text-2xl font-black">{division.name}</h3>
                   <p className="mt-2 text-sm font-bold text-[#000B36]/50">10 clubs</p>
