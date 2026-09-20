@@ -10,7 +10,8 @@
     "test:sim": "node scripts/test-simulator-v6.mjs",
     "test:lineups": "node scripts/test-lineups.mjs",
     "test:sim-lineups": "node scripts/test-sim-lineup-integration.mjs",
-    "test:lineup-storage": "node scripts/test-lineup-storage.mjs"
+    "test:lineup-storage": "node scripts/test-lineup-storage.mjs",
+    "test:replays": "node scripts/test-replay-storage.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

@@ -121,6 +121,10 @@
   let officialVerifiedGameId = null;
   let officialPasswordValue = "";
   let officialCheckedGameNumber = null;
+  let currentGameInput = null;
+  let isHistoricalReplay = false;
+  let historicalReplayGameId = null;
+  let historicalReplayMetadata = null;
 
   function generateSeed() {
     try {
@@ -133,6 +137,47 @@
       // Fall through to a time-based seed if secure randomness is unavailable.
     }
     return (Date.now() ^ Math.floor(performance.now() * 1000)) >>> 0 || 1;
+  }
+
+  function cloneData(value) {
+    if (typeof structuredClone === "function") return structuredClone(value);
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function bytesToBase64(bytes) {
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)));
+    }
+    return btoa(binary);
+  }
+
+  function base64ToBytes(value) {
+    const binary = atob(String(value || ""));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return bytes;
+  }
+
+  async function encodeReplaySnapshot(snapshot) {
+    const source = new TextEncoder().encode(JSON.stringify(snapshot));
+    if (typeof CompressionStream === "function") {
+      const stream = new Blob([source]).stream().pipeThrough(new CompressionStream("gzip"));
+      const compressed = new Uint8Array(await new Response(stream).arrayBuffer());
+      return { encoding: "gzip-base64", data: bytesToBase64(compressed), jsonBytes: source.byteLength, compressedBytes: compressed.byteLength };
+    }
+    return { encoding: "json-base64", data: bytesToBase64(source), jsonBytes: source.byteLength, compressedBytes: source.byteLength };
+  }
+
+  async function decodeReplayArchive(archive) {
+    if (!archive?.data) throw new Error("The saved replay archive is empty.");
+    const bytes = base64ToBytes(archive.data);
+    if (archive.encoding === "json-base64") return JSON.parse(new TextDecoder().decode(bytes));
+    if (archive.encoding !== "gzip-base64") throw new Error("This saved replay uses an unsupported archive format.");
+    if (typeof DecompressionStream !== "function") throw new Error("This browser cannot open compressed AVHL replays.");
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return JSON.parse(await new Response(stream).text());
   }
 
   function loadRecentGames() {
@@ -553,7 +598,9 @@
       seed = generateSeed();
     }
     try {
-      const simulator = new window.AVHLGameSimulator(selectedMatchupData(), seed);
+      const matchupData = selectedMatchupData();
+      currentGameInput = cloneData(matchupData);
+      const simulator = new window.AVHLGameSimulator(matchupData, seed);
       const nextGame = simulator.simulateGame();
       elements.seedInput.value = String(seed);
       game = nextGame;
@@ -666,9 +713,16 @@
     if (event.type === "final") {
       renderFinalSummary(event.details);
       renderFullBoxScore(event.details);
-      elements.officialExportButton.disabled = false;
-      elements.officialStatus.textContent = "Final · sandbox game";
-      saveCurrentGameToHistory(event);
+      if (isHistoricalReplay) {
+        elements.officialExportButton.disabled = true;
+        elements.officialExportButton.textContent = `Game ${historicalReplayGameId} Locked`;
+        elements.officialStatus.textContent = `Official Replay · Game ${historicalReplayGameId}`;
+        elements.officialStatus.classList.add("verified");
+      } else {
+        elements.officialExportButton.disabled = false;
+        elements.officialStatus.textContent = "Final · sandbox game";
+        saveCurrentGameToHistory(event);
+      }
       stopPlayback();
     }
 
@@ -1421,6 +1475,112 @@
     return Boolean(payload?.ok);
   }
 
+  function buildOfficialReplaySnapshot(gameNumber) {
+    if (!game?.finalSummary || !currentGameInput || !events.length) throw new Error("The completed game is missing replay state.");
+    return {
+      schema: "avhl-official-replay-v1",
+      replayFormatVersion: "event-timeline-v1",
+      gameId: Number(gameNumber),
+      simulatorVersion: SIMULATOR_VERSION,
+      simGameId: officialGameId(),
+      capturedAt: new Date().toISOString(),
+      seed: game.seed,
+      homeId,
+      awayId,
+      jerseySelections: {
+        home: elements.homeJerseySelect?.value || "Home",
+        away: elements.awayJerseySelect?.value || "Away",
+      },
+      matchupData: cloneData(currentGameInput),
+      events: cloneData(events),
+      finalSummary: cloneData(game.finalSummary),
+    };
+  }
+
+  function historicalTeam(rawTeam, isHome) {
+    const team = cloneData(rawTeam);
+    const forwards = team.forwards || [];
+    const defense = team.defense || [];
+    const goalies = team.goalies || [];
+    const players = [...forwards, ...defense];
+    const playerById = Object.fromEntries(players.map((player) => [player.id, player]));
+    const goalie = goalies.find((player) => player.starter) || goalies[0] || null;
+    const backup = goalies.find((player) => goalie && player.id !== goalie.id) || goalies[1] || null;
+    return { ...team, isHome, forwards, defense, goalies, players, playerById, goalie, backup, starterId: goalie?.id || null };
+  }
+
+  function applyHistoricalReplayLock() {
+    for (const control of [
+      elements.homeTeamSelect, elements.awayTeamSelect, elements.homeJerseySelect, elements.awayJerseySelect,
+      elements.seedInput, elements.recentGamesSelect, elements.newGameButton, elements.officialExportButton,
+    ]) {
+      if (control) control.disabled = true;
+    }
+    if (elements.officialExportButton) elements.officialExportButton.textContent = `Game ${historicalReplayGameId} Locked`;
+    if (elements.officialStatus) {
+      elements.officialStatus.textContent = `Official Replay · Game ${historicalReplayGameId}`;
+      elements.officialStatus.classList.add("verified");
+    }
+    if (elements.assetStatus) {
+      elements.assetStatus.dataset.ready = "true";
+      elements.assetStatus.textContent = `Locked official replay · ${historicalReplayMetadata?.simulatorVersion || SIMULATOR_VERSION} · Seed ${game?.seed ?? "—"}`;
+    }
+    setStatus("Replay", "ready");
+  }
+
+  function resetHistoricalReplayPlayback() {
+    if (!isHistoricalReplay) return;
+    stopPlayback();
+    cancelReplay();
+    currentEventIndex = -1;
+    encounteredGoals = [];
+    currentReplayEventId = null;
+    resetDisplay();
+    applyHistoricalReplayLock();
+  }
+
+  async function loadHistoricalReplay(gameId) {
+    const response = await fetch(`/api/replay/${encodeURIComponent(gameId)}`, { cache: "no-store" });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.ok) throw new Error(payload?.error || `Official Game ${gameId} replay is unavailable.`);
+    const snapshot = await decodeReplayArchive(payload.archive);
+    if (snapshot?.schema !== "avhl-official-replay-v1" || Number(snapshot.gameId) !== Number(gameId)) throw new Error("The saved replay snapshot is invalid.");
+    if (!snapshot?.matchupData?.home || !snapshot?.matchupData?.away || !Array.isArray(snapshot.events) || !snapshot.events.length) throw new Error("The saved replay snapshot is incomplete.");
+
+    isHistoricalReplay = true;
+    historicalReplayGameId = Number(gameId);
+    historicalReplayMetadata = payload.metadata || {};
+    currentGameInput = cloneData(snapshot.matchupData);
+    homeId = snapshot.homeId || snapshot.matchupData.home.id;
+    awayId = snapshot.awayId || snapshot.matchupData.away.id;
+    teams = {
+      [homeId]: historicalTeam(snapshot.matchupData.home, true),
+      [awayId]: historicalTeam(snapshot.matchupData.away, false),
+    };
+    events = cloneData(snapshot.events);
+    game = {
+      seed: snapshot.seed,
+      homeId,
+      awayId,
+      teams,
+      events,
+      finalSummary: cloneData(snapshot.finalSummary || events.at(-1)?.details || null),
+    };
+    currentEventIndex = -1;
+    encounteredGoals = [];
+    currentReplayEventId = null;
+    currentGameHistorySaved = true;
+
+    if (elements.homeTeamSelect) elements.homeTeamSelect.value = teams[homeId].abbreviation;
+    if (elements.awayTeamSelect) elements.awayTeamSelect.value = teams[awayId].abbreviation;
+    if (elements.homeJerseySelect) elements.homeJerseySelect.value = snapshot.jerseySelections?.home || "Home";
+    if (elements.awayJerseySelect) elements.awayJerseySelect.value = snapshot.jerseySelections?.away || "Away";
+    if (elements.seedInput) elements.seedInput.value = String(snapshot.seed);
+    syncTeamSelectorLocks();
+    resetDisplay();
+    applyHistoricalReplayLock();
+  }
+
   function buildOfficialPacket() {
     const summary = game.finalSummary;
     return { schema: "avhl-official-game-v3", simulatorVersion: SIMULATOR_VERSION, simGameId: officialGameId(), verifiedAt: new Date().toISOString(), seed: game.seed, finish: officialFinish(), away: { id: awayId, abbreviation: teams[awayId].abbreviation, fullName: teams[awayId].fullName, score: summary.score[awayId] }, home: { id: homeId, abbreviation: teams[homeId].abbreviation, fullName: teams[homeId].fullName, score: summary.score[homeId] }, summary };
@@ -1465,9 +1625,11 @@
 
   async function saveOfficialGame() {
     if (!officialCheckedGameNumber) { elements.officialError.textContent = "Verify the Game # first."; return; }
-    elements.officialSaveGame.disabled = true; elements.officialCheckGame.disabled = true; elements.officialError.textContent = "Saving official stats…";
+    elements.officialSaveGame.disabled = true; elements.officialCheckGame.disabled = true; elements.officialError.textContent = "Locking exact replay + saving official stats…";
     try {
-      const result = await officialApi({ action: "save", password: officialPasswordValue, gameNumber: officialCheckedGameNumber, packet: buildOfficialPacket() });
+      const packet = buildOfficialPacket();
+      const replayArchive = await encodeReplaySnapshot(buildOfficialReplaySnapshot(officialCheckedGameNumber));
+      const result = await officialApi({ action: "save", password: officialPasswordValue, gameNumber: officialCheckedGameNumber, packet, replayArchive });
       officialVerifiedGameId = result.game.id;
       closeOfficialModal();
       elements.officialStatus.textContent = `Official · Game ${result.game.id} saved`;
@@ -1549,6 +1711,11 @@
       stopPlayback();
       return;
     }
+    if (isHistoricalReplay) {
+      if (currentEventIndex >= events.length - 1 && events.length) resetHistoricalReplayPlayback();
+      startPlayback();
+      return;
+    }
     if (currentEventIndex >= events.length - 1 && events.length) {
       const refreshed = await refreshLiveRosterState({ quiet: true });
       if (!refreshed) {
@@ -1569,6 +1736,7 @@
   });
 
   async function refreshBeforeFirstAdvance() {
+    if (isHistoricalReplay) return true;
     if (currentEventIndex >= 0) return true;
     const existingSeed = Number(elements.seedInput.value);
     const refreshed = await refreshLiveRosterState({ quiet: true });
@@ -1603,6 +1771,7 @@
   elements.awayJerseySelect?.addEventListener("change", () => handleJerseyChange("away"));
 
   elements.newGameButton.addEventListener("click", async () => {
+    if (isHistoricalReplay) return;
     const refreshed = await refreshLiveRosterState({ quiet: false });
     if (!refreshed) {
       setStatus("Latest lineup unavailable", "error");
@@ -1631,7 +1800,7 @@
   });
 
   elements.seedInput.addEventListener("keydown", async (event) => {
-    if (event.key !== "Enter") return;
+    if (isHistoricalReplay || event.key !== "Enter") return;
     const refreshed = await refreshLiveRosterState({ quiet: true });
     if (!refreshed) {
       setStatus("Latest lineup unavailable", "error");
@@ -1641,6 +1810,7 @@
   });
 
   elements.recentGamesSelect?.addEventListener("change", async () => {
+    if (isHistoricalReplay) return;
     if (elements.recentGamesSelect.value) await restoreRecentGame(elements.recentGamesSelect.value);
   });
 
@@ -1679,14 +1849,33 @@
   loadRecentGames();
   renderRecentGames();
 
-  const initialRosterRefresh = await refreshLiveRosterState({ quiet: false });
-
-  if (initialRosterRefresh) {
-    createNewGame({ freshSeed: true });
+  const replayGameId = new URLSearchParams(window.location.search).get("replay");
+  if (replayGameId) {
+    try {
+      if (elements.assetStatus) elements.assetStatus.textContent = `Loading locked official Game ${replayGameId}…`;
+      await loadHistoricalReplay(replayGameId);
+    } catch (error) {
+      console.error(error);
+      setStatus("Replay unavailable", "error");
+      if (elements.assetStatus) {
+        elements.assetStatus.dataset.ready = "false";
+        elements.assetStatus.textContent = "Official replay unavailable";
+      }
+      if (elements.feed) elements.feed.innerHTML = `<div class="feed-error">${escapeHtml(error.message || "Unable to load this official replay.")}</div>`;
+      for (const control of [elements.playButton, elements.nextGoalButton, elements.periodButton, elements.endButton]) {
+        if (control) control.disabled = true;
+      }
+    }
   } else {
-    setStatus("Latest lineup unavailable", "error");
-    if (elements.feed) {
-      elements.feed.innerHTML = `<div class="feed-error">Latest owner lineup data could not be verified. Retry with New Game before starting.</div>`;
+    const initialRosterRefresh = await refreshLiveRosterState({ quiet: false });
+
+    if (initialRosterRefresh) {
+      createNewGame({ freshSeed: true });
+    } else {
+      setStatus("Latest lineup unavailable", "error");
+      if (elements.feed) {
+        elements.feed.innerHTML = `<div class="feed-error">Latest owner lineup data could not be verified. Retry with New Game before starting.</div>`;
+      }
     }
   }
 })();

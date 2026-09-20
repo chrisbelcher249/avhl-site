@@ -7,6 +7,7 @@ import { writeOfficialGameRows } from "@/lib/googleSheetsWrite";
 import { normalizePlayerId } from "@/lib/seasonSheets";
 import { deleteInjuryRecords, injuryStorageStatus, saveInjuryRecords } from "@/lib/injuryStorage";
 import { repairSavedLineupForTeam } from "@/lib/injuryLineupService";
+import { deleteOfficialReplay, replayStorageStatus, saveOfficialReplay, validateReplayArchive } from "@/lib/replayStorage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -122,6 +123,12 @@ export async function POST(request) {
 
     const { teamRows, skaterRows, goalieRows, finish } = buildOfficialSheetRows(number, body.packet);
     const injuryRecords = officialInjuryRecords(number, official.game.date, body.packet);
+    if (!replayStorageStatus().configured) {
+      return Response.json({
+        ok: false,
+        error: "Persistent official replay storage is not configured. The official game was not saved.",
+      }, { status: 503 });
+    }
     if (injuryRecords.length && !injuryStorageStatus().configured) {
       return Response.json({
         ok: false,
@@ -129,10 +136,44 @@ export async function POST(request) {
       }, { status: 503 });
     }
 
-    // Stage injuries first, then roll them back if the official stat write fails.
-    // This prevents a successfully-saved official game from ever losing its
-    // player-level injury state because a second backend write failed afterward.
-    const injuryKeys = injuryRecords.length ? await saveInjuryRecords(injuryRecords) : [];
+    const replaySnapshot = validateReplayArchive({
+      gameId: number,
+      archive: body.replayArchive,
+      packet: body.packet,
+      scheduledAway: official.away.abbreviation,
+      scheduledHome: official.home.abbreviation,
+    });
+    const replayMetadata = {
+      date: official.game.date,
+      awayAbbreviation: official.away.abbreviation,
+      awayName: official.away.name,
+      awayScore: Number(body.packet.away.score) || 0,
+      homeAbbreviation: official.home.abbreviation,
+      homeName: official.home.name,
+      homeScore: Number(body.packet.home.score) || 0,
+      finish,
+      seed: Number(body.packet.seed),
+      simulatorVersion: String(body.packet.simulatorVersion || replaySnapshot.simulatorVersion || ""),
+      simGameId: String(body.packet.simGameId || replaySnapshot.simGameId || ""),
+      eventCount: replaySnapshot.events.length,
+      lockedAt: new Date().toISOString(),
+    };
+
+    // The locked replay is staged before stats are written. If any later official
+    // save step fails, it is rolled back so a schedule result can never exist
+    // without the exact historical game snapshot that produced it.
+    await saveOfficialReplay({ gameId: number, archive: body.replayArchive, metadata: replayMetadata });
+
+    let injuryKeys = [];
+    try {
+      injuryKeys = injuryRecords.length ? await saveInjuryRecords(injuryRecords) : [];
+    } catch (error) {
+      await deleteOfficialReplay(number).catch((rollbackError) => {
+        console.error(`Unable to roll back replay for failed Game ${number}`, rollbackError);
+      });
+      throw error;
+    }
+
     let result;
     try {
       result = await writeOfficialGameRows({ gameId: number, teamRows, skaterRows, goalieRows });
@@ -143,6 +184,11 @@ export async function POST(request) {
         } catch (rollbackError) {
           console.error(`Unable to roll back injuries for failed Game ${number}`, rollbackError);
         }
+      }
+      try {
+        await deleteOfficialReplay(number);
+      } catch (rollbackError) {
+        console.error(`Unable to roll back replay for failed Game ${number}`, rollbackError);
       }
       throw error;
     }
@@ -181,6 +227,7 @@ export async function POST(request) {
         records: injuryRecords,
         lineupRepairs,
       },
+      replay: replayMetadata,
     }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) {
     console.error("Official simulator game submission failed", error);

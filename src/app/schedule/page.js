@@ -4,6 +4,7 @@ import SaturdayNightShowdowns from "@/components/SaturdayNightShowdowns";
 import { getSchedule } from "@/lib/schedule";
 import { gameHasResult } from "@/lib/scheduleFormat";
 import { saturdayNightShowdowns } from "../../../data/saturdayNightShowdowns";
+import { getReplayMetadataMap } from "@/lib/replayStorage";
 
 export const metadata = {
   title: "2026–27 Schedule",
@@ -13,9 +14,16 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Schedule() {
-  const { schedule, source, error } = await getSchedule();
-  const seasonDays = new Set(schedule.map((game) => game.date)).size;
-  const completedGames = schedule.filter(gameHasResult).length;
+  const [{ schedule, source, error }, replayMetadata] = await Promise.all([
+    getSchedule(),
+    getReplayMetadataMap().catch((replayError) => {
+      console.error("Unable to load official replay metadata", replayError);
+      return {};
+    }),
+  ]);
+  const scheduleWithReplays = schedule.map((game) => ({ ...game, replayAvailable: Boolean(replayMetadata[String(game.id)]) }));
+  const seasonDays = new Set(scheduleWithReplays.map((game) => game.date)).size;
+  const completedGames = scheduleWithReplays.filter(gameHasResult).length;
 
   return (
     <main className="bg-[#F4F7FB] px-6 py-14 text-[#000B36] md:px-8 md:py-20">
@@ -32,7 +40,7 @@ export default async function Schedule() {
         </div>
 
         <div className="mt-9 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {[[schedule.length.toLocaleString(), "Games"], [seasonDays, "Season days"], [completedGames, "Results entered"], [source === "live" ? "Live" : "Fallback", "Data source"]].map(([value, label]) => (
+          {[[scheduleWithReplays.length.toLocaleString(), "Games"], [seasonDays, "Season days"], [completedGames, "Results entered"], [source === "live" ? "Live" : "Fallback", "Data source"]].map(([value, label]) => (
             <div key={label} className="rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
               <p className="text-3xl font-black md:text-4xl">{value}</p>
               <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/38">{label}</p>
@@ -45,7 +53,7 @@ export default async function Schedule() {
         <SaturdayNightShowdowns games={saturdayNightShowdowns} />
 
         <div className="mt-10">
-          <ScheduleExplorer schedule={schedule} />
+          <ScheduleExplorer schedule={scheduleWithReplays} />
         </div>
       </section>
     </main>

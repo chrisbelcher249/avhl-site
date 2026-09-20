@@ -5,6 +5,7 @@ import TeamScheduleExplorer from "@/components/TeamScheduleExplorer";
 import { getSchedule } from "@/lib/schedule";
 import { teams as fallbackTeams } from "../../../../data/teams";
 import { getTeamBySlug } from "@/lib/teams";
+import { getReplayMetadataMap } from "@/lib/replayStorage";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +28,16 @@ export default async function TeamSchedulePage({ params }) {
   const { team } = await getTeamBySlug(slug);
   if (!team) notFound();
 
-  const { schedule, error } = await getSchedule();
-  const games = schedule.filter((game) => game.away === slug || game.home === slug);
+  const [{ schedule, error }, replayMetadata] = await Promise.all([
+    getSchedule(),
+    getReplayMetadataMap().catch((replayError) => {
+      console.error("Unable to load official replay metadata", replayError);
+      return {};
+    }),
+  ]);
+  const games = schedule
+    .filter((game) => game.away === slug || game.home === slug)
+    .map((game) => ({ ...game, replayAvailable: Boolean(replayMetadata[String(game.id)]) }));
   if (!games.length) notFound();
 
   const homeGames = games.filter((game) => game.home === slug).length;

@@ -39,3 +39,13 @@
 - Removed the Odds link from the main desktop/mobile header navigation.
 - Kept `/odds`, `/odds/divisions`, `/odds/presidents-trophy`, and `/odds/cup` live and directly accessible.
 - Preserved Vercel Analytics integration.
+
+
+## Site 57 — Official Seed Lock / Historical Replays
+- Saving an official game now locks an immutable replay snapshot before the official stat rows are written.
+- The snapshot freezes the seed, simulator version, exact matchup input (ratings, rosters and owner lines), uniforms, full event timeline, goal replay keyframes and final summary.
+- Replay archives are compressed in-browser and persisted in the same Redis/KV backend family used by owner lineups and injuries.
+- Official save fails closed if replay persistence is unavailable, so a new official result cannot be created without its historical replay.
+- `/schedule` and every team schedule show a Replay button after a completed game has a locked snapshot.
+- `/sim/replay/[gameId]` opens the simulator in read-only historical mode and plays the stored event timeline rather than rerunning the current simulator engine.
+- Historical playback ignores current rosters, ratings and lineup changes, preserving old games as simulator physics evolve.
