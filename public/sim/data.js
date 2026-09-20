@@ -115,6 +115,7 @@ window.AVHL_DATA = {
   let liveRosterSource = "demo";
   let liveLineupByAbbreviation = {};
   let liveLineupSources = {};
+  let liveTeamReadiness = {};
 
   function applyMetadata(team, meta, side) {
     const abbreviation = meta?.abbreviation ?? (side === "home" ? "ARI" : "ATL");
@@ -354,6 +355,8 @@ window.AVHL_DATA = {
   }
 
   function applyLiveRoster(team, meta) {
+    const readiness = liveTeamReadiness?.[meta?.abbreviation];
+    if (readiness && readiness.canPlay === false) return false;
     const roster = liveRosterByTeam?.[meta?.rosterLookupName ?? meta?.fullName];
     if (!Array.isArray(roster) || roster.length < 20) return false;
 
@@ -433,12 +436,16 @@ window.AVHL_DATA = {
     liveRosterSource = payload.source || "live";
     liveLineupByAbbreviation = payload.lineups || {};
     liveLineupSources = payload.lineupSources || {};
+    liveTeamReadiness = payload.teamReadiness || {};
     window.AVHL_LIVE_ROSTER_STATUS = {
       source: liveRosterSource,
       playerCount: payload.playerCount || payload.players.length,
       teamCount: Object.keys(grouped).length,
       lineupSources: liveLineupSources,
       lineupStorage: payload.lineupStorage || null,
+      activeInjuries: payload.activeInjuries || [],
+      teamReadiness: liveTeamReadiness,
+      cannotPlayTeams: payload.cannotPlayTeams || {},
     };
     return window.AVHL_LIVE_ROSTER_STATUS;
   };
@@ -453,6 +460,17 @@ window.AVHL_DATA = {
     const homeReady = applyLiveRoster(data.home, homeMeta);
     const awayReady = applyLiveRoster(data.away, awayMeta);
     if (!homeReady || !awayReady) {
+      const blocked = [
+        !homeReady && liveTeamReadiness?.[homeAbbreviation]?.canPlay === false ? homeAbbreviation : null,
+        !awayReady && liveTeamReadiness?.[awayAbbreviation]?.canPlay === false ? awayAbbreviation : null,
+      ].filter(Boolean);
+      if (blocked.length) {
+        const details = blocked.map((abbreviation) => {
+          const status = liveTeamReadiness?.[abbreviation];
+          return `${abbreviation} (${(status?.reasons || ["cannot dress a legal healthy lineup"]).join("; ")})`;
+        }).join(" and ");
+        throw new Error(`Cannot start this game: ${details}. Resolve the roster shortage before simming.`);
+      }
       const missing = [
         !homeReady ? homeMeta?.fullName || homeAbbreviation : null,
         !awayReady ? awayMeta?.fullName || awayAbbreviation : null,

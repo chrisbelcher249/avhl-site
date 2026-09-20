@@ -3,6 +3,7 @@ import { getPlayers } from "@/lib/players";
 import { buildProjectedLineup } from "@/lib/lineups";
 import { getSavedLineup, getSavedLineups, lineupStorageStatus } from "@/lib/lineupStorage";
 import { hydrateLineupRecord, recordFromProjected, validateLineupRecord } from "@/lib/lineupRecords";
+import { getCurrentInjuryState, healthyRosterForTeam } from "@/lib/injuries";
 
 export function fallbackTeamByAbbreviation(abbreviation) {
   const code = String(abbreviation || "").toUpperCase();
@@ -22,27 +23,35 @@ export async function getEffectiveLineup(abbreviation) {
 
   const storage = lineupStorageStatus();
   let storageError = null;
-  const [{ players, source: rosterSource }, saved] = await Promise.all([
-    getPlayers(),
+  const { players, source: rosterSource } = await getPlayers();
+  const [saved, injuryState] = await Promise.all([
     getSavedLineup(code).catch((error) => {
       console.error(`Unable to load saved lineup for ${code}`, error);
       storageError = "Saved lineup storage is temporarily unavailable. The lineup shown may not be the latest owner-saved version.";
       return null;
     }),
+    getCurrentInjuryState(players).catch((error) => {
+      console.error(`Unable to load active injuries for ${code}`, error);
+      storageError = storageError || "Active injury status is temporarily unavailable. Lineup editing is paused so an injured player cannot be dressed accidentally.";
+      return null;
+    }),
   ]);
 
   const rosterPlayers = rosterForTeam(players, code);
-  const projection = buildProjectedLineup(rosterPlayers);
+  const activeInjuries = injuryState?.byTeam?.[code] || [];
+  const healthyRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries);
+  const readiness = injuryState?.readiness?.[code] || null;
+  const projection = buildProjectedLineup(healthyRosterPlayers);
   const projectedRecord = recordFromProjected(code, projection);
   let record = projectedRecord;
   let source = "projected";
   let savedErrors = [];
 
   if (saved) {
-    const validation = validateLineupRecord(saved, rosterPlayers, code);
+    const validation = validateLineupRecord(saved, healthyRosterPlayers, code);
     if (validation.ok) {
       record = validation.record;
-      source = "saved";
+      source = saved.autoAdjustedForInjury ? "auto-optimized" : "saved";
     } else {
       savedErrors = validation.errors;
       source = "auto-optimized";
@@ -63,6 +72,9 @@ export async function getEffectiveLineup(abbreviation) {
     rosterSource,
     record,
     lineup: hydrateLineupRecord(record, rosterPlayers, code),
+    activeInjuries,
+    readiness,
+    injuryStorage: injuryState?.storage || null,
     source,
     savedErrors,
     storage,
@@ -80,8 +92,12 @@ export async function getEffectiveLineupsForSimulator(players) {
     throw new Error("Persistent owner-lineup storage is not configured.");
   }
   let savedByCode;
+  let injuryState;
   try {
-    savedByCode = await getSavedLineups(codes);
+    [savedByCode, injuryState] = await Promise.all([
+      getSavedLineups(codes),
+      getCurrentInjuryState(players),
+    ]);
   } catch (error) {
     console.error("Unable to load saved simulator lineups", error);
     // Once production persistence is configured, silently substituting projected
@@ -91,20 +107,26 @@ export async function getEffectiveLineupsForSimulator(players) {
       throw new Error("Latest owner lineups could not be loaded from persistent storage.");
     }
     savedByCode = {};
+    injuryState = injuryState || { byTeam: {}, readiness: {} };
   }
   const records = {};
   const sources = {};
   const invalid = {};
+  const cannotPlay = {};
 
   for (const team of fallbackTeams) {
     const rosterPlayers = rosterForTeam(players, team.abbreviation);
-    const projected = recordFromProjected(team.abbreviation, buildProjectedLineup(rosterPlayers));
+    const activeInjuries = injuryState?.byTeam?.[team.abbreviation] || [];
+    const healthyRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries);
+    const readiness = injuryState?.readiness?.[team.abbreviation] || null;
+    const projected = recordFromProjected(team.abbreviation, buildProjectedLineup(healthyRosterPlayers));
+    if (readiness && !readiness.canPlay) cannotPlay[team.abbreviation] = readiness;
     const saved = savedByCode[team.abbreviation];
     if (saved) {
-      const validation = validateLineupRecord(saved, rosterPlayers, team.abbreviation);
+      const validation = validateLineupRecord(saved, healthyRosterPlayers, team.abbreviation);
       if (validation.ok) {
         records[team.abbreviation] = validation.record;
-        sources[team.abbreviation] = "saved";
+        sources[team.abbreviation] = saved.autoAdjustedForInjury ? "auto-optimized" : "saved";
         continue;
       }
       // A roster transaction invalidates the owner lineup immediately. The
@@ -121,5 +143,5 @@ export async function getEffectiveLineupsForSimulator(players) {
     sources[team.abbreviation] = "projected";
   }
 
-  return { records, sources, invalid, storage };
+  return { records, sources, invalid, storage, injuries: injuryState?.active || [], readiness: injuryState?.readiness || {}, cannotPlay };
 }

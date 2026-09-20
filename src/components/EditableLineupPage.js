@@ -41,6 +41,14 @@ function formatUpdated(value) {
   }).format(date);
 }
 
+function formatReturnDate(value) {
+  if (!value) return "After season";
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return String(value);
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(date);
+}
+
 function SectionHeading({ eyebrow, title, copy }) {
   return (
     <div className="max-w-4xl">
@@ -239,6 +247,9 @@ export default function EditableLineupPage({
   storage,
   storageError = null,
   savedErrors = [],
+  activeInjuries = [],
+  readiness = null,
+  injuryStorage = null,
 }) {
   const router = useRouter();
   const [record, setRecord] = useState(() => copyRecord(initialRecord));
@@ -259,9 +270,12 @@ export default function EditableLineupPage({
   const [dragOverKey, setDragOverKey] = useState("");
 
   const playerById = useMemo(() => new Map(rosterPlayers.map((player) => [String(player.id), player])), [rosterPlayers]);
-  const forwardRoster = useMemo(() => rosterPlayers.filter(isForwardPlayer).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [rosterPlayers]);
-  const defenseRoster = useMemo(() => rosterPlayers.filter((player) => isDefensePlayer(player) && !isGoaliePlayer(player)).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [rosterPlayers]);
-  const goalieRoster = useMemo(() => rosterPlayers.filter(isGoaliePlayer).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [rosterPlayers]);
+  const injuryByPlayerId = useMemo(() => new Map((activeInjuries || []).map((injury) => [String(injury.playerId || ""), injury])), [activeInjuries]);
+  const injuredIds = useMemo(() => new Set(injuryByPlayerId.keys()), [injuryByPlayerId]);
+  const eligibleRosterPlayers = useMemo(() => rosterPlayers.filter((player) => !injuredIds.has(String(player.id))), [rosterPlayers, injuredIds]);
+  const forwardRoster = useMemo(() => eligibleRosterPlayers.filter(isForwardPlayer).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [eligibleRosterPlayers]);
+  const defenseRoster = useMemo(() => eligibleRosterPlayers.filter((player) => isDefensePlayer(player) && !isGoaliePlayer(player)).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [eligibleRosterPlayers]);
+  const goalieRoster = useMemo(() => eligibleRosterPlayers.filter(isGoaliePlayer).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [eligibleRosterPlayers]);
 
   const dressedForwardIds = useMemo(() => new Set(record.forwards.map((entry) => entry.playerId).filter(Boolean)), [record]);
   const dressedDefenseIds = useMemo(() => new Set(record.defense.map((entry) => entry.playerId).filter(Boolean)), [record]);
@@ -273,8 +287,9 @@ export default function EditableLineupPage({
     ...record.defense.map((entry) => entry.playerId),
     ...record.goalies.map((entry) => entry.playerId),
   ].filter(Boolean)), [record]);
-  const scratches = useMemo(() => rosterPlayers.filter((player) => !dressedIds.has(String(player.id))).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [rosterPlayers, dressedIds]);
-  const validation = useMemo(() => validateLineupRecord(record, rosterPlayers, team.abbreviation), [record, rosterPlayers, team.abbreviation]);
+  const scratches = useMemo(() => eligibleRosterPlayers.filter((player) => !dressedIds.has(String(player.id))).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [eligibleRosterPlayers, dressedIds]);
+  const injuredPlayers = useMemo(() => rosterPlayers.filter((player) => injuredIds.has(String(player.id))).sort((a, b) => (b.overall || 0) - (a.overall || 0)), [rosterPlayers, injuredIds]);
+  const validation = useMemo(() => validateLineupRecord(record, eligibleRosterPlayers, team.abbreviation), [record, eligibleRosterPlayers, team.abbreviation]);
   const displayedErrors = saveErrors.length
     ? saveErrors
     : editing && !validation.ok
@@ -284,11 +299,13 @@ export default function EditableLineupPage({
   const updatedText = formatUpdated(record.updatedAt);
   const editAvailabilityIssue = !storage?.configured
     ? "Editing is unavailable until persistent lineup storage is connected."
-    : storageError
-      ? "Editing is temporarily unavailable because the latest saved lineup could not be verified."
-      : rosterSource !== "live"
-        ? "Editing is temporarily unavailable until the complete live roster feed returns."
-        : null;
+    : injuryStorage && !injuryStorage.configured
+      ? "Editing is unavailable until persistent injury storage is connected."
+      : storageError
+        ? "Editing is temporarily unavailable because the latest lineup and injury status could not be verified."
+        : rosterSource !== "live"
+          ? "Editing is temporarily unavailable until the complete live roster feed returns."
+          : null;
 
   function groupForPlayer(player) {
     if (!player) return null;
@@ -311,7 +328,7 @@ export default function EditableLineupPage({
 
   function canDropPlayer(payload, target) {
     const player = playerById.get(String(payload?.playerId || ""));
-    if (!editing || !player || !target) return false;
+    if (!editing || !player || !target || injuredIds.has(String(player.id))) return false;
     const group = groupForPlayer(player);
     if (target.type === "even") return group === target.kind;
     if (target.type === "goalie") return group === "goalies";
@@ -713,7 +730,7 @@ export default function EditableLineupPage({
               </p>
               {updatedText ? (
                 <p className="mt-2 text-[11px] font-bold text-white/38">
-                  {lineupSource === "auto-optimized" ? "Previous owner save" : "Last owner update"}: {updatedText}
+                  {lineupSource === "auto-optimized" ? "Lineup auto-adjusted" : "Last owner update"}: {updatedText}
                 </p>
               ) : null}
             </div>
@@ -768,7 +785,12 @@ export default function EditableLineupPage({
         ) : null}
         {savedErrors.length ? (
           <div className="mb-6 rounded-2xl border border-[#A90117]/20 bg-[#A90117]/6 px-4 py-3 text-xs font-bold leading-5 text-[#7A0010]">
-            A roster change made the previous owner lineup invalid. It was immediately replaced as the active lineup by a fresh auto-optimized lineup; the owner can save a new lineup at any time.
+            A roster move or injury made the previous owner lineup invalid. The active lineup was automatically repaired so the team can still play; the owner can save a new lineup at any time.
+          </div>
+        ) : null}
+        {readiness && !readiness.canPlay ? (
+          <div className="mb-6 rounded-2xl border border-[#A90117]/25 bg-[#A90117]/8 px-4 py-3 text-xs font-bold leading-5 text-[#7A0010]">
+            <span className="font-black">Cannot play:</span> this roster cannot currently dress a legal healthy lineup — {readiness.reasons.join("; ")}. A signing or roster move is required before the simulator will allow this team to play.
           </div>
         ) : null}
         {editing ? (
@@ -780,7 +802,7 @@ export default function EditableLineupPage({
             {lineupSource === "saved"
               ? "This is the latest owner-saved lineup. New simulator games pull this version before the puck drops."
               : lineupSource === "auto-optimized"
-                ? "The previous owner lineup became invalid after a roster change, so the active lineup was automatically re-optimized from the live roster. New simulator games use this lineup until the owner saves again."
+                ? "A roster change or injury required an automatic repair, so this is the current valid lineup. New simulator games use it until the owner saves again."
                 : `No valid owner lineup has been saved yet, so this is automatically projected from the ${rosterSource} roster.`}
           </div>
         )}
@@ -929,7 +951,27 @@ export default function EditableLineupPage({
         </section>
 
         <section className="mt-10 md:mt-12">
-          <SectionHeading eyebrow="Roster status" title="Scratches" copy="Every rostered player not among the dressed 12F, 6D and 2G appears here automatically." />
+          <SectionHeading eyebrow="Roster status" title="Injured" copy="Injured players remain on the roster but cannot be selected for any line, special-team unit, overtime group or shootout slot until they are eligible to return." />
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {injuredPlayers.length ? injuredPlayers.map((player) => {
+              const injury = injuryByPlayerId.get(String(player.id));
+              return (
+                <div key={player.id} className="overflow-hidden rounded-2xl border border-[#A90117]/20 bg-[#A90117]/5">
+                  <PlayerCard player={player} team={team} compact />
+                  <div className="border-t border-[#A90117]/10 px-3 py-2.5 text-[10px] font-bold leading-4 text-[#7A0010]">
+                    <span className="font-black">{injury?.injuryType || "Injury"}</span> · {injury?.gamesRemaining ?? injury?.gamesMissed ?? "—"} game{Number(injury?.gamesRemaining ?? injury?.gamesMissed) === 1 ? "" : "s"} remaining
+                    <span className="block text-[#000B36]/45">Expected return: {formatReturnDate(injury?.expectedReturnDate)}</span>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="rounded-2xl border border-dashed border-[#000B36]/15 bg-white p-4 text-sm font-bold text-[#000B36]/40">No active injuries.</div>
+            )}
+          </div>
+        </section>
+
+        <section className="mt-10 md:mt-12">
+          <SectionHeading eyebrow="Roster status" title="Scratches" copy="Healthy rostered players not among the dressed 12F, 6D and 2G appear here automatically." />
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {scratches.length ? scratches.map((player) => {
               if (!editing) return <PlayerCard key={player.id} player={player} team={team} compact />;

@@ -3,6 +3,7 @@ import { verifyOwnerPassword } from "@/lib/credentials";
 import { fallbackTeamByAbbreviation, rosterForTeam } from "@/lib/lineupService";
 import { validateLineupRecord } from "@/lib/lineupRecords";
 import { getSavedLineup, lineupStorageStatus, saveLineupIfRevision } from "@/lib/lineupStorage";
+import { getCurrentInjuryState, healthyRosterForTeam } from "@/lib/injuries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,9 +55,12 @@ export async function POST(request, { params }) {
       );
     }
     const rosterPlayers = rosterForTeam(players, abbreviation);
-    const validation = validateLineupRecord(body?.lineup, rosterPlayers, abbreviation);
+    const injuryState = await getCurrentInjuryState(players);
+    const activeInjuries = injuryState.byTeam?.[abbreviation] || [];
+    const eligibleRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries);
+    const validation = validateLineupRecord(body?.lineup, eligibleRosterPlayers, abbreviation);
     if (!validation.ok) {
-      return Response.json({ ok: false, error: "Lineup does not meet AVHL constraints.", errors: validation.errors }, { status: 400 });
+      return Response.json({ ok: false, error: "Lineup does not meet AVHL constraints. Injured players cannot be dressed.", errors: validation.errors }, { status: 400 });
     }
 
     const expectedRevision = Number(body?.expectedRevision);

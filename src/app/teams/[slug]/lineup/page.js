@@ -40,6 +40,9 @@ export default async function TeamLineupPage({ params }) {
       storage={effective.storage}
       storageError={effective.storageError}
       savedErrors={effective.savedErrors}
+      activeInjuries={effective.activeInjuries}
+      readiness={effective.readiness}
+      injuryStorage={effective.injuryStorage}
     />
   );
 }

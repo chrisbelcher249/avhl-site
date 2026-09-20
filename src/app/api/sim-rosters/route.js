@@ -51,6 +51,9 @@ export async function GET() {
         lineupSources: lineupState.sources,
         invalidSavedLineups: lineupState.invalid,
         lineupStorage: lineupState.storage,
+        activeInjuries: lineupState.injuries,
+        teamReadiness: lineupState.readiness,
+        cannotPlayTeams: lineupState.cannotPlay,
       },
       {
         headers: {
