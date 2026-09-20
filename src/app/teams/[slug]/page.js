@@ -36,7 +36,7 @@ function Fact({ label, value, className = "", valueClassName = "" }) {
   return (
     <div className={`min-w-0 rounded-2xl border border-[#000B36]/10 bg-white p-4 ${className}`}>
       <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/40">{label}</p>
-      <p className={`mt-1.5 break-words text-base font-black ${valueClassName}`}>{value || "—"}</p>
+      <p className={`mt-1.5 text-base font-black ${valueClassName}`}>{value || "—"}</p>
     </div>
   );
 }
@@ -136,12 +136,12 @@ export default async function TeamPage({ params }) {
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-8">
             <SectionHeading eyebrow="Club identity" title="2026–27 team profile" />
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_0.82fr_1.38fr]">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <Fact label="Arena" value={team.arena} />
               <Fact label="Mascot" value={team.mascot?.name} />
               <Fact label="Division" value={team.division} />
               <Fact label="Rostered players" value={String(roster.count)} />
-              <Fact label="Official hashtag" value={team.hashtag} className="sm:col-span-2 xl:col-span-1" valueClassName="text-sm sm:text-base" />
+              <Fact label="Official hashtag" value={team.hashtag} valueClassName="break-words text-[clamp(0.72rem,0.9vw,0.95rem)] leading-tight tracking-tight [overflow-wrap:anywhere]" />
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               {[
