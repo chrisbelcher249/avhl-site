@@ -32,3 +32,10 @@
 - `test:lineups` PASS.
 - `test:sim-lineups` PASS.
 - `test:lineup-storage` PASS.
+
+## Site 52 — Goal horns + quieter odds navigation
+- Added all 40 official 2026–27 Major League goal horn MP3s under `public/goal-horns/`.
+- Kept `/horns` manual-play behavior (no autoplay; one horn at a time).
+- Removed the Odds link from the main desktop/mobile header navigation.
+- Kept `/odds`, `/odds/divisions`, `/odds/presidents-trophy`, and `/odds/cup` live and directly accessible.
+- Preserved Vercel Analytics integration.
