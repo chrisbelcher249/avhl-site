@@ -49,3 +49,11 @@
 - `/schedule` and every team schedule show a Replay button after a completed game has a locked snapshot.
 - `/sim/replay/[gameId]` opens the simulator in read-only historical mode and plays the stored event timeline rather than rerunning the current simulator engine.
 - Historical playback ignores current rosters, ratings and lineup changes, preserving old games as simulator physics evolve.
+
+## Site 59 — live scoring credits + manpower label
+
+- Fixed simulator strength display to read away skaters first, matching the scoreboard orientation (for example 5-on-4 instead of 4-on-5 when the away team has the power play).
+- Goal replay scorer and assist numbers now start from the official 2026–27 season stats and add the current game's credits through that goal.
+- Historical official replays use only stats from games before the replayed game, so goal/assist ordinal numbers remain correct in old games.
+- Added `/api/sim-season-scoring` as a no-cache compact scoring-total feed for the simulator.
+- Simulator version bumped to V6.7.2.

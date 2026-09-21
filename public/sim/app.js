@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V6.7.1";
+  const SIMULATOR_VERSION = "V6.7.2";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
@@ -125,6 +125,32 @@
   let isHistoricalReplay = false;
   let historicalReplayGameId = null;
   let historicalReplayMetadata = null;
+  let officialScoringByPlayer = Object.create(null);
+
+  function normalizePlayerId(value) {
+    const digits = String(value ?? "").replace(/\D/g, "");
+    return digits ? digits.padStart(4, "0").slice(-4) : "";
+  }
+
+  async function refreshOfficialScoringStats({ beforeGameId = null, quiet = true } = {}) {
+    try {
+      const query = Number.isInteger(Number(beforeGameId)) && Number(beforeGameId) > 0
+        ? `?beforeGameId=${encodeURIComponent(String(Number(beforeGameId)))}`
+        : "";
+      const response = await fetch(`/api/sim-season-scoring${query}`, { cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.ok) throw new Error(payload?.error || "Official scoring totals are unavailable.");
+      officialScoringByPlayer = payload.players && typeof payload.players === "object"
+        ? payload.players
+        : Object.create(null);
+      return true;
+    } catch (error) {
+      console.warn("Official AVHL scoring totals unavailable; replay credits will use current-game totals only.", error);
+      officialScoringByPlayer = Object.create(null);
+      if (!quiet && elements.assetStatus) elements.assetStatus.textContent = "Live scoring totals temporarily unavailable";
+      return false;
+    }
+  }
 
   function generateSeed() {
     try {
@@ -832,13 +858,16 @@
   }
 
   function scoringTotalThroughGoal(event, playerId, stat) {
+    const normalizedId = normalizePlayerId(playerId);
+    const official = officialScoringByPlayer?.[normalizedId] || {};
+    const baseTotal = stat === "goal" ? Number(official.goals || 0) : Number(official.assists || 0);
     const targetIndex = encounteredGoals.findIndex((goal) => goal.id === event.id);
     const goalsThroughEvent = targetIndex >= 0 ? encounteredGoals.slice(0, targetIndex + 1) : encounteredGoals;
     if (stat === "goal") {
-      return goalsThroughEvent.filter((goal) => goal.playerId === playerId).length;
+      return baseTotal + goalsThroughEvent.filter((goal) => normalizePlayerId(goal.playerId) === normalizedId).length;
     }
-    return goalsThroughEvent.reduce((total, goal) => {
-      return total + ((goal.details?.assists || []).includes(playerId) ? 1 : 0);
+    return baseTotal + goalsThroughEvent.reduce((total, goal) => {
+      return total + ((goal.details?.assists || []).some((id) => normalizePlayerId(id) === normalizedId) ? 1 : 0);
     }, 0);
   }
 
@@ -1717,7 +1746,10 @@
       return;
     }
     if (currentEventIndex >= events.length - 1 && events.length) {
-      const refreshed = await refreshLiveRosterState({ quiet: true });
+      const [refreshed] = await Promise.all([
+        refreshLiveRosterState({ quiet: true }),
+        refreshOfficialScoringStats({ quiet: true }),
+      ]);
       if (!refreshed) {
         setStatus("Latest lineup unavailable", "error");
         return;
@@ -1725,7 +1757,10 @@
       if (!createNewGame({ freshSeed: true })) return;
     } else if (currentEventIndex < 0) {
       const existingSeed = Number(elements.seedInput.value);
-      const refreshed = await refreshLiveRosterState({ quiet: true });
+      const [refreshed] = await Promise.all([
+        refreshLiveRosterState({ quiet: true }),
+        refreshOfficialScoringStats({ quiet: true }),
+      ]);
       if (!refreshed) {
         setStatus("Latest lineup unavailable", "error");
         return;
@@ -1739,7 +1774,10 @@
     if (isHistoricalReplay) return true;
     if (currentEventIndex >= 0) return true;
     const existingSeed = Number(elements.seedInput.value);
-    const refreshed = await refreshLiveRosterState({ quiet: true });
+    const [refreshed] = await Promise.all([
+      refreshLiveRosterState({ quiet: true }),
+      refreshOfficialScoringStats({ quiet: true }),
+    ]);
     if (!refreshed) {
       setStatus("Latest lineup unavailable", "error");
       return false;
@@ -1853,6 +1891,7 @@
   if (replayGameId) {
     try {
       if (elements.assetStatus) elements.assetStatus.textContent = `Loading locked official Game ${replayGameId}…`;
+      await refreshOfficialScoringStats({ beforeGameId: replayGameId, quiet: true });
       await loadHistoricalReplay(replayGameId);
     } catch (error) {
       console.error(error);
@@ -1867,7 +1906,10 @@
       }
     }
   } else {
-    const initialRosterRefresh = await refreshLiveRosterState({ quiet: false });
+    const [initialRosterRefresh] = await Promise.all([
+      refreshLiveRosterState({ quiet: false }),
+      refreshOfficialScoringStats({ quiet: true }),
+    ]);
 
     if (initialRosterRefresh) {
       createNewGame({ freshSeed: true });

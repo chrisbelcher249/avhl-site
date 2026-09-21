@@ -759,7 +759,7 @@ class AVHLGameSimulator {
   strengthLabel(state) {
     if (state.period === "SO") return "Shootout";
     const counts = this.skaterCounts(state);
-    return `${counts[this.homeId]}-on-${counts[this.awayId]}`;
+    return `${counts[this.awayId]}-on-${counts[this.homeId]}`;
   }
 
   teamSituation(state, teamId) {
