@@ -6,6 +6,7 @@ import { getSchedule } from "@/lib/schedule";
 import { teams as fallbackTeams } from "../../../../data/teams";
 import { getTeamBySlug } from "@/lib/teams";
 import { getReplayMetadataMap } from "@/lib/replayStorage";
+import { calculateStandings } from "@/lib/standings";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,8 @@ export default async function TeamSchedulePage({ params }) {
       return {};
     }),
   ]);
+  const standings = calculateStandings(schedule);
+  const recordsBySlug = Object.fromEntries(Object.entries(standings.records).map(([teamSlug, record]) => [teamSlug, { wins: record.wins, losses: record.losses, otl: record.otl, gp: record.gp, pts: record.pts }]));
   const games = schedule
     .filter((game) => game.away === slug || game.home === slug)
     .map((game) => ({ ...game, replayAvailable: Boolean(replayMetadata[String(game.id)]) }));
@@ -77,7 +80,7 @@ export default async function TeamSchedulePage({ params }) {
           ))}
         </div>
         {error ? <p className="mb-5 rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{error}</p> : null}
-        <TeamScheduleExplorer teamSlug={team.slug} primary={team.colors.primary} games={games} />
+        <TeamScheduleExplorer teamSlug={team.slug} primary={team.colors.primary} games={games} recordsBySlug={recordsBySlug} />
       </section>
     </main>
   );

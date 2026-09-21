@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import ScheduleGameCard from "@/components/ScheduleGameCard";
 import { formatScheduleDate, formatScheduleMonth } from "@/lib/scheduleFormat";
 
-export default function TeamScheduleExplorer({ teamSlug, primary, games }) {
+export default function TeamScheduleExplorer({ teamSlug, primary, games, recordsBySlug = {} }) {
   const months = useMemo(() => [...new Set(games.map((game) => game.date.slice(0, 7)))], [games]);
   const [month, setMonth] = useState("");
   const [venue, setVenue] = useState("");
@@ -46,7 +46,7 @@ export default function TeamScheduleExplorer({ teamSlug, primary, games }) {
               <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#A90117]">Day {game.day} · Game {game.id}</p>
               <h2 className="mt-1 text-xl font-black">{formatScheduleDate(game.date, { weekday: "short", year: undefined })}</h2>
             </div>
-            <ScheduleGameCard game={game} focusTeamSlug={teamSlug} />
+            <ScheduleGameCard game={game} recordsBySlug={recordsBySlug} focusTeamSlug={teamSlug} />
           </section>
         ))}
       </div>

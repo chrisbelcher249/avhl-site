@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V6.7.2";
+  const SIMULATOR_VERSION = "V6.7.3";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
@@ -23,6 +23,8 @@
     awayAbbr: document.getElementById("away-abbr"),
     homeLogo: document.getElementById("home-logo"),
     awayLogo: document.getElementById("away-logo"),
+    homeRecord: document.getElementById("home-record"),
+    awayRecord: document.getElementById("away-record"),
     homeLogoFallback: document.getElementById("home-logo-fallback"),
     awayLogoFallback: document.getElementById("away-logo-fallback"),
     homeJersey: document.getElementById("home-jersey"),
@@ -414,6 +416,13 @@
     fitLiveStatTeamName(elements.statsHomeName);
   }
 
+  function formatTeamRecord(record) {
+    const wins = Number(record?.wins) || 0;
+    const losses = Number(record?.losses) || 0;
+    const otl = Number(record?.otl) || 0;
+    return `${wins} - ${losses} - ${otl}`;
+  }
+
   function applyTeamBranding(home, away) {
     document.documentElement.style.setProperty("--home", home.primaryColor);
     document.documentElement.style.setProperty("--away", away.primaryColor);
@@ -432,6 +441,11 @@
     if (elements.awayAbbr) elements.awayAbbr.textContent = away.abbreviation;
     if (elements.homeLogoFallback) elements.homeLogoFallback.textContent = home.abbreviation;
     if (elements.awayLogoFallback) elements.awayLogoFallback.textContent = away.abbreviation;
+    const catalog = window.AVHL_TEAM_CATALOG ?? {};
+    const homeRecord = home.record ?? catalog[home.abbreviation]?.record;
+    const awayRecord = away.record ?? catalog[away.abbreviation]?.record;
+    if (elements.homeRecord) elements.homeRecord.textContent = formatTeamRecord(homeRecord);
+    if (elements.awayRecord) elements.awayRecord.textContent = formatTeamRecord(awayRecord);
     if (elements.arenaName) elements.arenaName.textContent = home.arenaName || "AVHL Arena";
     document.querySelectorAll("[data-home-arena-name]").forEach((node) => {
       node.textContent = home.arenaName || "AVHL Arena";

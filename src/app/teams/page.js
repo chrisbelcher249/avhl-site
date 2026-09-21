@@ -1,6 +1,8 @@
 import Link from "next/link";
 import TeamDirectory from "@/components/TeamDirectory";
 import { getTeams } from "@/lib/teams";
+import { getSchedule } from "@/lib/schedule";
+import { calculateStandings } from "@/lib/standings";
 
 export const metadata = {
   title: "Major League Teams",
@@ -10,7 +12,15 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function TeamsPage({ searchParams }) {
-  const { teams } = await getTeams();
+  const [{ teams }, { schedule }] = await Promise.all([getTeams(), getSchedule()]);
+  const standings = calculateStandings(schedule);
+  const teamsWithRecords = teams.map((team) => {
+    const record = standings.records[team.slug];
+    return {
+      ...team,
+      record: record ? { wins: record.wins, losses: record.losses, otl: record.otl, gp: record.gp, pts: record.pts } : { wins: 0, losses: 0, otl: 0, gp: 0, pts: 0 },
+    };
+  });
   const params = await searchParams;
   const requestedDivision = String(params?.division || "").toLowerCase();
   const divisionLookup = {
@@ -47,7 +57,7 @@ export default async function TeamsPage({ searchParams }) {
           </div>
         </div>
         <div className="mt-10">
-          <TeamDirectory teams={teams} initialDivision={initialDivision} />
+          <TeamDirectory teams={teamsWithRecords} initialDivision={initialDivision} />
         </div>
       </section>
     </main>

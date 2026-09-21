@@ -6,6 +6,11 @@ import { useMemo, useState } from "react";
 
 const filters = ["All", "Pacific", "Central", "Atlantic", "Metropolitan"];
 
+function recordText(record) {
+  if (!record) return "0-0-0";
+  return `${record.wins ?? 0}-${record.losses ?? 0}-${record.otl ?? 0}`;
+}
+
 export default function TeamDirectory({ teams, initialDivision = "All" }) {
   const [query, setQuery] = useState("");
   const [division, setDivision] = useState(filters.includes(initialDivision) ? initialDivision : "All");
@@ -63,7 +68,8 @@ export default function TeamDirectory({ teams, initialDivision = "All" }) {
                   </div>
                   <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-[#000B36]/40">{team.city}</p>
                   <h3 className="mt-1 text-xl font-black leading-tight">{team.nickname}</h3>
-                  <p className="mt-3 truncate text-sm font-semibold text-[#000B36]/55">{team.arena}</p>
+                  <p className="mt-2 text-xs font-black tabular-nums tracking-[0.08em] text-[#A90117]">{recordText(team.record)}</p>
+                  <p className="mt-2 truncate text-sm font-semibold text-[#000B36]/55">{team.arena}</p>
                   <div className="mt-5 flex items-center justify-between">
                     <p className="text-xs font-black uppercase tracking-wide text-[#A90117] transition group-hover:text-[#000B36]">View club →</p>
                     <span className="text-xs font-black text-[#000B36]/30">{team.abbreviation}</span>
@@ -99,7 +105,8 @@ export default function TeamDirectory({ teams, initialDivision = "All" }) {
                         </div>
                         <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-[#000B36]/40">{team.city}</p>
                         <h3 className="mt-1 text-xl font-black leading-tight">{team.nickname}</h3>
-                        <p className="mt-3 truncate text-sm font-semibold text-[#000B36]/55">{team.arena}</p>
+                        <p className="mt-2 text-xs font-black tabular-nums tracking-[0.08em] text-[#A90117]">{recordText(team.record)}</p>
+                        <p className="mt-2 truncate text-sm font-semibold text-[#000B36]/55">{team.arena}</p>
                         <div className="mt-5 flex items-center justify-between">
                           <p className="text-xs font-black uppercase tracking-wide text-[#A90117] transition group-hover:text-[#000B36]">View club →</p>
                           <span className="text-xs font-black text-[#000B36]/30">{team.abbreviation}</span>

@@ -3883,3 +3883,48 @@ body {
   line-height: 1.5;
 }
 .official-matchup strong { color: #ffffff; }
+
+/* ===== V6.7.3 live team records ===== */
+.team-logo-stack {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  position: relative;
+  z-index: 2;
+}
+
+.team-logo-stack .team-logo-shell {
+  flex: 0 0 auto;
+}
+
+.team-record {
+  display: block;
+  color: rgba(244,248,255,.78);
+  font-size: .68rem;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .12em;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 4px 10px rgba(0,0,0,.3);
+}
+
+.away-panel .team-record {
+  color: color-mix(in srgb, var(--away-secondary) 72%, white 28%);
+}
+
+.home-panel .team-record {
+  color: color-mix(in srgb, var(--home-secondary) 72%, white 28%);
+}
+
+@media (max-width: 1320px) {
+  .team-logo-stack { gap: 5px; }
+  .team-record { font-size: .58rem; letter-spacing: .1em; }
+}
+
+@media (max-width: 900px) {
+  .team-logo-stack { gap: 4px; }
+  .team-record { font-size: .52rem; }
+}

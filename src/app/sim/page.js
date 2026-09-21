@@ -1,6 +1,6 @@
 export const metadata = {
   title: "Game Simulator",
-  description: "Run AVHL Major League games in the V6.7.1 spatial hockey simulator.",
+  description: "Run AVHL Major League games in the V6.7.3 spatial hockey simulator.",
 };
 
 export default function SimulatorPage() {

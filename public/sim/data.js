@@ -131,6 +131,7 @@ window.AVHL_DATA = {
     team.tertiaryColor = meta?.tertiaryColor ?? team.tertiaryColor;
     team.numberColor = meta?.numberColor ?? team.secondaryColor;
     team.assets = meta?.assets ?? {};
+    team.record = meta?.record ?? team.record ?? { gp: 0, wins: 0, losses: 0, otl: 0, pts: 0 };
     return team;
   }
 
@@ -401,6 +402,7 @@ window.AVHL_DATA = {
         secondaryColor: team.colors?.secondary ?? existing.secondaryColor ?? "#ffffff",
         tertiaryColor: team.colors?.tertiary ?? existing.tertiaryColor ?? "#ffffff",
         mascotName: team.mascot?.name ?? existing.mascotName ?? "",
+        record: team.record ?? existing.record ?? { gp: 0, wins: 0, losses: 0, otl: 0, pts: 0 },
         rosterLookupName: existing.rosterLookupName ?? existing.fullName ?? team.name ?? "",
         fullName: team.name ?? existing.fullName ?? `${team.city ?? ""} ${team.nickname ?? ""}`.trim(),
         assets: existing.assets ?? {

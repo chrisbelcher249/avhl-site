@@ -3,7 +3,12 @@ import Link from "next/link";
 import { teamBySlug } from "../../data/teams";
 import { gameHasResult } from "@/lib/scheduleFormat";
 
-function TeamRow({ slug, venue, score, winner, focusTeamSlug }) {
+function recordText(record) {
+  if (!record) return "0-0-0";
+  return `${record.wins ?? 0}-${record.losses ?? 0}-${record.otl ?? 0}`;
+}
+
+function TeamRow({ slug, venue, score, winner, focusTeamSlug, record }) {
   const team = teamBySlug[slug];
   const focused = focusTeamSlug === slug;
 
@@ -12,14 +17,17 @@ function TeamRow({ slug, venue, score, winner, focusTeamSlug }) {
       <span className="w-10 shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-[#000B36]/35">{venue}</span>
       <Link href={`/teams/${team.slug}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl outline-none transition hover:text-[#A90117] focus-visible:ring-2 focus-visible:ring-[#18BDFC]">
         <Image src={team.assets.logo} alt="" width={48} height={48} className="h-9 w-9 shrink-0 object-contain" />
-        <span className={`min-w-0 truncate text-sm ${focused || winner ? "font-black" : "font-bold"}`}>{team.name}</span>
+        <span className="min-w-0">
+          <span className={`block truncate text-sm ${focused || winner ? "font-black" : "font-bold"}`}>{team.name}</span>
+          <span className="mt-0.5 block text-[10px] font-black tabular-nums tracking-[0.08em] text-[#000B36]/38">{recordText(record)}</span>
+        </span>
       </Link>
       {Number.isFinite(score) ? <span className={`min-w-7 text-right text-xl ${winner ? "font-black" : "font-bold text-[#000B36]/52"}`}>{score}</span> : null}
     </div>
   );
 }
 
-export default function ScheduleGameCard({ game, focusTeamSlug = null }) {
+export default function ScheduleGameCard({ game, recordsBySlug = {}, focusTeamSlug = null }) {
   const complete = gameHasResult(game);
   const awayWinner = complete && game.awayScore > game.homeScore;
   const homeWinner = complete && game.homeScore > game.awayScore;
@@ -40,9 +48,9 @@ export default function ScheduleGameCard({ game, focusTeamSlug = null }) {
           ) : null}
         </div>
       </div>
-      <TeamRow slug={game.away} venue="Away" score={game.awayScore} winner={awayWinner} focusTeamSlug={focusTeamSlug} />
+      <TeamRow slug={game.away} venue="Away" score={game.awayScore} winner={awayWinner} focusTeamSlug={focusTeamSlug} record={recordsBySlug[game.away]} />
       <div className="mx-3 border-t border-[#000B36]/8" />
-      <TeamRow slug={game.home} venue="Home" score={game.homeScore} winner={homeWinner} focusTeamSlug={focusTeamSlug} />
+      <TeamRow slug={game.home} venue="Home" score={game.homeScore} winner={homeWinner} focusTeamSlug={focusTeamSlug} record={recordsBySlug[game.home]} />
     </article>
   );
 }

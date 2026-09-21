@@ -1,8 +1,8 @@
-import Link from "next/link";
 import ScheduleExplorer from "@/components/ScheduleExplorer";
-import SaturdayNightShowdowns from "@/components/SaturdayNightShowdowns";
+import ScheduleQuickActions from "@/components/ScheduleQuickActions";
 import { getSchedule } from "@/lib/schedule";
 import { gameHasResult } from "@/lib/scheduleFormat";
+import { calculateStandings } from "@/lib/standings";
 import { saturdayNightShowdowns } from "../../../data/saturdayNightShowdowns";
 import { getReplayMetadataMap } from "@/lib/replayStorage";
 
@@ -12,6 +12,17 @@ export const metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+function currentLeagueDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
 
 export default async function Schedule() {
   const [{ schedule, source, error }, replayMetadata] = await Promise.all([
@@ -24,6 +35,16 @@ export default async function Schedule() {
   const scheduleWithReplays = schedule.map((game) => ({ ...game, replayAvailable: Boolean(replayMetadata[String(game.id)]) }));
   const seasonDays = new Set(scheduleWithReplays.map((game) => game.date)).size;
   const completedGames = scheduleWithReplays.filter(gameHasResult).length;
+  const standings = calculateStandings(scheduleWithReplays);
+  const recordsBySlug = Object.fromEntries(Object.entries(standings.records).map(([slug, record]) => [slug, {
+    wins: record.wins,
+    losses: record.losses,
+    otl: record.otl,
+    gp: record.gp,
+    pts: record.pts,
+  }]));
+  const todayDate = currentLeagueDate();
+  const hasToday = scheduleWithReplays.some((game) => game.date === todayDate);
 
   return (
     <main className="bg-[#F4F7FB] px-6 py-14 text-[#000B36] md:px-8 md:py-20">
@@ -36,7 +57,7 @@ export default async function Schedule() {
               The official AVHL fixture list and live results are joined from the 2026–27 season workbook. Finalized game stats update game cards, team schedules, standings, and the playoff picture automatically.
             </p>
           </div>
-          <Link href="/teams" className="w-fit rounded-full border border-[#000B36]/14 bg-white px-6 py-3 text-sm font-black uppercase tracking-wide transition hover:border-[#18BDFC]">Browse teams</Link>
+          <ScheduleQuickActions hasToday={hasToday} />
         </div>
 
         <div className="mt-9 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -50,10 +71,8 @@ export default async function Schedule() {
 
         {error ? <p className="mt-4 rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{error}</p> : null}
 
-        <SaturdayNightShowdowns games={saturdayNightShowdowns} />
-
         <div className="mt-10">
-          <ScheduleExplorer schedule={scheduleWithReplays} />
+          <ScheduleExplorer schedule={scheduleWithReplays} recordsBySlug={recordsBySlug} snsGames={saturdayNightShowdowns} todayDate={todayDate} />
         </div>
       </section>
     </main>

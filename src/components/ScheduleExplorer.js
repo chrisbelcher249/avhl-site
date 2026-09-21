@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ScheduleGameCard from "@/components/ScheduleGameCard";
 import { divisionOrder, teams } from "../../data/teams";
 import { formatScheduleDate, formatScheduleMonth } from "@/lib/scheduleFormat";
 
 const INITIAL_DATE_COUNT = 14;
+const gameKey = (game) => `${game.date}|${game.away}|${game.home}`;
 
-export default function ScheduleExplorer({ schedule }) {
+export default function ScheduleExplorer({ schedule, recordsBySlug = {}, snsGames = [], todayDate = "" }) {
   const [query, setQuery] = useState("");
   const [teamSlug, setTeamSlug] = useState("");
   const [division, setDivision] = useState("");
@@ -16,10 +17,14 @@ export default function ScheduleExplorer({ schedule }) {
   const [month, setMonth] = useState("");
   const [date, setDate] = useState("");
   const [venue, setVenue] = useState("");
+  const [snsOnly, setSnsOnly] = useState(false);
   const [visibleDateCount, setVisibleDateCount] = useState(INITIAL_DATE_COUNT);
+  const [pendingScroll, setPendingScroll] = useState("");
 
   const teamLookup = useMemo(() => Object.fromEntries(teams.map((team) => [team.slug, team])), []);
   const seasonMonths = useMemo(() => [...new Set(schedule.map((game) => game.date.slice(0, 7)))].sort(), [schedule]);
+  const seasonDates = useMemo(() => [...new Set(schedule.map((game) => game.date))], [schedule]);
+  const snsGameKeys = useMemo(() => new Set(snsGames.map(gameKey)), [snsGames]);
 
   const filteredGames = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -28,6 +33,7 @@ export default function ScheduleExplorer({ schedule }) {
       const home = teamLookup[game.home];
       const participants = [away, home];
 
+      if (snsOnly && !snsGameKeys.has(gameKey(game))) return false;
       if (teamSlug && game.away !== teamSlug && game.home !== teamSlug) return false;
       if (division && !participants.some((team) => team.division === division)) return false;
       if (conference && !participants.some((team) => team.conference === conference)) return false;
@@ -41,7 +47,7 @@ export default function ScheduleExplorer({ schedule }) {
       }
       return true;
     });
-  }, [conference, date, division, month, query, teamLookup, teamSlug, venue]);
+  }, [conference, date, division, month, query, schedule, snsGameKeys, snsOnly, teamLookup, teamSlug, venue]);
 
   const groupedGames = useMemo(() => {
     const groups = [];
@@ -56,7 +62,7 @@ export default function ScheduleExplorer({ schedule }) {
   const visibleGroups = groupedGames.slice(0, visibleDateCount);
   const selectedTeam = teamSlug ? teamLookup[teamSlug] : null;
 
-  function resetFilters() {
+  const clearFilterState = useCallback(() => {
     setQuery("");
     setTeamSlug("");
     setDivision("");
@@ -64,14 +70,65 @@ export default function ScheduleExplorer({ schedule }) {
     setMonth("");
     setDate("");
     setVenue("");
+  }, []);
+
+  function resetFilters() {
+    clearFilterState();
+    setSnsOnly(false);
     setVisibleDateCount(INITIAL_DATE_COUNT);
   }
+
+  useEffect(() => {
+    function showSnsGames() {
+      clearFilterState();
+      setSnsOnly(true);
+      setVisibleDateCount(INITIAL_DATE_COUNT);
+      setPendingScroll("schedule-results");
+    }
+
+    function showTodayGames() {
+      if (!todayDate) return;
+      clearFilterState();
+      setSnsOnly(false);
+      const dateIndex = seasonDates.indexOf(todayDate);
+      if (dateIndex < 0) return;
+      setVisibleDateCount(Math.max(INITIAL_DATE_COUNT, dateIndex + 1));
+      setPendingScroll(todayDate);
+    }
+
+    window.addEventListener("avhl:schedule:sns", showSnsGames);
+    window.addEventListener("avhl:schedule:today", showTodayGames);
+    return () => {
+      window.removeEventListener("avhl:schedule:sns", showSnsGames);
+      window.removeEventListener("avhl:schedule:today", showTodayGames);
+    };
+  }, [clearFilterState, seasonDates, todayDate]);
+
+  useEffect(() => {
+    if (!pendingScroll) return;
+    const target = document.getElementById(pendingScroll);
+    if (!target) return;
+    const frame = window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      setPendingScroll("");
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pendingScroll, visibleGroups]);
 
   const selectClass = "w-full rounded-2xl border border-[#000B36]/12 bg-white px-4 py-3 text-sm font-bold text-[#000B36] outline-none transition focus:border-[#18BDFC] focus:ring-4 focus:ring-[#18BDFC]/15";
 
   return (
     <div>
       <section className="rounded-[2rem] border border-[#000B36]/10 bg-white p-5 shadow-[0_12px_40px_rgba(0,11,54,0.06)] md:p-7">
+        {snsOnly ? (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[#000B36] px-4 py-3 text-white">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.17em] text-cyan-200">Schedule filter</p>
+              <p className="mt-0.5 text-sm font-black">Saturday Night Showdowns only</p>
+            </div>
+            <button type="button" onClick={() => setSnsOnly(false)} className="rounded-full border border-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide transition hover:bg-white hover:text-[#000B36]">Show all</button>
+          </div>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="xl:col-span-2">
             <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">Search matchups</span>
@@ -125,9 +182,9 @@ export default function ScheduleExplorer({ schedule }) {
         </div>
       </section>
 
-      <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div id="schedule-results" className="mt-7 flex scroll-mt-28 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#A90117]">Schedule results</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#A90117]">{snsOnly ? "Saturday Night Showdowns" : "Schedule results"}</p>
           <h2 className="mt-1 text-3xl font-black">{filteredGames.length.toLocaleString()} game{filteredGames.length === 1 ? "" : "s"}</h2>
         </div>
         <p className="text-sm font-bold text-[#000B36]/42">{groupedGames.length} date{groupedGames.length === 1 ? "" : "s"}</p>
@@ -138,13 +195,16 @@ export default function ScheduleExplorer({ schedule }) {
           <section key={group.date} id={group.date} className="scroll-mt-28">
             <div className="mb-4 flex items-end justify-between gap-4 border-b border-[#000B36]/10 pb-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#000B36]/35">Day {group.games[0].day}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#000B36]/35">Day {group.games[0].day}</p>
+                  {group.date === todayDate ? <span className="rounded-full bg-[#A90117] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white">Today</span> : null}
+                </div>
                 <h3 className="mt-1 text-2xl font-black md:text-3xl">{formatScheduleDate(group.date)}</h3>
               </div>
               <span className="text-xs font-black uppercase tracking-wide text-[#000B36]/32">{group.games.length} game{group.games.length === 1 ? "" : "s"}</span>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
-              {group.games.map((game) => <ScheduleGameCard key={game.id} game={game} focusTeamSlug={teamSlug || null} />)}
+              {group.games.map((game) => <ScheduleGameCard key={game.id} game={game} recordsBySlug={recordsBySlug} focusTeamSlug={teamSlug || null} />)}
             </div>
           </section>
         ))}
