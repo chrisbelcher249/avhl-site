@@ -57,3 +57,14 @@
 - Historical official replays use only stats from games before the replayed game, so goal/assist ordinal numbers remain correct in old games.
 - Added `/api/sim-season-scoring` as a no-cache compact scoring-total feed for the simulator.
 - Simulator version bumped to V6.7.2.
+
+## Site 61 — detailed league player stats + GP safeguards
+
+- Added `/statistics/skaters` with a league-wide sortable 2026–27 skater table.
+- Added `/statistics/goalies` with a league-wide sortable 2026–27 goalie table.
+- Added two prominent buttons on `/statistics` linking to those detailed tables.
+- Every displayed column can be sorted ascending/descending; both tables also include search and team filtering.
+- Skater GP is now explicitly derived from unique official player/game rows, so every dressed skater receives one GP even with a zero-stat box score and an accidental duplicate sheet row cannot inflate GP.
+- Goalie GP remains credited only when a goalie records ice time; `Dressed` separately tracks backup appearances.
+- Official game verification now fails closed unless each team exports all 18 unique dressed skaters and both unique dressed goalies, preventing an incomplete official save from silently losing a player's GP.
+- Added simulator coverage checks confirming each official game produces 36 skater rows and 4 goalie rows.

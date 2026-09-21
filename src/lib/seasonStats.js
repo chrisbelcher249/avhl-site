@@ -51,22 +51,75 @@ export function parseScheduleRows(rows) {
   }).filter((row) => row.id > 0 && row.away && row.home);
 }
 
+function uniquePlayerGameRows(rows) {
+  const byPlayerGame = new Map();
+  for (const row of rows) {
+    // One official row = one player dressed for one game. Keeping the final
+    // copy of a duplicated sheet row prevents an accidental duplicate from
+    // inflating GP or season totals.
+    byPlayerGame.set(`${row.gameId}:${row.playerId}`, row);
+  }
+  return [...byPlayerGame.values()];
+}
+
 function aggregateSkaters(rows) {
   const byPlayer = new Map();
-  for (const row of rows) {
-    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, position: row.position, team: row.team, gp: 0, toi: 0, goals: 0, assists: 0, points: 0, plusMinus: 0, shots: 0, ppToi: 0, penaltyMinutes: 0, hits: 0, powerPlayGoals: 0, shorthandedGoals: 0, faceoffsTaken: 0, faceoffsWon: 0, gameRows: [] };
-    current.name = row.name || current.name; current.position = row.position || current.position; current.team = row.team || current.team; current.gp += 1; current.toi += row.toi; current.goals += row.goals; current.assists += row.assists; current.points += row.points; current.plusMinus += row.plusMinus; current.shots += row.shots; current.ppToi += row.ppToi; current.penaltyMinutes += row.penaltyMinutes; current.hits += row.hits; current.powerPlayGoals += row.powerPlayGoals; current.shorthandedGoals += row.shorthandedGoals; current.faceoffsTaken += row.faceoffsTaken; current.faceoffsWon += row.faceoffsWon; current.gameRows.push(row); byPlayer.set(row.playerId, current);
+  for (const row of uniquePlayerGameRows(rows)) {
+    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, position: row.position, team: row.team, latestGameId: 0, gp: 0, toi: 0, goals: 0, assists: 0, points: 0, plusMinus: 0, shots: 0, ppToi: 0, penaltyMinutes: 0, hits: 0, powerPlayGoals: 0, shorthandedGoals: 0, faceoffsTaken: 0, faceoffsWon: 0, gameRows: [] };
+    if (row.gameId >= current.latestGameId) {
+      current.latestGameId = row.gameId;
+      current.name = row.name || current.name;
+      current.position = row.position || current.position;
+      current.team = row.team || current.team;
+    }
+    // Every official skater row counts as one GP, even if the player happened
+    // to finish with zero in every counting category.
+    current.gp += 1;
+    current.toi += row.toi;
+    current.goals += row.goals;
+    current.assists += row.assists;
+    current.points += row.points;
+    current.plusMinus += row.plusMinus;
+    current.shots += row.shots;
+    current.ppToi += row.ppToi;
+    current.penaltyMinutes += row.penaltyMinutes;
+    current.hits += row.hits;
+    current.powerPlayGoals += row.powerPlayGoals;
+    current.shorthandedGoals += row.shorthandedGoals;
+    current.faceoffsTaken += row.faceoffsTaken;
+    current.faceoffsWon += row.faceoffsWon;
+    current.gameRows.push(row);
+    byPlayer.set(row.playerId, current);
   }
-  return [...byPlayer.values()].map((player) => ({ ...player, shotPct: player.shots ? player.goals / player.shots : 0, faceoffPct: player.faceoffsTaken ? player.faceoffsWon / player.faceoffsTaken : 0, toiPerGame: player.gp ? player.toi / player.gp : 0, ppToiPerGame: player.gp ? player.ppToi / player.gp : 0, teamInfo: teamByAbbreviation[player.team] || null, gameRows: player.gameRows.sort((a, b) => b.gameId - a.gameId) }));
+  return [...byPlayer.values()].map(({ latestGameId, ...player }) => ({ ...player, shotPct: player.shots ? player.goals / player.shots : 0, faceoffPct: player.faceoffsTaken ? player.faceoffsWon / player.faceoffsTaken : 0, toiPerGame: player.gp ? player.toi / player.gp : 0, ppToiPerGame: player.gp ? player.ppToi / player.gp : 0, teamInfo: teamByAbbreviation[player.team] || null, gameRows: player.gameRows.sort((a, b) => b.gameId - a.gameId) }));
 }
 
 function aggregateGoalies(rows) {
   const byPlayer = new Map();
-  for (const row of rows) {
-    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, team: row.team, dressed: 0, gp: 0, toi: 0, shotsAgainst: 0, saves: 0, goalsAgainst: 0, emptyNetGoals: 0, penaltyMinutes: 0, goals: 0, assists: 0, points: 0, gameRows: [] };
-    current.name = row.name || current.name; current.team = row.team || current.team; current.dressed += 1; if (row.toi > 0) current.gp += 1; current.toi += row.toi; current.shotsAgainst += row.shotsAgainst; current.saves += row.saves; current.goalsAgainst += row.goalsAgainst; current.emptyNetGoals += row.emptyNetGoals; current.penaltyMinutes += row.penaltyMinutes; current.goals += row.goals; current.assists += row.assists; current.points += row.points; current.gameRows.push(row); byPlayer.set(row.playerId, current);
+  for (const row of uniquePlayerGameRows(rows)) {
+    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, team: row.team, latestGameId: 0, dressed: 0, gp: 0, toi: 0, shotsAgainst: 0, saves: 0, goalsAgainst: 0, emptyNetGoals: 0, penaltyMinutes: 0, goals: 0, assists: 0, points: 0, gameRows: [] };
+    if (row.gameId >= current.latestGameId) {
+      current.latestGameId = row.gameId;
+      current.name = row.name || current.name;
+      current.team = row.team || current.team;
+    }
+    current.dressed += 1;
+    // A dressed backup gets a Dressed appearance but only receives a GP if he
+    // actually records ice time. This matches normal goalie GP accounting.
+    if (row.toi > 0) current.gp += 1;
+    current.toi += row.toi;
+    current.shotsAgainst += row.shotsAgainst;
+    current.saves += row.saves;
+    current.goalsAgainst += row.goalsAgainst;
+    current.emptyNetGoals += row.emptyNetGoals;
+    current.penaltyMinutes += row.penaltyMinutes;
+    current.goals += row.goals;
+    current.assists += row.assists;
+    current.points += row.points;
+    current.gameRows.push(row);
+    byPlayer.set(row.playerId, current);
   }
-  return [...byPlayer.values()].map((goalie) => ({ ...goalie, savePct: goalie.shotsAgainst ? goalie.saves / goalie.shotsAgainst : 0, gaa: goalie.toi ? (goalie.goalsAgainst * 3600) / goalie.toi : 0, teamInfo: teamByAbbreviation[goalie.team] || null, gameRows: goalie.gameRows.sort((a, b) => b.gameId - a.gameId) }));
+  return [...byPlayer.values()].map(({ latestGameId, ...goalie }) => ({ ...goalie, savePct: goalie.shotsAgainst ? goalie.saves / goalie.shotsAgainst : 0, gaa: goalie.toi ? (goalie.goalsAgainst * 3600) / goalie.toi : 0, teamInfo: teamByAbbreviation[goalie.team] || null, gameRows: goalie.gameRows.sort((a, b) => b.gameId - a.gameId) }));
 }
 
 function emptyTeam(team) {

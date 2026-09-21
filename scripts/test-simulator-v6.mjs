@@ -1,6 +1,7 @@
 globalThis.window = {};
 
 const { players } = await import('../data/players.js');
+const { buildOfficialSheetRows } = await import('../src/lib/officialGame.js');
 await import('../public/sim/simulator.js');
 
 const Simulator = globalThis.window.AVHLGameSimulator;
@@ -150,6 +151,29 @@ const g2 = new Simulator(data, 123456789).simulateGame();
 const sig = (g) => JSON.stringify({score:g.finalSummary.score, injuries:g.finalSummary.injuries, events:g.events.map(e=>[e.type,e.text,e.clockText])});
 if (sig(g1)!==sig(g2)) throw new Error('Seed repeatability failed.');
 console.log('Seed repeatability check: PASS.');
+
+// Official season GP is derived from the presence of one game row per dressed
+// skater. Make sure the final summary always exports all 18 active skaters and
+// both dressed goalies for each club, including players with zero box-score stats.
+for (const teamId of [g1.awayId, g1.homeId]) {
+  const skaters = g1.finalSummary.skaters?.[teamId] || [];
+  const goalies = g1.finalSummary.goalieRows?.[teamId] || [];
+  if (skaters.length !== 18) throw new Error(`${teamId}: expected 18 official skater rows, got ${skaters.length}.`);
+  if (new Set(skaters.map((row) => row.avhlId)).size !== 18) throw new Error(`${teamId}: duplicate/missing skater IDs in official summary.`);
+  if (goalies.length !== 2) throw new Error(`${teamId}: expected 2 official goalie rows, got ${goalies.length}.`);
+  if (new Set(goalies.map((row) => row.avhlId)).size !== 2) throw new Error(`${teamId}: duplicate/missing goalie IDs in official summary.`);
+}
+console.log('Official GP row coverage check: PASS (18 skaters + 2 dressed goalies per team).');
+
+const officialRows = buildOfficialSheetRows(1, {
+  away: { id: g1.awayId, abbreviation: data.away.abbreviation, fullName: data.away.fullName, score: g1.finalSummary.score[g1.awayId] },
+  home: { id: g1.homeId, abbreviation: data.home.abbreviation, fullName: data.home.fullName, score: g1.finalSummary.score[g1.homeId] },
+  summary: g1.finalSummary,
+  finish: 'REG',
+});
+if (officialRows.skaterRows.length !== 36) throw new Error(`Official export lost skater rows: ${officialRows.skaterRows.length}/36.`);
+if (officialRows.goalieRows.length !== 4) throw new Error(`Official export lost goalie rows: ${officialRows.goalieRows.length}/4.`);
+console.log('Official sheet export coverage check: PASS (36 skater rows + 4 goalie rows).');
 
 const count = Math.max(1, Number(process.argv[2] || 10));
 const aggregate={games:count,goals:0,shots:0,hits:0,attempts:0,injuries:0,manGames:0,ot:0,shootouts:0,blocks:0,fights:0,goaliePlays:0,injuryEvents:0,expectedInjuries:0};

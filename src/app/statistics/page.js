@@ -88,7 +88,7 @@ export default async function StatisticsPage() {
         <div className="relative mx-auto max-w-7xl">
           <p className="text-sm font-black uppercase tracking-[0.26em] text-cyan-200">2026–27 AVHL</p>
           <h1 className="mt-3 text-5xl font-black uppercase tracking-tight md:text-7xl">League leaders</h1>
-          <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-white/65 md:text-lg">A quick look at the top teams and individual leaders. Full roster statistics live on each team page.</p>
+          <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-white/65 md:text-lg">A quick look at the top teams and individual leaders, with sortable league-wide skater and goalie tables one click away.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/standings" className="rounded-full bg-white px-5 py-2.5 text-xs font-black uppercase tracking-wide text-[#000B36] transition hover:bg-cyan-100">Full standings →</Link>
             <Link href="/statistics/career" className="rounded-full border border-white/15 px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white transition hover:bg-white hover:text-[#000B36]">Career & historical stats</Link>
@@ -132,12 +132,12 @@ export default async function StatisticsPage() {
           </div>
 
           <div className="rounded-[2rem] border border-[#000B36]/10 bg-white p-6 shadow-sm md:p-7">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#A90117]">Where to find everything else</p>
-            <h2 className="mt-2 text-3xl font-black">Detailed stats stay with the teams.</h2>
-            <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-[#000B36]/52">Every team page includes its full 2026–27 skater table, goalie table, team totals, and game log. This page stays focused on the league leaders.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#A90117]">League-wide tables</p>
+            <h2 className="mt-2 text-3xl font-black">Detailed player statistics.</h2>
+            <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-[#000B36]/52">Open the full 2026–27 skater or goalie table and sort the league by any displayed variable, including GP, scoring, percentages, TOI, and more.</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/teams" className="rounded-full bg-[#000B36] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white hover:bg-[#101D4F]">Browse team stats →</Link>
-              <Link href="/players" className="rounded-full border border-[#000B36]/12 px-5 py-2.5 text-xs font-black uppercase tracking-wide hover:border-[#18BDFC]">Player database</Link>
+              <Link href="/statistics/skaters" className="rounded-full bg-[#000B36] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white hover:bg-[#101D4F]">Detailed skater stats →</Link>
+              <Link href="/statistics/goalies" className="rounded-full border border-[#000B36]/12 px-5 py-2.5 text-xs font-black uppercase tracking-wide hover:border-[#18BDFC]">Detailed goalie stats →</Link>
             </div>
           </div>
         </div>
