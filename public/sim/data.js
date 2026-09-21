@@ -351,6 +351,11 @@ window.AVHL_DATA = {
     team.lineupRevision = Number(lineup.revision) || 0;
     team.lineupUpdatedAt = lineup.updatedAt || null;
     team.lineupSource = liveLineupSources[meta.abbreviation] || "projected";
+    // Preserve the exact server-supplied AVHL lineup record that produced this
+    // game. The official-save flow can then persist a temporary sim repair only
+    // after the game is verified, rather than regenerating a potentially
+    // different repair later.
+    team.lineupRecord = clone(lineup);
     return true;
   }
 
@@ -362,9 +367,10 @@ window.AVHL_DATA = {
 
     // /api/sim-rosters supplies one server-validated lineup record for every
     // team: owner-saved when valid, projected when no owner lineup exists, and
-    // auto-optimized immediately after a roster move invalidates an owner lineup.
-    // The browser never invents a second fallback; if the server record itself
-    // cannot be applied, fail closed rather than silently changing it.
+    // temporarily repaired for the sim when a trade/injury invalidates part of
+    // an owner lineup. The browser never invents a second fallback; if the
+    // server record itself cannot be applied, fail closed rather than silently
+    // changing it.
     const lineup = liveLineupByAbbreviation?.[meta.abbreviation];
     if (!lineup || !applySavedLineup(team, meta, roster, lineup)) return false;
 

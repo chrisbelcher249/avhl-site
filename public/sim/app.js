@@ -498,12 +498,12 @@
       const rosterStatus = await window.AVHL_LOAD_LIVE_ROSTERS();
       const lineupSources = Object.values(rosterStatus.lineupSources || {});
       const savedCount = lineupSources.filter((source) => source === "saved").length;
-      const autoCount = lineupSources.filter((source) => source === "auto-optimized").length;
-      console.info(`AVHL simulator rosters: ${rosterStatus.playerCount} players across ${rosterStatus.teamCount} teams (${rosterStatus.source}); ${savedCount} owner lineups; ${autoCount} auto-optimized`);
+      const repairCount = lineupSources.filter((source) => source === "sim-repaired").length;
+      console.info(`AVHL simulator rosters: ${rosterStatus.playerCount} players across ${rosterStatus.teamCount} teams (${rosterStatus.source}); ${savedCount} owner lineups; ${repairCount} temporary sim repairs`);
       if (elements.assetStatus) {
         elements.assetStatus.dataset.ready = rosterStatus.source === "live" ? "true" : "false";
         elements.assetStatus.textContent = rosterStatus.source === "live"
-          ? `Live CSV rosters + latest lineups loaded (${rosterStatus.playerCount} players · ${savedCount} owner · ${autoCount} auto-optimized)`
+          ? `Live CSV rosters + latest lineups loaded (${rosterStatus.playerCount} players · ${savedCount} owner · ${repairCount} temporary repairs)`
           : `Roster source: ${rosterStatus.source} (${rosterStatus.playerCount})`;
       }
       return rosterStatus;
@@ -1436,7 +1436,9 @@
     if (!team) return "unknown";
     const source = team.lineupSource === "saved"
       ? `r${Number(team.lineupRevision) || 0}`
-      : "projected";
+      : team.lineupSource === "sim-repaired"
+        ? `repair-r${Number(team.lineupRevision) || 0}`
+        : "projected";
     const identity = [
       ...(team.forwards || []).map((player) => player.id),
       ...(team.defense || []).map((player) => player.id),
@@ -1610,9 +1612,34 @@
     applyHistoricalReplayLock();
   }
 
+  function officialLineupSnapshot(side) {
+    const inputTeam = currentGameInput?.[side];
+    if (!inputTeam?.abbreviation || !inputTeam?.lineupRecord) return null;
+    return {
+      abbreviation: inputTeam.abbreviation,
+      source: inputTeam.lineupSource || "projected",
+      revision: Number(inputTeam.lineupRevision) || 0,
+      record: cloneData(inputTeam.lineupRecord),
+    };
+  }
+
   function buildOfficialPacket() {
     const summary = game.finalSummary;
-    return { schema: "avhl-official-game-v3", simulatorVersion: SIMULATOR_VERSION, simGameId: officialGameId(), verifiedAt: new Date().toISOString(), seed: game.seed, finish: officialFinish(), away: { id: awayId, abbreviation: teams[awayId].abbreviation, fullName: teams[awayId].fullName, score: summary.score[awayId] }, home: { id: homeId, abbreviation: teams[homeId].abbreviation, fullName: teams[homeId].fullName, score: summary.score[homeId] }, summary };
+    return {
+      schema: "avhl-official-game-v3",
+      simulatorVersion: SIMULATOR_VERSION,
+      simGameId: officialGameId(),
+      verifiedAt: new Date().toISOString(),
+      seed: game.seed,
+      finish: officialFinish(),
+      away: { id: awayId, abbreviation: teams[awayId].abbreviation, fullName: teams[awayId].fullName, score: summary.score[awayId] },
+      home: { id: homeId, abbreviation: teams[homeId].abbreviation, fullName: teams[homeId].fullName, score: summary.score[homeId] },
+      lineups: {
+        away: officialLineupSnapshot("away"),
+        home: officialLineupSnapshot("home"),
+      },
+      summary,
+    };
   }
 
   async function officialApi(payload) {

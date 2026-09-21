@@ -174,7 +174,7 @@ export default function OddsBoard({ games, dates, teamDirectory, initialDate }) 
       <section className="grid gap-4 rounded-3xl bg-[#000B36] p-6 text-white md:grid-cols-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Lineup aware</p>
-          <p className="mt-2 text-sm leading-6 text-white/65">Owner-saved lineups are priced when valid. Projected or auto-optimized lineups are used when that is the simulator's active lineup.</p>
+          <p className="mt-2 text-sm leading-6 text-white/65">Owner-saved lineups are priced when valid. If a trade or injury creates an open slot, the same temporary repair used by the simulator is priced without overwriting the owner lineup.</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Rating aware</p>

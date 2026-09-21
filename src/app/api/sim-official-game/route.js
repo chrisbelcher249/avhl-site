@@ -6,8 +6,11 @@ import { getTeamGameRows } from "@/lib/seasonStats";
 import { writeOfficialGameRows } from "@/lib/googleSheetsWrite";
 import { normalizePlayerId } from "@/lib/seasonSheets";
 import { deleteInjuryRecords, injuryStorageStatus, saveInjuryRecords } from "@/lib/injuryStorage";
-import { repairSavedLineupForTeam } from "@/lib/injuryLineupService";
 import { deleteOfficialReplay, replayStorageStatus, saveOfficialReplay, validateReplayArchive } from "@/lib/replayStorage";
+import { getPlayers } from "@/lib/players";
+import { rosterForTeam } from "@/lib/lineupService";
+import { validateLineupRecord } from "@/lib/lineupRecords";
+import { lineupStorageStatus, saveLineupIfRevision } from "@/lib/lineupStorage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +35,140 @@ async function scheduledGame(number) {
 const sameMatchup = (official, away, home) =>
   official.away.abbreviation === String(away || "").toUpperCase() &&
   official.home.abbreviation === String(home || "").toUpperCase();
+
+
+async function persistVerifiedSimulatorRepairs(number, packet, replaySnapshot) {
+  const snapshotForSide = (side) => {
+    const frozenTeam = replaySnapshot?.matchupData?.[side];
+    if (frozenTeam?.lineupRecord) {
+      return {
+        abbreviation: frozenTeam.abbreviation,
+        source: frozenTeam.lineupSource || "projected",
+        revision: Number(frozenTeam.lineupRevision) || 0,
+        record: frozenTeam.lineupRecord,
+      };
+    }
+    return packet?.lineups?.[side] || null;
+  };
+
+  const snapshots = [
+    { side: "away", expected: String(packet?.away?.abbreviation || "").toUpperCase(), snapshot: snapshotForSide("away") },
+    { side: "home", expected: String(packet?.home?.abbreviation || "").toUpperCase(), snapshot: snapshotForSide("home") },
+  ].filter(({ snapshot }) => snapshot?.source === "sim-repaired");
+
+  if (!snapshots.length) return [];
+
+  const storage = lineupStorageStatus();
+  if (!storage.configured) {
+    return snapshots.map(({ expected }) => ({
+      abbreviation: expected,
+      ok: false,
+      changed: false,
+      warning: "Persistent lineup storage is unavailable; the temporary simulator repair was not saved.",
+    }));
+  }
+
+  let playersPayload;
+  try {
+    playersPayload = await getPlayers();
+  } catch (error) {
+    console.error(`Unable to load live rosters while saving verified Game ${number} lineup repairs`, error);
+    return snapshots.map(({ expected }) => ({
+      abbreviation: expected,
+      ok: false,
+      changed: false,
+      warning: "Live roster verification was unavailable; the temporary simulator repair was not saved.",
+    }));
+  }
+
+  if (playersPayload?.source !== "live") {
+    return snapshots.map(({ expected }) => ({
+      abbreviation: expected,
+      ok: false,
+      changed: false,
+      warning: "The complete live roster was unavailable; the temporary simulator repair was not saved.",
+    }));
+  }
+
+  const results = [];
+  for (const { side, expected, snapshot } of snapshots) {
+    const abbreviation = String(snapshot?.abbreviation || "").toUpperCase();
+    const expectedRevision = Number.parseInt(String(snapshot?.revision ?? ""), 10);
+
+    if (!expected || abbreviation !== expected) {
+      results.push({
+        abbreviation: expected || abbreviation || side.toUpperCase(),
+        ok: false,
+        changed: false,
+        warning: "Simulator lineup snapshot did not match the verified matchup, so it was not saved.",
+      });
+      continue;
+    }
+    if (!Number.isInteger(expectedRevision) || expectedRevision < 0 || Number(snapshot?.record?.revision || 0) !== expectedRevision) {
+      results.push({
+        abbreviation,
+        ok: false,
+        changed: false,
+        warning: "Simulator lineup revision was invalid, so the temporary repair was not saved.",
+      });
+      continue;
+    }
+
+    const rosterPlayers = rosterForTeam(playersPayload.players, abbreviation);
+    const validation = validateLineupRecord(snapshot.record, rosterPlayers, abbreviation);
+    if (!validation.ok) {
+      results.push({
+        abbreviation,
+        ok: false,
+        changed: false,
+        errors: validation.errors,
+        warning: "The exact simulator repair no longer matches the live roster, so it was not saved.",
+      });
+      continue;
+    }
+
+    const replacement = {
+      ...validation.record,
+      schema: "avhl-lineup-v1",
+      abbreviation,
+      revision: expectedRevision + 1,
+      updatedAt: new Date().toISOString(),
+      autoAdjustedForOfficialGame: number,
+    };
+
+    try {
+      const write = await saveLineupIfRevision(abbreviation, replacement, expectedRevision);
+      if (!write.saved) {
+        results.push({
+          abbreviation,
+          ok: true,
+          changed: false,
+          conflict: true,
+          currentRevision: write.currentRevision,
+          warning: "The owner changed this lineup after the sim started, so the newer owner revision was preserved.",
+        });
+        continue;
+      }
+      results.push({
+        abbreviation,
+        ok: true,
+        changed: true,
+        revision: replacement.revision,
+        saved: replacement,
+      });
+    } catch (error) {
+      console.error(`Unable to persist verified Game ${number} simulator lineup repair for ${abbreviation}`, error);
+      results.push({
+        abbreviation,
+        ok: false,
+        changed: false,
+        warning: "The game was saved, but the temporary lineup repair could not be persisted.",
+      });
+    }
+  }
+
+  return results;
+}
 
 function officialInjuryRecords(number, gameDate, packet) {
   const injuries = Array.isArray(packet?.summary?.injuries) ? packet.summary.injuries : [];
@@ -193,19 +330,12 @@ export async function POST(request) {
       throw error;
     }
 
-    const affectedTeams = [...new Set(injuryRecords.map((injury) => injury.teamAbbreviation))];
-    const lineupRepairs = [];
-    for (const abbreviation of affectedTeams) {
-      try {
-        lineupRepairs.push({ abbreviation, ...(await repairSavedLineupForTeam(abbreviation)) });
-      } catch (error) {
-        console.error(`Unable to persist automatic injury lineup repair for ${abbreviation}`, error);
-        // The simulator and public lineup still validate against the healthy
-        // roster on every request, so this is a persistence warning rather than
-        // a reason to invalidate an otherwise successful official game save.
-        lineupRepairs.push({ abbreviation, ok: false, warning: "Automatic lineup repair will be regenerated on the next lineup/simulator load." });
-      }
-    }
+    // Persist only the exact temporary repairs that were actually used when this
+    // game was created. A new injury from this game does not trigger an
+    // immediate lineup rewrite; it will simply appear as an open slot until the
+    // next sim repairs it. Compare-and-save also protects any owner edit made
+    // after puck drop from being overwritten here.
+    const lineupRepairs = await persistVerifiedSimulatorRepairs(number, body.packet, replaySnapshot);
 
     return Response.json({
       ok: true,

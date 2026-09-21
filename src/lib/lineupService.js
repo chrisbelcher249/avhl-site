@@ -3,6 +3,7 @@ import { getPlayers } from "@/lib/players";
 import { buildProjectedLineup } from "@/lib/lineups";
 import { getSavedLineup, getSavedLineups, lineupStorageStatus } from "@/lib/lineupStorage";
 import { hydrateLineupRecord, recordFromProjected, validateLineupRecord } from "@/lib/lineupRecords";
+import { blankUnavailableLineupRecord, repairLineupRecord } from "@/lib/lineupRepair";
 import { getCurrentInjuryState, healthyRosterForTeam } from "@/lib/injuries";
 
 export function fallbackTeamByAbbreviation(abbreviation) {
@@ -51,18 +52,15 @@ export async function getEffectiveLineup(abbreviation) {
     const validation = validateLineupRecord(saved, healthyRosterPlayers, code);
     if (validation.ok) {
       record = validation.record;
-      source = saved.autoAdjustedForInjury ? "auto-optimized" : "saved";
+      source = "saved";
     } else {
       savedErrors = validation.errors;
-      source = "auto-optimized";
-      // A roster move immediately invalidates the owner lineup as the active
-      // lineup. Use a fresh optimized projection right away while retaining the
-      // old revision only for compare-and-save safety when the owner returns.
-      record = {
-        ...projectedRecord,
-        revision: Math.max(0, Number(saved.revision) || 0),
-        updatedAt: typeof saved.updatedAt === "string" ? saved.updatedAt : null,
-      };
+      source = "needs-repair";
+      // Keep every still-eligible owner assignment exactly where it was. Any
+      // player made unavailable by a trade or injury is shown as an open slot.
+      // Nothing is persisted here; the simulator creates a temporary repair at
+      // puck drop and only an officially verified game may save that repair.
+      record = blankUnavailableLineupRecord(saved, healthyRosterPlayers, code, players);
     }
   }
 
@@ -126,17 +124,24 @@ export async function getEffectiveLineupsForSimulator(players) {
       const validation = validateLineupRecord(saved, healthyRosterPlayers, team.abbreviation);
       if (validation.ok) {
         records[team.abbreviation] = validation.record;
-        sources[team.abbreviation] = saved.autoAdjustedForInjury ? "auto-optimized" : "saved";
+        sources[team.abbreviation] = "saved";
         continue;
       }
-      // A roster transaction invalidates the owner lineup immediately. The
-      // active lineup becomes a fresh server-generated optimized projection so
-      // the commissioner can still simulate without manually repairing lines.
-      // Keep the validation errors for UI/status messaging, but always provide
-      // the valid projected record to the simulator.
-      records[team.abbreviation] = projected;
+
       invalid[team.abbreviation] = validation.errors;
-      sources[team.abbreviation] = "auto-optimized";
+      // Repair only the unavailable/invalid portions for this simulator load.
+      // The persisted owner lineup remains untouched until this exact game is
+      // officially verified. That prevents trades/injuries from instantly
+      // resetting an owner's lines while still guaranteeing a legal sim input.
+      const repair = repairLineupRecord(saved, healthyRosterPlayers, players, team.abbreviation);
+      records[team.abbreviation] = repair.ok
+        ? repair.record
+        : {
+            ...projected,
+            revision: Math.max(0, Number(saved.revision) || 0),
+            updatedAt: typeof saved.updatedAt === "string" ? saved.updatedAt : null,
+          };
+      sources[team.abbreviation] = "sim-repaired";
       continue;
     }
     records[team.abbreviation] = projected;

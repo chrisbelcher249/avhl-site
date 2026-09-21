@@ -105,15 +105,17 @@ try {
 assert(rejectedMalformedSpecialTeams, "Simulator accepted a malformed server PP unit instead of refusing the matchup.");
 payload.lineups.ARI = originalArizona;
 
-// If a roster transaction invalidates an owner-saved lineup, the server sends
-// a fresh valid projected record and marks it auto-optimized. The simulator
-// must accept that server-authoritative fallback without commissioner repair.
+// If a roster transaction/injury invalidates part of an owner lineup, the
+// server sends a legal temporary repair but leaves persistence untouched. The
+// simulator must preserve both the repair source and the exact AVHL record so
+// official verification can save precisely what this game used.
 payload.lineups.ARI = originalArizona;
-payload.lineupSources.ARI = "auto-optimized";
+payload.lineupSources.ARI = "sim-repaired";
 await context.window.AVHL_LOAD_LIVE_ROSTERS();
-const autoMatchup = context.window.AVHL_CREATE_MATCHUP_DATA("ARI", "ATL");
-assert(autoMatchup.home.lineupSource === "auto-optimized", "Auto-optimized lineup source was not preserved into the simulator.");
+const repairedMatchup = context.window.AVHL_CREATE_MATCHUP_DATA("ARI", "ATL");
+assert(repairedMatchup.home.lineupSource === "sim-repaired", "Temporary simulator repair source was not preserved into the matchup.");
+assert(JSON.stringify(repairedMatchup.home.lineupRecord) === JSON.stringify(originalArizona), "Exact temporary lineup record was not preserved for official verification.");
 payload.lineupSources.ARI = "projected";
 await context.window.AVHL_LOAD_LIVE_ROSTERS();
 
-console.log(`Simulator lineup handoff: PASS (${teams.length} team matchup transforms + malformed fail-closed + auto-optimized fallback checks).`);
+console.log(`Simulator lineup handoff: PASS (${teams.length} team matchup transforms + malformed fail-closed + deferred-repair snapshot checks).`);

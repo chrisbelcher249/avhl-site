@@ -229,7 +229,11 @@ function replaceOrSwapId(ids, index, playerId) {
 
 function inferPpFormations(record, rosterPlayers) {
   const defenseIds = new Set((rosterPlayers || []).filter((player) => isDefensePlayer(player) && !isGoaliePlayer(player)).map((player) => String(player.id)));
-  const formationFor = (key) => (record?.specialTeams?.[key] || []).filter((id) => defenseIds.has(String(id))).length >= 2 ? "3F2D" : "4F1D";
+  const formationFor = (key) => {
+    const hint = record?.displayPpFormations?.[key];
+    if (hint === "3F2D" || hint === "4F1D") return hint;
+    return (record?.specialTeams?.[key] || []).filter((id) => defenseIds.has(String(id))).length >= 2 ? "3F2D" : "4F1D";
+  };
   return { pp1: formationFor("pp1"), pp2: formationFor("pp2") };
 }
 
@@ -719,8 +723,8 @@ export default function EditableLineupPage({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-white/70">{team.abbreviation}</span>
-                <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] ${lineupSource === "saved" ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100" : "border-cyan-300/20 bg-cyan-300/10 text-cyan-100"}`}>
-                  {lineupSource === "saved" ? "Owner lineup" : lineupSource === "auto-optimized" ? "Auto-optimized lineup" : "Projected lineup"}
+                <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] ${lineupSource === "saved" ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100" : lineupSource === "needs-repair" ? "border-amber-300/30 bg-amber-300/10 text-amber-100" : "border-cyan-300/20 bg-cyan-300/10 text-cyan-100"}`}>
+                  {lineupSource === "saved" ? "Owner lineup" : lineupSource === "needs-repair" ? "Owner lineup · open slots" : "Projected lineup"}
                 </span>
               </div>
               <p className="mt-4 text-sm font-black uppercase tracking-[0.24em] text-white/60">{team.city}</p>
@@ -730,7 +734,7 @@ export default function EditableLineupPage({
               </p>
               {updatedText ? (
                 <p className="mt-2 text-[11px] font-bold text-white/38">
-                  {lineupSource === "auto-optimized" ? "Lineup auto-adjusted" : "Last owner update"}: {updatedText}
+                  Last owner update: {updatedText}
                 </p>
               ) : null}
             </div>
@@ -784,8 +788,8 @@ export default function EditableLineupPage({
           </div>
         ) : null}
         {savedErrors.length ? (
-          <div className="mb-6 rounded-2xl border border-[#A90117]/20 bg-[#A90117]/6 px-4 py-3 text-xs font-bold leading-5 text-[#7A0010]">
-            A roster move or injury made the previous owner lineup invalid. The active lineup was automatically repaired so the team can still play; the owner can save a new lineup at any time.
+          <div className="mb-6 rounded-2xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-xs font-bold leading-5 text-amber-950">
+            A trade or injury made part of the owner lineup unavailable. Those assignments are left as open slots and nothing has been auto-saved. The owner can fix them now, or the simulator will temporarily fill only the missing/invalid spots for the next game; that repaired version is saved only if the game is officially verified.
           </div>
         ) : null}
         {readiness && !readiness.canPlay ? (
@@ -801,8 +805,8 @@ export default function EditableLineupPage({
           <div className="mb-7 rounded-xl border border-[#18BDFC]/20 bg-[#18BDFC]/8 px-4 py-2.5 text-[11px] font-bold leading-5 text-[#000B36]/60">
             {lineupSource === "saved"
               ? "This is the latest owner-saved lineup. New simulator games pull this version before the puck drops."
-              : lineupSource === "auto-optimized"
-                ? "A roster change or injury required an automatic repair, so this is the current valid lineup. New simulator games use it until the owner saves again."
+              : lineupSource === "needs-repair"
+                ? "This is still the owner's saved setup, with unavailable assignments shown as open slots. A new sim temporarily repairs only what is needed; the repair becomes permanent only after that game is officially verified."
                 : `No valid owner lineup has been saved yet, so this is automatically projected from the ${rosterSource} roster.`}
           </div>
         )}
