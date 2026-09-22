@@ -16,9 +16,9 @@ export default async function Home() {
   const [{ playerCounts }, { teams }] = await Promise.all([getPlayers(), getTeams()]);
   return (
     <main>
-      <section className="relative overflow-hidden bg-[#000B36] text-white">
+      <section className="relative min-h-[calc(100vh-4.5rem)] overflow-hidden bg-[#000B36] text-white">
         <div className="absolute inset-0 opacity-80 [background-image:radial-gradient(circle_at_78%_18%,rgba(24,189,252,0.22),transparent_28%),radial-gradient(circle_at_15%_90%,rgba(169,1,23,0.28),transparent_32%)]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 md:px-8 md:py-28 lg:grid-cols-[1.15fr_0.85fr] lg:py-32">
+        <div className="relative mx-auto grid min-h-[calc(100vh-4.5rem)] max-w-7xl items-center gap-12 px-6 py-20 md:px-8 md:py-24 lg:grid-cols-[1.15fr_0.85fr] lg:py-24">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.28em] text-cyan-200">2026–27 Season</p>
             <h1 className="mt-5 max-w-4xl text-5xl font-black uppercase leading-[0.92] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
