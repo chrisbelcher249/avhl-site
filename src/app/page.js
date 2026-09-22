@@ -22,10 +22,10 @@ export default async function Home() {
           <div>
             <p className="text-sm font-black uppercase tracking-[0.28em] text-cyan-200">2026–27 Season</p>
             <h1 className="mt-5 max-w-4xl text-5xl font-black uppercase leading-[0.92] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
-              A hockey universe with history.
+              Hockey, Reimagined.
             </h1>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-white/70 md:text-xl">
-              Forty Major League clubs. Four divisions. One long season of rivalries, movement, and championship pressure inside the American Virtual Hockey League.
+              A hockey universe with history. Forty Major League clubs. Four divisions. One long season of rivalries, movement, and championship pressure inside the American Virtual Hockey League.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Link href="/teams" className="rounded-full bg-[#18BDFC] px-7 py-3.5 text-sm font-black uppercase tracking-wide text-[#000B36] transition hover:bg-white">

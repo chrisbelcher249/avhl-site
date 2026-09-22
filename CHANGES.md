@@ -76,3 +76,9 @@
 - Goalie GP remains credited only when a goalie records ice time; `Dressed` separately tracks backup appearances.
 - Official game verification now fails closed unless each team exports all 18 unique dressed skaters and both unique dressed goalies, preventing an incomplete official save from silently losing a player's GP.
 - Added simulator coverage checks confirming each official game produces 36 skater rows and 4 goalie rows.
+
+## v64 — Hockey, Reimagined branding
+- Made “Hockey, Reimagined.” the primary homepage hero line.
+- Preserved “A hockey universe with history.” as supporting homepage copy.
+- Standardized the slogan in the site footer.
+- Added the slogan to the site metadata description.

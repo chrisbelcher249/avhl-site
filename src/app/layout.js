@@ -8,7 +8,7 @@ export const metadata = {
     default: "AVHL | American Virtual Hockey League",
     template: "%s | AVHL",
   },
-  description: "The official home of the American Virtual Hockey League.",
+  description: "Hockey, Reimagined. The official home of the American Virtual Hockey League.",
 };
 
 export default function RootLayout({ children }) {

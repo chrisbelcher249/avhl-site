@@ -85,7 +85,7 @@ export default function SiteFooter() {
               </div>
             </div>
             <p className="mt-5 max-w-lg text-sm leading-6 text-white/55">
-              Hockey, reimagined. A custom league universe built around franchise identity, long-term history, promotion and relegation, and season-by-season storytelling.
+              Hockey, Reimagined. A custom league universe built around franchise identity, long-term history, promotion and relegation, and season-by-season storytelling.
             </p>
           </div>
 
