@@ -1,3 +1,11 @@
+# AVHL site v63 — historical schedule records
+
+- Schedule game cards now show each team’s W-L-OTL record through the end of that game date instead of today’s live record.
+- Past dates stay historically correct as the season advances.
+- Today/future dates continue to show the latest available record and update as results are entered.
+- Applies to both the full league schedule and individual team schedule pages.
+- Preserves the existing Vercel Analytics integration and all v62 features.
+
 # Site 51 changes
 
 - Fixed Team Specs hashtag loading for the very wide live spreadsheet by checking all Google CSV endpoints and choosing the richest/current response instead of accepting the first 40-team response.

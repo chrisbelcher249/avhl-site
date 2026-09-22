@@ -2,7 +2,7 @@ import ScheduleExplorer from "@/components/ScheduleExplorer";
 import ScheduleQuickActions from "@/components/ScheduleQuickActions";
 import { getSchedule } from "@/lib/schedule";
 import { gameHasResult } from "@/lib/scheduleFormat";
-import { calculateStandings } from "@/lib/standings";
+import { calculateRecordSnapshotsByDate } from "@/lib/standings";
 import { saturdayNightShowdowns } from "../../../data/saturdayNightShowdowns";
 import { getReplayMetadataMap } from "@/lib/replayStorage";
 
@@ -35,14 +35,7 @@ export default async function Schedule() {
   const scheduleWithReplays = schedule.map((game) => ({ ...game, replayAvailable: Boolean(replayMetadata[String(game.id)]) }));
   const seasonDays = new Set(scheduleWithReplays.map((game) => game.date)).size;
   const completedGames = scheduleWithReplays.filter(gameHasResult).length;
-  const standings = calculateStandings(scheduleWithReplays);
-  const recordsBySlug = Object.fromEntries(Object.entries(standings.records).map(([slug, record]) => [slug, {
-    wins: record.wins,
-    losses: record.losses,
-    otl: record.otl,
-    gp: record.gp,
-    pts: record.pts,
-  }]));
+  const recordsByDate = calculateRecordSnapshotsByDate(scheduleWithReplays);
   const todayDate = currentLeagueDate();
   const hasToday = scheduleWithReplays.some((game) => game.date === todayDate);
 
@@ -72,7 +65,7 @@ export default async function Schedule() {
         {error ? <p className="mt-4 rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{error}</p> : null}
 
         <div className="mt-10">
-          <ScheduleExplorer schedule={scheduleWithReplays} recordsBySlug={recordsBySlug} snsGames={saturdayNightShowdowns} todayDate={todayDate} />
+          <ScheduleExplorer schedule={scheduleWithReplays} recordsByDate={recordsByDate} snsGames={saturdayNightShowdowns} todayDate={todayDate} />
         </div>
       </section>
     </main>

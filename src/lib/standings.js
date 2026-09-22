@@ -49,37 +49,75 @@ function assignSeeds(groups) {
   );
 }
 
+function applyCompletedGame(records, game) {
+  if (!gameHasResult(game)) return false;
+  const away = records[game.away];
+  const home = records[game.home];
+  if (!away || !home) return false;
+
+  away.gp += 1;
+  home.gp += 1;
+  away.gf += game.awayScore;
+  away.ga += game.homeScore;
+  home.gf += game.homeScore;
+  home.ga += game.awayScore;
+
+  const awayWon = game.awayScore > game.homeScore;
+  const winner = awayWon ? away : home;
+  const loser = awayWon ? home : away;
+  winner.wins += 1;
+  winner.pts += 2;
+
+  if (game.overtime) {
+    loser.otl += 1;
+    loser.pts += 1;
+  } else {
+    loser.losses += 1;
+    winner.rw += 1;
+  }
+
+  return true;
+}
+
+function compactRecord(record) {
+  return {
+    wins: record.wins,
+    losses: record.losses,
+    otl: record.otl,
+    gp: record.gp,
+    pts: record.pts,
+  };
+}
+
+// Records shown on schedule cards should reflect the standings through that
+// schedule date, not the current standings. This also naturally gives future
+// games the latest available record until results on that date are entered.
+export function calculateRecordSnapshotsByDate(schedule) {
+  const records = Object.fromEntries(teams.map((team) => [team.slug, emptyRecord(team)]));
+  const gamesByDate = new Map();
+
+  for (const game of schedule) {
+    if (!gamesByDate.has(game.date)) gamesByDate.set(game.date, []);
+    gamesByDate.get(game.date).push(game);
+  }
+
+  const snapshots = {};
+  for (const date of [...gamesByDate.keys()].sort()) {
+    for (const game of gamesByDate.get(date)) applyCompletedGame(records, game);
+    snapshots[date] = Object.fromEntries(
+      Object.entries(records).map(([slug, record]) => [slug, compactRecord(record)])
+    );
+  }
+
+  return snapshots;
+}
+
 export function calculateStandings(schedule) {
   const records = Object.fromEntries(teams.map((team) => [team.slug, emptyRecord(team)]));
   let completedGames = 0;
 
   for (const game of schedule) {
-    if (!gameHasResult(game)) continue;
-    const away = records[game.away];
-    const home = records[game.home];
-    if (!away || !home) continue;
-
-    completedGames += 1;
-    away.gp += 1;
-    home.gp += 1;
-    away.gf += game.awayScore;
-    away.ga += game.homeScore;
-    home.gf += game.homeScore;
-    home.ga += game.awayScore;
-
-    const awayWon = game.awayScore > game.homeScore;
-    const winner = awayWon ? away : home;
-    const loser = awayWon ? home : away;
-    winner.wins += 1;
-    winner.pts += 2;
-
-    if (game.overtime) {
-      loser.otl += 1;
-      loser.pts += 1;
-    } else {
-      loser.losses += 1;
-      winner.rw += 1;
-    }
+    if (applyCompletedGame(records, game)) completedGames += 1;
   }
 
   Object.values(records).forEach(finalize);

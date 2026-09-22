@@ -9,7 +9,7 @@ import { formatScheduleDate, formatScheduleMonth } from "@/lib/scheduleFormat";
 const INITIAL_DATE_COUNT = 14;
 const gameKey = (game) => `${game.date}|${game.away}|${game.home}`;
 
-export default function ScheduleExplorer({ schedule, recordsBySlug = {}, snsGames = [], todayDate = "" }) {
+export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGames = [], todayDate = "" }) {
   const [query, setQuery] = useState("");
   const [teamSlug, setTeamSlug] = useState("");
   const [division, setDivision] = useState("");
@@ -204,7 +204,7 @@ export default function ScheduleExplorer({ schedule, recordsBySlug = {}, snsGame
               <span className="text-xs font-black uppercase tracking-wide text-[#000B36]/32">{group.games.length} game{group.games.length === 1 ? "" : "s"}</span>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
-              {group.games.map((game) => <ScheduleGameCard key={game.id} game={game} recordsBySlug={recordsBySlug} focusTeamSlug={teamSlug || null} />)}
+              {group.games.map((game) => <ScheduleGameCard key={game.id} game={game} recordsBySlug={recordsByDate[group.date] || {}} focusTeamSlug={teamSlug || null} />)}
             </div>
           </section>
         ))}
