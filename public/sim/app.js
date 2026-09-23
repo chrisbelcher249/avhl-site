@@ -120,6 +120,7 @@
   let recentGames = [];
   let currentGameHistorySaved = false;
   let activeBoxTab = "team";
+  let boxScoreSortByTab = Object.create(null);
   let officialVerifiedGameId = null;
   let officialPasswordValue = "";
   let officialCheckedGameNumber = null;
@@ -1299,6 +1300,7 @@
 
   function resetFullBoxScore() {
     activeBoxTab = "team";
+    boxScoreSortByTab = Object.create(null);
     officialVerifiedGameId = null;
     elements.boxScoreTabs.forEach((button) => {
       const active = button.dataset.boxTab === activeBoxTab;
@@ -1371,19 +1373,78 @@
     `;
   }
 
+  const SKATER_BOX_COLUMNS = [
+    { key: "name", label: "Player", type: "text", value: (row) => String(row?.name || "") },
+    { key: "toi", label: "Min", value: (row) => Number(row?.toi) || 0 },
+    { key: "goals", label: "G", value: (row) => Number(row?.goals) || 0 },
+    { key: "assists", label: "A", value: (row) => Number(row?.assists) || 0 },
+    { key: "points", label: "PTS", value: (row) => Number(row?.points) || 0 },
+    { key: "plusMinus", label: "+/-", value: (row) => Number(row?.plusMinus) || 0 },
+    { key: "shots", label: "S", value: (row) => Number(row?.shots) || 0 },
+    { key: "shotPct", label: "S%", value: (row) => (Number(row?.shots) || 0) ? (Number(row?.goals) || 0) / Number(row.shots) : 0 },
+    { key: "ppToi", label: "PPT", value: (row) => Number(row?.ppToi) || 0 },
+    { key: "penaltyMinutes", label: "PIM", value: (row) => Number(row?.penaltyMinutes) || 0 },
+    { key: "hits", label: "Hits", value: (row) => Number(row?.hits) || 0 },
+    { key: "powerPlayGoals", label: "PPG", value: (row) => Number(row?.powerPlayGoals) || 0 },
+    { key: "shorthandedGoals", label: "SHG", value: (row) => Number(row?.shorthandedGoals) || 0 },
+    { key: "faceoffsTaken", label: "FOT", value: (row) => (Number(row?.faceoffWins) || 0) + (Number(row?.faceoffLosses) || 0) },
+    { key: "faceoffWins", label: "FOW", value: (row) => Number(row?.faceoffWins) || 0 },
+    { key: "faceoffPct", label: "FO%", value: (row) => { const attempts = (Number(row?.faceoffWins) || 0) + (Number(row?.faceoffLosses) || 0); return attempts ? (Number(row?.faceoffWins) || 0) / attempts : 0; } },
+  ];
+
+  const GOALIE_BOX_COLUMNS = [
+    { key: "name", label: "Player", type: "text", value: (row) => String(row?.name || "") },
+    { key: "toi", label: "Min", value: (row) => Number(row?.toi) || 0 },
+    { key: "shotsAgainst", label: "SA", value: (row) => Number(row?.shotsAgainst) || 0 },
+    { key: "saves", label: "S", value: (row) => Number(row?.saves) || 0 },
+    { key: "savePct", label: "SV%", value: (row) => (Number(row?.shotsAgainst) || 0) ? (Number(row?.saves) || 0) / Number(row.shotsAgainst) : 0 },
+    { key: "goalsAgainst", label: "GA", value: (row) => Number(row?.goalsAgainst) || 0 },
+    { key: "gaa", label: "GAA", value: (row) => (Number(row?.toi) || 0) ? ((Number(row?.goalsAgainst) || 0) * 3600) / Number(row.toi) : 0 },
+    { key: "emptyNetGoals", label: "ENG", value: (row) => Number(row?.emptyNetGoals) || 0 },
+    { key: "penaltyMinutes", label: "PIM", value: (row) => Number(row?.penaltyMinutes) || 0 },
+    { key: "goals", label: "G", value: (row) => Number(row?.goals) || 0 },
+    { key: "assists", label: "A", value: (row) => Number(row?.assists) || 0 },
+    { key: "points", label: "PTS", value: (row) => Number(row?.points) || 0 },
+  ];
+
+  function sortedBoxScoreRows(rows, columns, tabName) {
+    const sort = boxScoreSortByTab[tabName];
+    if (!sort) return [...rows];
+    const column = columns.find((candidate) => candidate.key === sort.key);
+    if (!column) return [...rows];
+    return [...rows].sort((a, b) => {
+      const left = column.value(a);
+      const right = column.value(b);
+      let comparison;
+      if (column.type === "text") comparison = String(left).localeCompare(String(right), undefined, { sensitivity: "base" });
+      else comparison = Number(left) - Number(right);
+      if (!comparison) comparison = String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" });
+      return sort.direction === "asc" ? comparison : -comparison;
+    });
+  }
+
+  function sortableBoxHeaders(columns, tabName) {
+    const sort = boxScoreSortByTab[tabName];
+    return columns.map((column) => {
+      const active = sort?.key === column.key;
+      const indicator = active ? (sort.direction === "asc" ? "▲" : "▼") : "↕";
+      const ariaSort = active ? (sort.direction === "asc" ? "ascending" : "descending") : "none";
+      return `<th aria-sort="${ariaSort}"><button type="button" class="boxscore-sort-button${active ? " active" : ""}" data-box-sort-tab="${escapeHtml(tabName)}" data-box-sort-key="${escapeHtml(column.key)}" data-box-sort-type="${escapeHtml(column.type || "number")}"><span>${escapeHtml(column.label)}</span><span class="boxscore-sort-indicator" aria-hidden="true">${indicator}</span></button></th>`;
+    }).join("");
+  }
+
   function renderSkaterTable(summary, teamId) {
     const team = teams[teamId];
-    const rows = summary?.skaters?.[teamId] || [];
+    const sourceRows = summary?.skaters?.[teamId] || [];
+    const rows = sortedBoxScoreRows(sourceRows, SKATER_BOX_COLUMNS, activeBoxTab);
     elements.boxScoreContent.innerHTML = `
       <div class="stat-table-heading">
         <div>${teamLogoMarkup(team)}<div><span>${escapeHtml(team.abbreviation)}</span><strong>${escapeHtml(team.fullName || team.name)} Skaters</strong></div></div>
-        <span>${rows.length} skaters dressed</span>
+        <span>${rows.length} skaters dressed · click any column to sort</span>
       </div>
       <div class="stat-table-scroll">
         <table class="official-stat-table skater-stat-table">
-          <thead><tr>
-            <th>Player</th><th>Min</th><th>G</th><th>A</th><th>PTS</th><th>+/-</th><th>S</th><th>S%</th><th>PPT</th><th>PIM</th><th>Hits</th><th>PPG</th><th>SHG</th><th>FOT</th><th>FOW</th><th>FO%</th>
-          </tr></thead>
+          <thead><tr>${sortableBoxHeaders(SKATER_BOX_COLUMNS, activeBoxTab)}</tr></thead>
           <tbody>
             ${rows.map((row) => {
               const fot = (row.faceoffWins || 0) + (row.faceoffLosses || 0);
@@ -1403,17 +1464,16 @@
 
   function renderGoalieTable(summary, teamId) {
     const team = teams[teamId];
-    const rows = summary?.goalieRows?.[teamId] || [];
+    const sourceRows = summary?.goalieRows?.[teamId] || [];
+    const rows = sortedBoxScoreRows(sourceRows, GOALIE_BOX_COLUMNS, activeBoxTab);
     elements.boxScoreContent.innerHTML = `
       <div class="stat-table-heading">
         <div>${teamLogoMarkup(team)}<div><span>${escapeHtml(team.abbreviation)}</span><strong>${escapeHtml(team.fullName || team.name)} Goalies</strong></div></div>
-        <span>Starter + backup</span>
+        <span>Starter + backup · click any column to sort</span>
       </div>
       <div class="stat-table-scroll">
         <table class="official-stat-table goalie-stat-table">
-          <thead><tr>
-            <th>Player</th><th>Min</th><th>SA</th><th>S</th><th>SV%</th><th>GA</th><th>GAA</th><th>ENG</th><th>PIM</th><th>G</th><th>A</th><th>PTS</th>
-          </tr></thead>
+          <thead><tr>${sortableBoxHeaders(GOALIE_BOX_COLUMNS, activeBoxTab)}</tr></thead>
           <tbody>
             ${rows.map((row) => `<tr>
               <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)}${row.starter ? " · Starter" : " · Backup"}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${escapeHtml(injuryGamesText(row.injury.gamesMissed))})` : ""}</span></td>
@@ -1895,6 +1955,19 @@
 
   elements.boxScoreTabs.forEach((button) => {
     button.addEventListener("click", () => selectBoxScoreTab(button.dataset.boxTab));
+  });
+  elements.boxScoreContent?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-box-sort-key]");
+    if (!button) return;
+    const tabName = button.dataset.boxSortTab || activeBoxTab;
+    const key = button.dataset.boxSortKey;
+    const type = button.dataset.boxSortType || "number";
+    const current = boxScoreSortByTab[tabName];
+    boxScoreSortByTab[tabName] = {
+      key,
+      direction: current?.key === key ? (current.direction === "asc" ? "desc" : "asc") : (type === "text" ? "asc" : "desc"),
+    };
+    renderFullBoxScore(game?.finalSummary);
   });
   elements.officialExportButton?.addEventListener("click", openOfficialModal);
   elements.officialForm?.addEventListener("submit", submitOfficialGame);

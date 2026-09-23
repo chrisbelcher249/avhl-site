@@ -15,6 +15,7 @@ import { getPlayers } from "@/lib/players";
 import { getFranchiseHistory, getFranchiseSummary } from "@/lib/history";
 import { getRivalsForTeam, rivalryLevels } from "../../../../data/rivals";
 import { getSeasonStats } from "@/lib/seasonStats";
+import { getReplayMetadataMap } from "@/lib/replayStorage";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,14 @@ export default async function TeamPage({ params }) {
   if (!team) notFound();
   const teamBySlug = Object.fromEntries(teams.map((candidate) => [candidate.slug, candidate]));
 
-  const [{ players }, seasonStats] = await Promise.all([getPlayers(), getSeasonStats()]);
+  const [{ players }, seasonStats, replayMetadata] = await Promise.all([
+    getPlayers(),
+    getSeasonStats(),
+    getReplayMetadataMap().catch((replayError) => {
+      console.error("Unable to load official replay metadata for team page", replayError);
+      return {};
+    }),
+  ]);
   const rosterTeamName = fallbackTeams.find((candidate) => candidate.abbreviation === team.abbreviation)?.name || team.name;
   const roster = buildTeamRosterAndCap(players, rosterTeamName);
   const { picks: draftPicks, error: draftPickError } = await getDraftPicksForTeam(team.abbreviation);
@@ -222,7 +230,7 @@ export default async function TeamPage({ params }) {
 
       <SalaryCapSection roster={roster} primary={team.colors.primary} />
 
-      <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} scheduleById={seasonStats.scheduleById} playerDirectory={currentPlayerDirectory} />
+      <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} scheduleById={seasonStats.scheduleById} replayMetadata={replayMetadata} playerDirectory={currentPlayerDirectory} />
 
       <section id="roster" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 md:px-8 md:pb-20">
         <RosterSection roster={roster} primary={team.colors.primary} />
