@@ -1,6 +1,7 @@
 import { teams } from "../../data/teams";
 import { getSchedule } from "@/lib/schedule";
 import { getInjuryRecords, injuryStorageStatus } from "@/lib/injuryStorage";
+import { manualInjuryRecords } from "@/lib/manualOverrides";
 import { isDefensePlayer, isForwardPlayer, isGoaliePlayer } from "@/lib/lineupRecords";
 
 const teamByAbbreviation = Object.fromEntries(teams.map((team) => [team.abbreviation, team]));
@@ -25,8 +26,10 @@ function titleCase(value) {
 }
 
 function rosterTeamForRecord(record, playerById) {
+  const recordedTeam = teamByAbbreviation[String(record.teamAbbreviation || "").toUpperCase()] || null;
+  if (record?.teamLocked) return recordedTeam;
   const current = playerById.get(String(record.playerId || ""))?.currentTeam;
-  return teamByName[current] || teamByAbbreviation[String(record.teamAbbreviation || "").toUpperCase()] || null;
+  return teamByName[current] || recordedTeam || null;
 }
 
 export function teamReadinessForRoster(rosterPlayers, activeInjuries = []) {
@@ -51,7 +54,7 @@ export function teamReadinessForRoster(rosterPlayers, activeInjuries = []) {
 
 export async function getCurrentInjuryState(players = []) {
   const storage = injuryStorageStatus();
-  if (!storage.configured) {
+  if (!storage.configured && manualInjuryRecords.length === 0) {
     return {
       storage,
       records: [],

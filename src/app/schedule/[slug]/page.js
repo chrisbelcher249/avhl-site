@@ -39,7 +39,15 @@ export default async function TeamSchedulePage({ params }) {
   const recordsByDate = calculateRecordSnapshotsByDate(schedule);
   const games = schedule
     .filter((game) => game.away === slug || game.home === slug)
-    .map((game) => ({ ...game, replayAvailable: Boolean(replayMetadata[String(game.id)]) }));
+    .map((game) => {
+      const replay = replayMetadata[String(game.id)] || null;
+      return {
+        ...game,
+        replayAvailable: Boolean(replay),
+        replayUrl: replay?.externalUrl || (replay ? `/sim/replay/${game.id}` : null),
+        replayExternal: Boolean(replay?.externalUrl),
+      };
+    });
   if (!games.length) notFound();
 
   const homeGames = games.filter((game) => game.home === slug).length;

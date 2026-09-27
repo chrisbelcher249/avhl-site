@@ -40,7 +40,9 @@ export default function ScheduleGameCard({ game, recordsBySlug = {}, focusTeamSl
           <span>{complete ? (game.finish === "SO" ? "Final · SO" : game.finish === "OT" ? "Final · OT" : "Final") : "Scheduled"}</span>
           {complete && game.replayAvailable ? (
             <Link
-              href={`/sim/replay/${game.id}`}
+              href={game.replayUrl || `/sim/replay/${game.id}`}
+              target={game.replayExternal ? "_blank" : undefined}
+              rel={game.replayExternal ? "noreferrer" : undefined}
               className="rounded-full bg-[#000B36] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.13em] text-white transition hover:bg-[#A90117] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18BDFC]"
             >
               Replay

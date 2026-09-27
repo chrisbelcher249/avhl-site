@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { manualInjuryRecords } from "@/lib/manualOverrides";
 
 const INJURY_HASH_KEY = "avhl:injuries:v1";
 const DEV_FILE = path.join(process.cwd(), ".avhl-injuries.dev.json");
@@ -76,21 +77,28 @@ function parseRedisHash(value) {
 
 export async function getInjuryRecords() {
   const status = injuryStorageStatus();
-  if (!status.configured) return [];
+  const recordsByKey = new Map();
+
+  for (const record of manualInjuryRecords) {
+    const key = injuryRecordKey(record);
+    if (key) recordsByKey.set(key, { ...record, storageKey: key });
+  }
+
+  if (!status.configured) return [...recordsByKey.values()];
 
   let raw;
   if (status.mode === "redis") raw = parseRedisHash(await redisCommand(["HGETALL", INJURY_HASH_KEY]));
   else raw = await readDevFile();
 
-  return Object.entries(raw || {}).map(([key, value]) => {
+  for (const [key, value] of Object.entries(raw || {})) {
     try {
       const parsed = typeof value === "string" ? JSON.parse(value) : value;
-      return parsed && typeof parsed === "object" ? { ...parsed, storageKey: parsed.storageKey || key } : null;
+      if (parsed && typeof parsed === "object") recordsByKey.set(key, { ...parsed, storageKey: parsed.storageKey || key });
     } catch (error) {
       console.error(`Unable to parse injury record ${key}`, error);
-      return null;
     }
-  }).filter(Boolean);
+  }
+  return [...recordsByKey.values()];
 }
 
 export async function saveInjuryRecords(records) {

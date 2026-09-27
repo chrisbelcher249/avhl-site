@@ -82,3 +82,8 @@
 - Preserved “A hockey universe with history.” as supporting homepage copy.
 - Standardized the slogan in the site footer.
 - Added the slogan to the site metadata description.
+## Site 68 — Manual SNS injury + external replay
+- Added Gabe Perreault (STL) as an upper-body injury from Game 52, out 3 games.
+- Added Game 52 replay buttons to the league schedule, team schedules, and team profile game logs.
+- Game 52 replay opens the supplied Twitch VOD instead of the internal simulator replay.
+

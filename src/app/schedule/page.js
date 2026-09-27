@@ -32,7 +32,15 @@ export default async function Schedule() {
       return {};
     }),
   ]);
-  const scheduleWithReplays = schedule.map((game) => ({ ...game, replayAvailable: Boolean(replayMetadata[String(game.id)]) }));
+  const scheduleWithReplays = schedule.map((game) => {
+    const replay = replayMetadata[String(game.id)] || null;
+    return {
+      ...game,
+      replayAvailable: Boolean(replay),
+      replayUrl: replay?.externalUrl || (replay ? `/sim/replay/${game.id}` : null),
+      replayExternal: Boolean(replay?.externalUrl),
+    };
+  });
   const seasonDays = new Set(scheduleWithReplays.map((game) => game.date)).size;
   const completedGames = scheduleWithReplays.filter(gameHasResult).length;
   const recordsByDate = calculateRecordSnapshotsByDate(scheduleWithReplays);

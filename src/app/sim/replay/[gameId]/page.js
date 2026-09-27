@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getReplayMetadata } from "@/lib/replayStorage";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export default async function OfficialReplayPage({ params }) {
   if (!Number.isInteger(number) || number < 1 || number > 1640) notFound();
   const metadata = await getReplayMetadata(number);
   if (!metadata) notFound();
+  if (metadata.externalUrl) redirect(metadata.externalUrl);
 
   return (
     <main className="bg-[#050816]">
