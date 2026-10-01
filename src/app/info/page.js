@@ -25,7 +25,7 @@ export default function InfoPage() {
             <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">History lives here.</h2>
             <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/52 md:text-base">Regular-season records, past playoff brackets, and championship rosters are organized as parts of the league information archive.</p>
           </div>
-          <div className="mt-7 grid gap-4 md:grid-cols-3">
+          <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Link href="/info/history" className="group rounded-3xl bg-[#000B36] p-6 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">History</p>
               <h3 className="mt-2 text-2xl font-black">League history</h3>
@@ -43,6 +43,12 @@ export default function InfoPage() {
               <h3 className="mt-2 text-2xl font-black">Title history</h3>
               <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/50">Every champion and the roster that finished the championship run.</p>
               <p className="mt-5 text-sm font-black text-[#A90117]">View champions →</p>
+            </Link>
+            <Link href="/awards" className="group rounded-3xl border border-[#000B36]/10 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#18BDFC] hover:shadow-lg">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#A90117]">Awards</p>
+              <h3 className="mt-2 text-2xl font-black">Award history</h3>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#000B36]/50">Stanley Cups, MVPs, scoring leaders, and every major AVHL honor.</p>
+              <p className="mt-5 text-sm font-black text-[#A90117]">View awards →</p>
             </Link>
           </div>
         </div>

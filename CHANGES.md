@@ -110,3 +110,10 @@
 - Added Game 52 replay buttons to the league schedule, team schedules, and team profile game logs.
 - Game 52 replay opens the supplied Twitch VOD instead of the internal simulator replay.
 
+
+## v73 — Awards archive
+- Added `/awards` with complete 2022–23 through 2025–26 AVHL award history.
+- Added Stanley Cup, Hart, Norris, Vezina, Rocket Richard, Art Ross, Selke, Calder, Conn Smythe, and Presidents Trophy records.
+- Player winners link to player profiles when available; current teams link to their team pages when identifiable.
+- Added Awards to the main navigation and League Info archive cards.
+- Corrected the supplied 2023–24 Calder team typo from “Thubderbolts” to “Thunderbolts”.
