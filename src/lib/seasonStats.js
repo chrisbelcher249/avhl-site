@@ -47,7 +47,8 @@ export function parseScheduleRows(rows) {
   return rows.map((row) => {
     const awayName = text(row["Away Team"]), homeName = text(row["Home Team"]);
     const awayTeam = teamByName[awayName.toLowerCase()], homeTeam = teamByName[homeName.toLowerCase()];
-    return { id: integer(row["Game ID"]), day: integer(row.Day), date: isoDate(row.Date), awayName, homeName, away: awayTeam?.slug || "", home: homeTeam?.slug || "", awayAbbreviation: awayTeam?.abbreviation || "", homeAbbreviation: homeTeam?.abbreviation || "" };
+    const replayUrl = text(row["Replay URL"] || row.Replay || row["YouTube URL"] || row["YT URL"]);
+    return { id: integer(row["Game ID"]), day: integer(row.Day), date: isoDate(row.Date), awayName, homeName, away: awayTeam?.slug || "", home: homeTeam?.slug || "", awayAbbreviation: awayTeam?.abbreviation || "", homeAbbreviation: homeTeam?.abbreviation || "", replayUrl };
   }).filter((row) => row.id > 0 && row.away && row.home);
 }
 

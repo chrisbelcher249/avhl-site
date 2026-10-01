@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { gunzipSync } from "node:zlib";
-import { manualReplayMetadata } from "@/lib/manualOverrides";
 
 const REPLAY_META_HASH_KEY = "avhl:official-replay-meta:v1";
 const REPLAY_KEY_PREFIX = "avhl:official-replay:v1:";
@@ -196,11 +195,11 @@ export async function deleteOfficialReplay(gameId) {
 
 export async function getReplayMetadataMap() {
   const status = replayStorageStatus();
-  if (!status.configured) return { ...manualReplayMetadata };
+  if (!status.configured) return {};
   let raw;
   if (status.mode === "redis") raw = parseRedisHash(await redisCommand(["HGETALL", REPLAY_META_HASH_KEY]));
   else raw = (await readDevFile()).meta || {};
-  const output = { ...manualReplayMetadata };
+  const output = {};
   for (const [key, value] of Object.entries(raw || {})) {
     try {
       const parsed = typeof value === "string" ? JSON.parse(value) : value;
@@ -209,27 +208,25 @@ export async function getReplayMetadataMap() {
       console.error(`Unable to parse replay metadata ${key}`, error);
     }
   }
-  return { ...output, ...manualReplayMetadata };
+  return output;
 }
 
 export async function getReplayMetadata(gameId) {
   const number = cleanGameId(gameId);
   if (!number) return null;
   const key = String(number);
-  const manual = manualReplayMetadata[key] || null;
-  if (manual) return manual;
   const status = replayStorageStatus();
   if (!status.configured) return null;
   if (status.mode === "redis") {
     const value = await redisCommand(["HGET", REPLAY_META_HASH_KEY, key]);
-    if (!value) return manual;
+    if (!value) return null;
     try {
       return typeof value === "string" ? JSON.parse(value) : value;
     } catch {
       throw new Error(`Official replay metadata ${number} is corrupted.`);
     }
   }
-  return (await readDevFile()).meta?.[key] || manual;
+  return (await readDevFile()).meta?.[key] || null;
 }
 
 export async function getOfficialReplay(gameId) {

@@ -1,3 +1,11 @@
+# v72 — Schedule-sheet SNS replay links
+
+- The live `Schedule` tab now accepts a `Replay URL` column immediately to the right of Home Team (column F in the current sheet).
+- Pasting a YouTube or other HTTP(S) replay URL on a game row makes that external replay the Replay button target on the league schedule, team schedules, and team profile game logs.
+- Saturday Night Showdown games never fall back to an internal simulator replay. If their `Replay URL` cell is blank, no Replay button is shown.
+- Removed the hard-coded Game 52 Twitch VOD override; its replay now follows the same Schedule-sheet rule as every other SNS game.
+- Normal simulator games still use their locked internal historical replay when no external Schedule-sheet URL is supplied.
+
 # v71 — live season row + career data on Players
 
 - Player profiles now include a live 2026–27 row in the season-by-season table, immediately above the Career total.

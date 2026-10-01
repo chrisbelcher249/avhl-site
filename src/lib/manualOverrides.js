@@ -23,12 +23,3 @@ export const manualInjuryRecords = [
     teamLocked: true,
   },
 ];
-
-export const manualReplayMetadata = {
-  "52": {
-    gameId: 52,
-    source: "SNS",
-    externalUrl: "https://www.twitch.tv/videos/2885027534",
-    externalLabel: "Twitch",
-  },
-};

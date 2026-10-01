@@ -5,6 +5,7 @@ import { gameHasResult } from "@/lib/scheduleFormat";
 import { calculateRecordSnapshotsByDate } from "@/lib/standings";
 import { saturdayNightShowdowns } from "../../../data/saturdayNightShowdowns";
 import { getReplayMetadataMap } from "@/lib/replayStorage";
+import { replayPresentationForGame } from "@/lib/replayLinks";
 
 export const metadata = {
   title: "2026–27 Schedule",
@@ -33,12 +34,12 @@ export default async function Schedule() {
     }),
   ]);
   const scheduleWithReplays = schedule.map((game) => {
-    const replay = replayMetadata[String(game.id)] || null;
+    const replay = replayPresentationForGame(game, replayMetadata);
     return {
       ...game,
-      replayAvailable: Boolean(replay),
-      replayUrl: replay?.externalUrl || (replay ? `/sim/replay/${game.id}` : null),
-      replayExternal: Boolean(replay?.externalUrl),
+      replayAvailable: replay.available,
+      replayUrl: replay.url,
+      replayExternal: replay.external,
     };
   });
   const seasonDays = new Set(scheduleWithReplays.map((game) => game.date)).size;

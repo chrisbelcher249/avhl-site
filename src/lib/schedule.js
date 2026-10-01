@@ -22,11 +22,11 @@ function applyResults(fixtures, teamRows) {
 
 export async function getSchedule() {
   const [{ rows: teamRows, error: statsError }, scheduleResult] = await Promise.all([getTeamGameRows(), fetchSeasonSheet(SEASON_TABS.schedule).catch((error) => ({ error }))]);
-  let fixtures = fallbackSchedule.map((game) => ({ ...game, awayScore: null, homeScore: null, overtime: null, shootout: false, finish: null }));
+  let fixtures = fallbackSchedule.map((game) => ({ ...game, replayUrl: "", awayScore: null, homeScore: null, overtime: null, shootout: false, finish: null }));
   let source = "fallback"; const errors = [];
   if (scheduleResult?.rows) {
     try {
-      const liveFixtures = parseScheduleRows(scheduleResult.rows).map((game) => ({ id: game.id, day: game.day, date: game.date, away: game.away, home: game.home, awayScore: null, homeScore: null, overtime: null, shootout: false, finish: null }));
+      const liveFixtures = parseScheduleRows(scheduleResult.rows).map((game) => ({ id: game.id, day: game.day, date: game.date, away: game.away, home: game.home, replayUrl: game.replayUrl || "", awayScore: null, homeScore: null, overtime: null, shootout: false, finish: null }));
       if (liveFixtures.length !== 1640) throw new Error(`Expected 1,640 games, found ${liveFixtures.length}`);
       fixtures = liveFixtures.sort((a, b) => a.id - b.id); source = "live";
     } catch (error) { console.error("Unable to parse live AVHL schedule; using bundled fallback", error); errors.push("The live fixture list is temporarily unavailable, so the bundled schedule is being shown."); }

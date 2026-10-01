@@ -6,6 +6,7 @@ import { getSchedule } from "@/lib/schedule";
 import { teams as fallbackTeams } from "../../../../data/teams";
 import { getTeamBySlug } from "@/lib/teams";
 import { getReplayMetadataMap } from "@/lib/replayStorage";
+import { replayPresentationForGame } from "@/lib/replayLinks";
 import { calculateRecordSnapshotsByDate } from "@/lib/standings";
 
 export const dynamic = "force-dynamic";
@@ -40,12 +41,12 @@ export default async function TeamSchedulePage({ params }) {
   const games = schedule
     .filter((game) => game.away === slug || game.home === slug)
     .map((game) => {
-      const replay = replayMetadata[String(game.id)] || null;
+      const replay = replayPresentationForGame(game, replayMetadata);
       return {
         ...game,
-        replayAvailable: Boolean(replay),
-        replayUrl: replay?.externalUrl || (replay ? `/sim/replay/${game.id}` : null),
-        replayExternal: Boolean(replay?.externalUrl),
+        replayAvailable: replay.available,
+        replayUrl: replay.url,
+        replayExternal: replay.external,
       };
     });
   if (!games.length) notFound();
