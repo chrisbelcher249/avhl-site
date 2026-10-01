@@ -151,10 +151,10 @@ export default async function PlayerProfilePage({ params }) {
           <div className="overflow-hidden rounded-3xl border border-[#000B36]/10 bg-white shadow-sm">
             <div className="border-b border-[#000B36]/8 p-6 md:p-7">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#A90117]">Season by season</p>
-              <h2 className="mt-1 text-3xl font-black">Historical statistics</h2>
-              <p className="mt-2 text-sm font-semibold text-[#000B36]/45">Past-season stat lines are intentionally shown without a team assignment.</p>
+              <h2 className="mt-1 text-3xl font-black">Season-by-season statistics</h2>
+              <p className="mt-2 text-sm font-semibold text-[#000B36]/45">Past seasons remain independent of team assignment; 2026–27 updates live from official game-by-game data.</p>
             </div>
-            {history ? (
+            {history || current ? (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[540px] border-collapse text-left">
                   <thead className="bg-[#F6F8FC] text-[10px] font-black uppercase tracking-[0.14em] text-[#000B36]/42">
@@ -164,12 +164,30 @@ export default async function PlayerProfilePage({ params }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#000B36]/8">
-                    {history.seasons.map((row) => (
+                    {(history?.seasons || []).map((row) => (
                       <tr key={row.season}>
                         <td className="px-6 py-4 font-black">{row.season}</td>
                         {goalie ? <><td className="px-6 py-4 text-center font-bold tabular-nums">{row.sa}</td><td className="px-6 py-4 text-center font-bold tabular-nums">{row.sv}</td><td className="px-6 py-4 text-center font-black tabular-nums">{pct(row.svPct)}</td></> : <><td className="px-6 py-4 text-center font-bold tabular-nums">{row.g}</td><td className="px-6 py-4 text-center font-bold tabular-nums">{row.a}</td><td className="px-6 py-4 text-center font-black tabular-nums">{row.pts}</td></>}
                       </tr>
                     ))}
+                    {current ? (
+                      <tr className="bg-[#18BDFC]/[0.06]">
+                        <td className="px-6 py-4 font-black">2026–27 <span className="ml-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#A90117]">Live</span></td>
+                        {goalie ? (
+                          <>
+                            <td className="px-6 py-4 text-center font-bold tabular-nums">{currentSeasonStats?.shotsAgainst ?? 0}</td>
+                            <td className="px-6 py-4 text-center font-bold tabular-nums">{currentSeasonStats?.saves ?? 0}</td>
+                            <td className="px-6 py-4 text-center font-black tabular-nums">{pct(currentSeasonStats?.savePct ?? 0)}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-6 py-4 text-center font-bold tabular-nums">{currentSeasonStats?.goals ?? 0}</td>
+                            <td className="px-6 py-4 text-center font-bold tabular-nums">{currentSeasonStats?.assists ?? 0}</td>
+                            <td className="px-6 py-4 text-center font-black tabular-nums">{currentSeasonStats?.points ?? 0}</td>
+                          </>
+                        )}
+                      </tr>
+                    ) : null}
                     <tr className="bg-[#000B36] text-white">
                       <td className="px-6 py-4 font-black">Career</td>
                       {goalie ? <><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.sa}</td><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.sv}</td><td className="px-6 py-4 text-center font-black tabular-nums">{pct(careerTotals.svPct)}</td></> : <><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.g}</td><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.a}</td><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.pts}</td></>}
@@ -178,7 +196,7 @@ export default async function PlayerProfilePage({ params }) {
                 </table>
               </div>
             ) : (
-              <div className="p-8 text-sm font-semibold text-[#000B36]/48">No historical stat rows are recorded for this player through the end of 2025–26.</div>
+              <div className="p-8 text-sm font-semibold text-[#000B36]/48">No season-by-season statistics are recorded for this player.</div>
             )}
           </div>
         </div>

@@ -26,11 +26,11 @@ function savePercentage(value) {
   return Number(value).toFixed(3).replace(/^0/, "");
 }
 
-function seasonLine(player) {
+function careerLine(player) {
   if (player.role === "Goalie") {
-    return `${savePercentage(player.season.svPct)} SV% · ${player.season.sa ?? 0} SA`;
+    return `${savePercentage(player.career?.svPct)} SV% · ${player.career?.sv ?? 0} SV · ${player.career?.sa ?? 0} SA`;
   }
-  return `${player.season.g ?? 0} G · ${player.season.a ?? 0} A · ${player.season.pts ?? 0} P`;
+  return `${player.career?.g ?? 0} G · ${player.career?.a ?? 0} A · ${player.career?.pts ?? 0} P`;
 }
 
 function contractLine(player) {
@@ -142,8 +142,8 @@ function PlayerCard({ player }) {
       </div>
 
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#000B36]/35 md:hidden">2025–26</p>
-        <p className="mt-1 text-sm font-black md:mt-0">{seasonLine(player)}</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#000B36]/35 md:hidden">Career</p>
+        <p className="mt-1 text-sm font-black md:mt-0">{careerLine(player)}</p>
       </div>
     </article>
   );
@@ -368,7 +368,7 @@ export default function PlayersExplorer({ players, playerCounts }) {
       </div>
 
       <div className="mt-6 hidden grid-cols-[minmax(0,1.55fr)_minmax(0,1.2fr)_0.45fr_0.45fr_minmax(0,1.1fr)_minmax(0,1.05fr)] gap-4 px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#000B36]/35 md:grid">
-        <span>Player</span><span>AVHL status</span><span>Pos.</span><span>OVR</span><span>Details</span><span>2025–26</span>
+        <span>Player</span><span>AVHL status</span><span>Pos.</span><span>OVR</span><span>Details</span><span>Career</span>
       </div>
 
       {visiblePlayers.length ? (

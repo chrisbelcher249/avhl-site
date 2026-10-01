@@ -1,3 +1,10 @@
+# v71 — live season row + career data on Players
+
+- Player profiles now include a live 2026–27 row in the season-by-season table, immediately above the Career total.
+- The live row uses official 2026–27 game-by-game data and the Career row remains historical totals plus the live season.
+- `/players` now shows career production instead of 2025–26 production, including live 2026–27 results in those career totals.
+- Skater rows show career G / A / P; goalie rows show career SV% / SV / SA.
+
 # AVHL site v70 — live career totals + monthly schedule collapse
 
 - Career totals now add live 2026–27 skater G/A/PTS to the historical career baseline on player profiles, team rosters, and the career-statistics archive.

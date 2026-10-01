@@ -1,6 +1,8 @@
 import Link from "next/link";
 import PlayersExplorer from "@/components/PlayersExplorer";
 import { getPlayers } from "@/lib/players";
+import { getSeasonStats } from "@/lib/seasonStats";
+import { mergePlayerCareer } from "@/lib/careerStats";
 
 export const metadata = {
   title: "Players",
@@ -10,7 +12,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PlayersPage() {
-  const { players, playerCounts } = await getPlayers();
+  const [{ players, playerCounts }, seasonStats] = await Promise.all([getPlayers(), getSeasonStats()]);
+  const playersWithLiveCareer = players.map((player) => mergePlayerCareer(player, seasonStats));
 
   return (
     <main className="min-h-screen bg-[#F4F7FB] text-[#000B36]">
@@ -42,7 +45,7 @@ export default async function PlayersPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-10 md:px-8 md:py-14">
-        <PlayersExplorer players={players} playerCounts={playerCounts} />
+        <PlayersExplorer players={playersWithLiveCareer} playerCounts={playerCounts} />
       </section>
     </main>
   );
