@@ -1,3 +1,11 @@
+# AVHL site v70 — live career totals + monthly schedule collapse
+
+- Career totals now add live 2026–27 skater G/A/PTS to the historical career baseline on player profiles, team rosters, and the career-statistics archive.
+- Team roster skater columns now show sortable Career G, Career A, and Career PTS instead of the old 2025–26 PTS column; goalie roster columns show Career SA, Career SV, and Career SV%.
+- The career-statistics archive now includes a live 2026–27 season option and folds current-season production into Career totals.
+- On `/schedule`, completed prior months automatically collapse once a new month begins. Each prior month has an arrow control to expand/collapse all of its dates and games.
+- The current month starts immediately below the collapsed history, while the existing Today/SNS actions, filters, and incremental future-date loading remain intact.
+
 # AVHL site v63 — historical schedule records
 
 - Schedule game cards now show each team’s W-L-OTL record through the end of that game date instead of today’s live record.

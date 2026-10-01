@@ -20,11 +20,13 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
   const [snsOnly, setSnsOnly] = useState(false);
   const [visibleDateCount, setVisibleDateCount] = useState(INITIAL_DATE_COUNT);
   const [pendingScroll, setPendingScroll] = useState("");
+  const [expandedPastMonths, setExpandedPastMonths] = useState({});
 
   const teamLookup = useMemo(() => Object.fromEntries(teams.map((team) => [team.slug, team])), []);
   const seasonMonths = useMemo(() => [...new Set(schedule.map((game) => game.date.slice(0, 7)))].sort(), [schedule]);
   const seasonDates = useMemo(() => [...new Set(schedule.map((game) => game.date))], [schedule]);
   const snsGameKeys = useMemo(() => new Set(snsGames.map(gameKey)), [snsGames]);
+  const currentMonth = todayDate ? todayDate.slice(0, 7) : "";
 
   const filteredGames = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -59,7 +61,31 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
     return groups;
   }, [filteredGames]);
 
-  const visibleGroups = groupedGames.slice(0, visibleDateCount);
+  const { pastMonthSections, currentAndFutureGroups } = useMemo(() => {
+    const pastByMonth = new Map();
+    const currentAndFuture = [];
+
+    for (const group of groupedGames) {
+      const groupMonth = group.date.slice(0, 7);
+      if (currentMonth && groupMonth < currentMonth) {
+        if (!pastByMonth.has(groupMonth)) pastByMonth.set(groupMonth, []);
+        pastByMonth.get(groupMonth).push(group);
+      } else {
+        currentAndFuture.push(group);
+      }
+    }
+
+    return {
+      pastMonthSections: [...pastByMonth.entries()].map(([monthKey, groups]) => ({
+        monthKey,
+        groups,
+        gameCount: groups.reduce((total, group) => total + group.games.length, 0),
+      })),
+      currentAndFutureGroups: currentAndFuture,
+    };
+  }, [currentMonth, groupedGames]);
+
+  const visibleGroups = currentAndFutureGroups.slice(0, visibleDateCount);
   const selectedTeam = teamSlug ? teamLookup[teamSlug] : null;
 
   const clearFilterState = useCallback(() => {
@@ -76,7 +102,18 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
     clearFilterState();
     setSnsOnly(false);
     setVisibleDateCount(INITIAL_DATE_COUNT);
+    setExpandedPastMonths({});
   }
+
+  function togglePastMonth(monthKey) {
+    setExpandedPastMonths((current) => ({ ...current, [monthKey]: !current[monthKey] }));
+  }
+
+  useEffect(() => {
+    const requestedMonth = date ? date.slice(0, 7) : month;
+    if (!requestedMonth || !currentMonth || requestedMonth >= currentMonth) return;
+    setExpandedPastMonths((current) => ({ ...current, [requestedMonth]: true }));
+  }, [currentMonth, date, month]);
 
   useEffect(() => {
     function showSnsGames() {
@@ -90,7 +127,8 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
       if (!todayDate) return;
       clearFilterState();
       setSnsOnly(false);
-      const dateIndex = seasonDates.indexOf(todayDate);
+      const currentAndFutureDates = seasonDates.filter((seasonDate) => !currentMonth || seasonDate.slice(0, 7) >= currentMonth);
+      const dateIndex = currentAndFutureDates.indexOf(todayDate);
       if (dateIndex < 0) return;
       setVisibleDateCount(Math.max(INITIAL_DATE_COUNT, dateIndex + 1));
       setPendingScroll(todayDate);
@@ -102,7 +140,7 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
       window.removeEventListener("avhl:schedule:sns", showSnsGames);
       window.removeEventListener("avhl:schedule:today", showTodayGames);
     };
-  }, [clearFilterState, seasonDates, todayDate]);
+  }, [clearFilterState, currentMonth, seasonDates, todayDate]);
 
   useEffect(() => {
     if (!pendingScroll) return;
@@ -113,9 +151,29 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
       setPendingScroll("");
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [pendingScroll, visibleGroups]);
+  }, [expandedPastMonths, pendingScroll, visibleGroups]);
 
   const selectClass = "w-full rounded-2xl border border-[#000B36]/12 bg-white px-4 py-3 text-sm font-bold text-[#000B36] outline-none transition focus:border-[#18BDFC] focus:ring-4 focus:ring-[#18BDFC]/15";
+
+  function renderDateGroup(group) {
+    return (
+      <section key={group.date} id={group.date} className="scroll-mt-28">
+        <div className="mb-4 flex items-end justify-between gap-4 border-b border-[#000B36]/10 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#000B36]/35">Day {group.games[0].day}</p>
+              {group.date === todayDate ? <span className="rounded-full bg-[#A90117] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white">Today</span> : null}
+            </div>
+            <h3 className="mt-1 text-2xl font-black md:text-3xl">{formatScheduleDate(group.date)}</h3>
+          </div>
+          <span className="text-xs font-black uppercase tracking-wide text-[#000B36]/32">{group.games.length} game{group.games.length === 1 ? "" : "s"}</span>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {group.games.map((game) => <ScheduleGameCard key={game.id} game={game} recordsBySlug={recordsByDate[group.date] || {}} focusTeamSlug={teamSlug || null} />)}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div>
@@ -191,26 +249,32 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
       </div>
 
       <div className="mt-7 space-y-10">
-        {visibleGroups.map((group) => (
-          <section key={group.date} id={group.date} className="scroll-mt-28">
-            <div className="mb-4 flex items-end justify-between gap-4 border-b border-[#000B36]/10 pb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#000B36]/35">Day {group.games[0].day}</p>
-                  {group.date === todayDate ? <span className="rounded-full bg-[#A90117] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white">Today</span> : null}
+        {pastMonthSections.map((section) => {
+          const expanded = Boolean(expandedPastMonths[section.monthKey]);
+          return (
+            <section key={section.monthKey} className="overflow-hidden rounded-3xl border border-[#000B36]/10 bg-white shadow-sm">
+              <button
+                type="button"
+                onClick={() => togglePastMonth(section.monthKey)}
+                aria-expanded={expanded}
+                className="flex w-full items-center justify-between gap-5 px-5 py-5 text-left transition hover:bg-[#F8FAFD] md:px-7"
+              >
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#A90117]">Previous month</p>
+                  <h3 className="mt-1 text-2xl font-black md:text-3xl">{formatScheduleMonth(section.monthKey)}</h3>
+                  <p className="mt-1 text-xs font-bold text-[#000B36]/40">{section.gameCount} games · {section.groups.length} dates</p>
                 </div>
-                <h3 className="mt-1 text-2xl font-black md:text-3xl">{formatScheduleDate(group.date)}</h3>
-              </div>
-              <span className="text-xs font-black uppercase tracking-wide text-[#000B36]/32">{group.games.length} game{group.games.length === 1 ? "" : "s"}</span>
-            </div>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {group.games.map((game) => <ScheduleGameCard key={game.id} game={game} recordsBySlug={recordsByDate[group.date] || {}} focusTeamSlug={teamSlug || null} />)}
-            </div>
-          </section>
-        ))}
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F1F4F9] text-xl font-black text-[#000B36]" aria-hidden="true">{expanded ? "⌃" : "⌄"}</span>
+              </button>
+              {expanded ? <div className="space-y-10 border-t border-[#000B36]/8 px-5 py-7 md:px-7">{section.groups.map(renderDateGroup)}</div> : null}
+            </section>
+          );
+        })}
+
+        {visibleGroups.map(renderDateGroup)}
       </div>
 
-      {visibleDateCount < groupedGames.length ? (
+      {visibleDateCount < currentAndFutureGroups.length ? (
         <div className="mt-10 text-center">
           <button onClick={() => setVisibleDateCount((count) => count + 14)} className="rounded-full bg-[#000B36] px-7 py-3.5 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#00145C]">Load more dates</button>
         </div>

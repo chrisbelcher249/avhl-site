@@ -26,7 +26,8 @@ const DEFAULT_DIRECTIONS = {
   age: "asc",
   yearsLeft: "desc",
   aav: "desc",
-  seasonStat: "desc",
+  careerOne: "desc",
+  careerTwo: "desc",
   careerStat: "desc",
 };
 
@@ -48,8 +49,10 @@ function sortableValue(player, key, isGoalie) {
       return player.yearsLeft ?? null;
     case "aav":
       return player.aav ?? null;
-    case "seasonStat":
-      return isGoalie ? player.season?.svPct ?? null : player.season?.pts ?? null;
+    case "careerOne":
+      return isGoalie ? player.career?.sa ?? null : player.career?.g ?? null;
+    case "careerTwo":
+      return isGoalie ? player.career?.sv ?? null : player.career?.a ?? null;
     case "careerStat":
       return isGoalie ? player.career?.svPct ?? null : player.career?.pts ?? null;
     default:
@@ -151,7 +154,7 @@ export default function RosterSection({ roster, primary }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[880px] border-collapse text-left">
+        <table className="w-full min-w-[980px] border-collapse text-left">
           <thead className="bg-[#F6F8FC] text-[10px] font-black uppercase tracking-[0.14em]">
             <tr>
               <SortHeader label="#" column="number" sort={sort} onSort={handleSort} />
@@ -161,7 +164,8 @@ export default function RosterSection({ roster, primary }) {
               <SortHeader label="Age" column="age" sort={sort} onSort={handleSort} align="center" />
               <SortHeader label="Years left" column="yearsLeft" sort={sort} onSort={handleSort} align="center" />
               <SortHeader label="AAV" column="aav" sort={sort} onSort={handleSort} align="center" />
-              <SortHeader label={isGoalie ? "25–26 SV%" : "25–26 PTS"} column="seasonStat" sort={sort} onSort={handleSort} align="center" />
+              <SortHeader label={isGoalie ? "Career SA" : "Career G"} column="careerOne" sort={sort} onSort={handleSort} align="center" />
+              <SortHeader label={isGoalie ? "Career SV" : "Career A"} column="careerTwo" sort={sort} onSort={handleSort} align="center" />
               <SortHeader label={isGoalie ? "Career SV%" : "Career PTS"} column="careerStat" sort={sort} onSort={handleSort} align="center" />
             </tr>
           </thead>
@@ -181,8 +185,9 @@ export default function RosterSection({ roster, primary }) {
                 <td className="px-5 py-4 text-center text-sm font-bold">{player.age ?? "—"}</td>
                 <td className="px-5 py-4 text-center text-sm font-bold">{player.yearsLeft ?? "—"}</td>
                 <td className="px-5 py-4 text-center text-sm font-black">{money(player.aav)}</td>
-                <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? pct(player.season.svPct) : player.season.pts}</td>
-                <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? pct(player.career.svPct) : player.career.pts}</td>
+                <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? player.career?.sa ?? 0 : player.career?.g ?? 0}</td>
+                <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? player.career?.sv ?? 0 : player.career?.a ?? 0}</td>
+                <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? pct(player.career?.svPct ?? 0) : player.career?.pts ?? 0}</td>
               </tr>
             ))}
           </tbody>

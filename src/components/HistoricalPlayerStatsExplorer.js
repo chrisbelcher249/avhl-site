@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 const PAGE_SIZE = 75;
-const SEASONS = ["Career", "2025-26", "2024-25", "2023-24", "2022-23"];
+const SEASONS = ["Career", "2026-27", "2025-26", "2024-25", "2023-24", "2022-23"];
 
 function pct(value) {
   if (value === null || value === undefined) return "—";

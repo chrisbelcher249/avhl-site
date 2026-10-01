@@ -15,6 +15,7 @@ import { getPlayers } from "@/lib/players";
 import { getFranchiseHistory, getFranchiseSummary } from "@/lib/history";
 import { getRivalsForTeam, rivalryLevels } from "../../../../data/rivals";
 import { getSeasonStats } from "@/lib/seasonStats";
+import { mergePlayerCareer } from "@/lib/careerStats";
 import { getReplayMetadataMap } from "@/lib/replayStorage";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +77,8 @@ export default async function TeamPage({ params }) {
     }),
   ]);
   const rosterTeamName = fallbackTeams.find((candidate) => candidate.abbreviation === team.abbreviation)?.name || team.name;
-  const roster = buildTeamRosterAndCap(players, rosterTeamName);
+  const playersWithLiveCareer = players.map((player) => mergePlayerCareer(player, seasonStats));
+  const roster = buildTeamRosterAndCap(playersWithLiveCareer, rosterTeamName);
   const { picks: draftPicks, error: draftPickError } = await getDraftPicksForTeam(team.abbreviation);
   const rivals = getRivalsForTeam(team.slug).map((rival, index) => ({ ...rival, index, team: teamBySlug[rival.slug] })).filter((rival) => rival.team);
   const franchiseHistory = getFranchiseHistory(team.abbreviation);

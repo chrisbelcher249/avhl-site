@@ -6,6 +6,7 @@ import { getHistoricalPlayer, getKnownPlayerIdentity } from "@/lib/playerHistory
 import { teams } from "../../../../data/teams";
 import PlayerSeasonStatsSection from "@/components/PlayerSeasonStatsSection";
 import { getSeasonStats } from "@/lib/seasonStats";
+import { mergeCareerStats } from "@/lib/careerStats";
 
 export const dynamic = "force-dynamic";
 
@@ -59,12 +60,10 @@ export default async function PlayerProfilePage({ params }) {
   const accent = currentTeam?.colors?.primary || "#18BDFC";
   const hasCurrentRecord = Boolean(current);
   const currentSeasonStats = goalie ? seasonStats.goalieById[playerId] || null : seasonStats.skaterById[playerId] || null;
-
-  const careerBlocks = history
-    ? goalie
-      ? [["Shots against", history.career.sa.toLocaleString()], ["Saves", history.career.sv.toLocaleString()], ["Save percentage", pct(history.career.svPct)]]
-      : [["Goals", history.career.g.toLocaleString()], ["Assists", history.career.a.toLocaleString()], ["Points", history.career.pts.toLocaleString()]]
-    : [];
+  const careerTotals = mergeCareerStats(role, history?.career || current?.career || {}, currentSeasonStats);
+  const careerBlocks = goalie
+    ? [["Shots against", careerTotals.sa.toLocaleString()], ["Saves", careerTotals.sv.toLocaleString()], ["Save percentage", pct(careerTotals.svPct)]]
+    : [["Goals", careerTotals.g.toLocaleString()], ["Assists", careerTotals.a.toLocaleString()], ["Points", careerTotals.pts.toLocaleString()]];
 
   return (
     <main className="min-h-screen bg-[#F4F7FB] text-[#000B36]">
@@ -139,21 +138,14 @@ export default async function PlayerProfilePage({ params }) {
           <div className="rounded-3xl bg-[#000B36] p-6 text-white shadow-sm md:p-8">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">AVHL career</p>
             <h2 className="mt-2 text-3xl font-black">Career totals</h2>
-            {history ? (
-              <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                {careerBlocks.map(([label, value]) => (
-                  <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
-                    <p className="text-2xl font-black tabular-nums">{value}</p>
-                    <p className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/40">{label}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.05] p-5">
-                <p className="font-black">No recorded AVHL statistics through 2025–26.</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-white/48">The profile is active because this player is in the current 2026–27 database. Historical totals will appear here once the player records AVHL statistics.</p>
-              </div>
-            )}
+            <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              {careerBlocks.map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+                  <p className="text-2xl font-black tabular-nums">{value}</p>
+                  <p className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/40">{label}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-3xl border border-[#000B36]/10 bg-white shadow-sm">
@@ -180,7 +172,7 @@ export default async function PlayerProfilePage({ params }) {
                     ))}
                     <tr className="bg-[#000B36] text-white">
                       <td className="px-6 py-4 font-black">Career</td>
-                      {goalie ? <><td className="px-6 py-4 text-center font-black tabular-nums">{history.career.sa}</td><td className="px-6 py-4 text-center font-black tabular-nums">{history.career.sv}</td><td className="px-6 py-4 text-center font-black tabular-nums">{pct(history.career.svPct)}</td></> : <><td className="px-6 py-4 text-center font-black tabular-nums">{history.career.g}</td><td className="px-6 py-4 text-center font-black tabular-nums">{history.career.a}</td><td className="px-6 py-4 text-center font-black tabular-nums">{history.career.pts}</td></>}
+                      {goalie ? <><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.sa}</td><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.sv}</td><td className="px-6 py-4 text-center font-black tabular-nums">{pct(careerTotals.svPct)}</td></> : <><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.g}</td><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.a}</td><td className="px-6 py-4 text-center font-black tabular-nums">{careerTotals.pts}</td></>}
                     </tr>
                   </tbody>
                 </table>
