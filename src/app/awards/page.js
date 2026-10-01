@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { awardCategories } from "../../../data/awards";
 import { teams } from "../../../data/teams";
@@ -10,6 +11,7 @@ export const metadata = {
 };
 
 const allTeams = [...teams, ...minorTeams];
+const majorTeamSlugs = new Set(teams.map((team) => team.slug));
 
 function findTeam(value) {
   const normalized = String(value || "").trim().toLowerCase();
@@ -20,23 +22,11 @@ function findTeam(value) {
   );
 }
 
-function WinnerName({ award, entry }) {
-  if (award.kind === "player") {
-    const id = getKnownPlayerIdByName(entry.winner);
-    if (id) {
-      return (
-        <Link href={`/players/${id}`} className="transition hover:text-[#A90117] hover:underline">
-          {entry.winner}
-        </Link>
-      );
-    }
-    return entry.winner;
-  }
-
-  const team = findTeam(entry.winner);
-  if (team) {
+function PlayerName({ entry }) {
+  const id = getKnownPlayerIdByName(entry.winner);
+  if (id) {
     return (
-      <Link href={`/teams/${team.slug}`} className="transition hover:text-[#A90117] hover:underline">
+      <Link href={`/players/${id}`} className="transition hover:text-[#A90117] hover:underline">
         {entry.winner}
       </Link>
     );
@@ -44,14 +34,67 @@ function WinnerName({ award, entry }) {
   return entry.winner;
 }
 
-function TeamLabel({ name }) {
+function TeamIdentity({ name }) {
   if (!name) return null;
   const team = findTeam(name);
-  if (!team) return <span>{name}</span>;
+  const fullName = team?.name || name;
+
+  const identity = (
+    <>
+      <span className="min-w-0 text-right text-xs font-black leading-tight text-[#000B36]/58 md:text-sm">
+        {fullName}
+      </span>
+      {team?.assets?.logo ? (
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#000B36]/8 bg-[#F6F8FC] p-1.5 md:h-11 md:w-11">
+          <Image
+            src={team.assets.logo}
+            alt={`${fullName} logo`}
+            width={44}
+            height={44}
+            className="h-full w-full object-contain"
+          />
+        </span>
+      ) : (
+        <span className="h-10 w-10 shrink-0 md:h-11 md:w-11" aria-hidden="true" />
+      )}
+    </>
+  );
+
+  if (team && majorTeamSlugs.has(team.slug)) {
+    return (
+      <Link
+        href={`/teams/${team.slug}`}
+        className="flex w-full items-center justify-end gap-2.5 transition hover:text-[#A90117] md:gap-3"
+      >
+        {identity}
+      </Link>
+    );
+  }
+
+  return <div className="flex w-full items-center justify-end gap-2.5 md:gap-3">{identity}</div>;
+}
+
+function WinnerDetail({ award, entry }) {
+  if (award.kind === "team") {
+    if (!entry.detail) return null;
+    return (
+      <span className="inline-flex rounded-full bg-[#000B36] px-3 py-1.5 text-xs font-black text-white">
+        {entry.detail}
+      </span>
+    );
+  }
+
   return (
-    <Link href={`/teams/${team.slug}`} className="transition hover:text-[#A90117] hover:underline">
-      {name}
-    </Link>
+    <div className="min-w-0">
+      <div className="truncate text-base font-black md:text-lg">
+        <PlayerName entry={entry} />
+      </div>
+      {entry.stat ? (
+        <p className="mt-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#A90117] md:text-xs">
+          {entry.stat}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -101,33 +144,21 @@ export default function AwardsPage() {
               </div>
 
               <div>
-                {award.winners.map((entry, index) => (
-                  <div
-                    key={`${award.slug}-${entry.season}`}
-                    className={`grid grid-cols-[86px_1fr] items-center gap-4 px-6 py-4 md:grid-cols-[100px_1fr_auto] md:px-7 ${index < award.winners.length - 1 ? "border-b border-[#000B36]/7" : ""}`}
-                  >
-                    <p className="text-xs font-black tabular-nums text-[#000B36]/38">{entry.season}</p>
-                    <div className="min-w-0">
-                      <div className="truncate text-base font-black md:text-lg">
-                        <WinnerName award={award} entry={entry} />
+                {award.winners.map((entry, index) => {
+                  const teamName = award.kind === "team" ? entry.winner : entry.team;
+                  return (
+                    <div
+                      key={`${award.slug}-${entry.season}`}
+                      className={`grid grid-cols-[76px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-6 py-4 md:grid-cols-[88px_minmax(0,1fr)_230px] md:gap-x-4 md:px-7 ${index < award.winners.length - 1 ? "border-b border-[#000B36]/7" : ""}`}
+                    >
+                      <p className="text-xs font-black tabular-nums text-[#000B36]/38">{entry.season}</p>
+                      <WinnerDetail award={award} entry={entry} />
+                      <div className="col-start-2 min-w-0 md:col-start-3 md:row-start-1">
+                        <TeamIdentity name={teamName} />
                       </div>
-                      {entry.team ? (
-                        <p className="mt-0.5 text-xs font-bold text-[#000B36]/40 md:hidden">
-                          <TeamLabel name={entry.team} />
-                        </p>
-                      ) : entry.detail ? (
-                        <p className="mt-0.5 text-xs font-bold text-[#000B36]/40 md:hidden">{entry.detail}</p>
-                      ) : null}
                     </div>
-                    {entry.team ? (
-                      <p className="hidden text-right text-xs font-black text-[#000B36]/42 md:block">
-                        <TeamLabel name={entry.team} />
-                      </p>
-                    ) : entry.detail ? (
-                      <p className="hidden rounded-full bg-[#000B36] px-3 py-1.5 text-xs font-black text-white md:block">{entry.detail}</p>
-                    ) : null}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </article>
           ))}

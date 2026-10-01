@@ -117,3 +117,9 @@
 - Player winners link to player profiles when available; current teams link to their team pages when identifiable.
 - Added Awards to the main navigation and League Info archive cards.
 - Corrected the supplied 2023–24 Calder team typo from “Thubderbolts” to “Thunderbolts”.
+
+## v74 — Awards details
+- Added Awards to the site footer.
+- Awards rows now resolve historical team nicknames to full current AVHL team names.
+- Added team logos to each award-winner row with right-aligned logo/name treatment.
+- Added relevant historical winner stats from the existing career-stat archive (Rocket Richard goals, Art Ross points, Vezina saves/SV%, and season scoring lines for Hart/Norris/Selke/Calder winners).

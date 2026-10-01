@@ -63,6 +63,7 @@ const navGroups = [
       ["Info", "/info"],
       ["History", "/info/history"],
       ["Champions", "/info/champions"],
+      ["Awards", "/awards"],
       ["Brackets", "/info/history/brackets"],
       ["Minor League", "/minor-league"],
     ],

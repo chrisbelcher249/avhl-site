@@ -17,10 +17,10 @@ export const awardCategories = [
     kind: "player",
     description: "Most valuable player",
     winners: [
-      { season: "2022-23", winner: "Connor McDavid", team: "Bulldogs" },
-      { season: "2023-24", winner: "Connor McDavid", team: "Hawks" },
-      { season: "2024-25", winner: "Mikko Rantanen", team: "Thunderbolts" },
-      { season: "2025-26", winner: "Nathan MacKinnon", team: "Bandits" },
+      { season: "2022-23", winner: "Connor McDavid", team: "Bulldogs", stat: "43 G · 32 A · 75 P" },
+      { season: "2023-24", winner: "Connor McDavid", team: "Hawks", stat: "41 G · 63 A · 104 P" },
+      { season: "2024-25", winner: "Mikko Rantanen", team: "Thunderbolts", stat: "60 G · 50 A · 110 P" },
+      { season: "2025-26", winner: "Nathan MacKinnon", team: "Bandits", stat: "59 G · 51 A · 110 P" },
     ],
   },
   {
@@ -29,10 +29,10 @@ export const awardCategories = [
     kind: "player",
     description: "Top defenseman",
     winners: [
-      { season: "2022-23", winner: "Seth Jones", team: "Heat" },
-      { season: "2023-24", winner: "Adam Fox", team: "Rebels" },
-      { season: "2024-25", winner: "John Carlson", team: "Tsunami" },
-      { season: "2025-26", winner: "Quinn Hughes", team: "Robbers" },
+      { season: "2022-23", winner: "Seth Jones", team: "Heat", stat: "5 G · 31 A · 36 P" },
+      { season: "2023-24", winner: "Adam Fox", team: "Rebels", stat: "10 G · 71 A · 81 P" },
+      { season: "2024-25", winner: "John Carlson", team: "Tsunami", stat: "13 G · 66 A · 79 P" },
+      { season: "2025-26", winner: "Quinn Hughes", team: "Robbers", stat: "31 G · 39 A · 70 P" },
     ],
   },
   {
@@ -41,10 +41,10 @@ export const awardCategories = [
     kind: "player",
     description: "Top goaltender",
     winners: [
-      { season: "2022-23", winner: "Connor Hellebuyck", team: "Icecaps" },
-      { season: "2023-24", winner: "Kaapo Kähkönen", team: "Wildcats" },
-      { season: "2024-25", winner: "Elvis Merzlikins", team: "Thunderbolts" },
-      { season: "2025-26", winner: "Ilya Sorokin", team: "Destroyers" },
+      { season: "2022-23", winner: "Connor Hellebuyck", team: "Icecaps", stat: "1,463 SV · .918 SV%" },
+      { season: "2023-24", winner: "Kaapo Kähkönen", team: "Wildcats", stat: "2,276 SV · .927 SV%" },
+      { season: "2024-25", winner: "Elvis Merzlikins", team: "Thunderbolts", stat: "2,435 SV · .924 SV%" },
+      { season: "2025-26", winner: "Ilya Sorokin", team: "Destroyers", stat: "1,184 SV · .928 SV%" },
     ],
   },
   {
@@ -53,10 +53,10 @@ export const awardCategories = [
     kind: "player",
     description: "League-leading goal scorer",
     winners: [
-      { season: "2022-23", winner: "Connor McDavid", team: "Bulldogs" },
-      { season: "2023-24", winner: "Nathan MacKinnon", team: "Bandits" },
-      { season: "2024-25", winner: "Mikko Rantanen", team: "Thunderbolts" },
-      { season: "2025-26", winner: "Mikko Rantanen", team: "Thunderbolts" },
+      { season: "2022-23", winner: "Connor McDavid", team: "Bulldogs", stat: "43 goals" },
+      { season: "2023-24", winner: "Nathan MacKinnon", team: "Bandits", stat: "53 goals" },
+      { season: "2024-25", winner: "Mikko Rantanen", team: "Thunderbolts", stat: "60 goals" },
+      { season: "2025-26", winner: "Mikko Rantanen", team: "Thunderbolts", stat: "64 goals" },
     ],
   },
   {
@@ -65,10 +65,10 @@ export const awardCategories = [
     kind: "player",
     description: "League-leading point scorer",
     winners: [
-      { season: "2022-23", winner: "Connor McDavid", team: "Bulldogs" },
-      { season: "2023-24", winner: "Connor McDavid", team: "Hawks" },
-      { season: "2024-25", winner: "Mikko Rantanen", team: "Thunderbolts" },
-      { season: "2025-26", winner: "Nathan MacKinnon", team: "Bandits" },
+      { season: "2022-23", winner: "Connor McDavid", team: "Bulldogs", stat: "75 points" },
+      { season: "2023-24", winner: "Connor McDavid", team: "Hawks", stat: "104 points" },
+      { season: "2024-25", winner: "Mikko Rantanen", team: "Thunderbolts", stat: "110 points" },
+      { season: "2025-26", winner: "Nathan MacKinnon", team: "Bandits", stat: "110 points" },
     ],
   },
   {
@@ -77,10 +77,10 @@ export const awardCategories = [
     kind: "player",
     description: "Top defensive forward",
     winners: [
-      { season: "2022-23", winner: "Mathew Barzal", team: "Wolverines" },
-      { season: "2023-24", winner: "Evgeni Malkin", team: "Wildcats" },
-      { season: "2024-25", winner: "Sebastian Aho", team: "Oceanics" },
-      { season: "2025-26", winner: "Nico Hischier", team: "Cobalts" },
+      { season: "2022-23", winner: "Mathew Barzal", team: "Wolverines", stat: "31 G · 40 A · 71 P" },
+      { season: "2023-24", winner: "Evgeni Malkin", team: "Wildcats", stat: "31 G · 55 A · 86 P" },
+      { season: "2024-25", winner: "Sebastian Aho", team: "Oceanics", stat: "23 G · 62 A · 85 P" },
+      { season: "2025-26", winner: "Nico Hischier", team: "Cobalts", stat: "37 G · 23 A · 60 P" },
     ],
   },
   {
@@ -89,10 +89,10 @@ export const awardCategories = [
     kind: "player",
     description: "Top rookie",
     winners: [
-      { season: "2022-23", winner: "Lucas Raymond", team: "Metrostars" },
-      { season: "2023-24", winner: "Morgan Frost", team: "Thunderbolts" },
-      { season: "2024-25", winner: "Logan Stankoven", team: "Pilots" },
-      { season: "2025-26", winner: "Matvei Michkov", team: "Gladiators" },
+      { season: "2022-23", winner: "Lucas Raymond", team: "Metrostars", stat: "19 G · 24 A · 43 P" },
+      { season: "2023-24", winner: "Morgan Frost", team: "Thunderbolts", stat: "16 G · 35 A · 51 P" },
+      { season: "2024-25", winner: "Logan Stankoven", team: "Pilots", stat: "23 G · 28 A · 51 P" },
+      { season: "2025-26", winner: "Matvei Michkov", team: "Gladiators", stat: "28 G · 21 A · 49 P" },
     ],
   },
   {
