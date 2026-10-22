@@ -13,7 +13,8 @@
     "test:lineup-storage": "node scripts/test-lineup-storage.mjs",
     "test:replays": "node scripts/test-replay-storage.mjs",
     "test:sns-replays": "node scripts/test-sns-replay-links.mjs",
-    "test:puck-possession": "node scripts/test-puck-possession.mjs"
+    "test:puck-possession": "node scripts/test-puck-possession.mjs",
+    "prebuild": "npm run test:puck-possession"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
