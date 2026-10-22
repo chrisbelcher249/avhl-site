@@ -1,8 +1,12 @@
 // Read-only by default. Requires the Vercel production Redis environment variables.
 // Run: node scripts/cleanup-expired-replays.mjs
-// After a database backup and verification: node scripts/cleanup-expired-replays.mjs --apply
+// After verifying independent official stats: node scripts/cleanup-expired-replays.mjs --apply
+// --apply first backs up every archive to ~/AVHL-Replay-Backups/, verifies the copy, then deletes expired archives.
 // Preserves metadata, lineups, injuries and all Google Sheets statistics.
 import { officialReplayExpiryAt, OFFICIAL_REPLAY_TTL_SECONDS } from "../src/lib/replayRetention.js";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 const prefix = "avhl:official-replay:v1:";
 const metaHash = "avhl:official-replay-meta:v1";
@@ -45,18 +49,61 @@ console.log(JSON.stringify({
 }, null, 2));
 if (unknown.length) console.log("Unknown timestamps were skipped: " + unknown.slice(0,25).join(", "));
 if (apply) {
-  let deleted = 0, alreadyMissing = 0, skippedNewer = 0;
-  for (const {id,expiry} of expired) {
-    // Recheck the timestamp in case metadata changed after the dry run.
-    const latest = await redis(["HGET", metaHash, id]);
-    if (!latest) { skippedNewer++; continue; }
-    let record;
-    try { record = typeof latest === "string" ? JSON.parse(latest) : latest; } catch { skippedNewer++; continue; }
-    const expiryNow = officialReplayExpiryAt(record);
-    if (expiryNow == null || expiryNow > Date.now()) { skippedNewer++; continue; }
-    // Only the large replay archive key is ever deleted.
+  // First back up every eligible archive, using only game-scoped keys. This
+  // script never deletes an archive without an independently verified copy.
+  const parent = path.join(os.homedir(), "AVHL-Replay-Backups");
+  await mkdir(parent, { recursive: true, mode: 0o700 });
+  const backupDir = path.join(parent, "official-replays-" + new Date().toISOString().replace(/[:.]/g, "-"));
+  await mkdir(backupDir, { mode: 0o700 });
+  console.log("Backing up expired replay archives to: " + backupDir);
+  const backedUp = [];
+  let alreadyMissing = 0, skippedNewer = 0, backupBytes = 0;
+  for (const { id } of expired) {
+    const metadata = await redis(["HGET", metaHash, id]);
+    if (!metadata) { skippedNewer++; continue; }
+    let parsed;
+    try { parsed = typeof metadata === "string" ? JSON.parse(metadata) : metadata; }
+    catch { skippedNewer++; continue; }
+    const expiry = officialReplayExpiryAt(parsed);
+    if (expiry == null || expiry > Date.now()) { skippedNewer++; continue; }
+    const archive = await redis(["GET", prefix + id]);
+    if (archive == null) { alreadyMissing++; continue; }
+    if (typeof archive !== "string") throw new Error("Unexpected archive format for game " + id + "; no archives were deleted.");
+    const fileName = "game-" + id + ".json";
+    const record = JSON.stringify({ gameId: id, key: prefix + id, metadata, archive });
+    const target = path.join(backupDir, fileName);
+    await writeFile(target, record, { encoding: "utf8", flag: "wx", mode: 0o600 });
+    // Read it back before we authorize any deletion.
+    const checked = JSON.parse(await readFile(target, "utf8"));
+    if (checked.gameId !== id || checked.archive !== archive || checked.metadata !== metadata) {
+      throw new Error("Backup verification failed for game " + id + "; no archives were deleted.");
+    }
+    backupBytes += Buffer.byteLength(record);
+    backedUp.push({ id, metadata, archive, fileName });
+  }
+  const manifest = {
+    generatedAt: new Date().toISOString(), databaseKeyPrefix: prefix,
+    backupCount: backedUp.length, backupBytes,
+    preserved: ["official-replay metadata", "lineups", "injuries", "Google Sheets stats"],
+    gameIds: backedUp.map(({id}) => id)
+  };
+  const manifestFile = path.join(backupDir, "manifest.json");
+  await writeFile(manifestFile, JSON.stringify(manifest, null, 2), { encoding: "utf8", flag: "wx", mode: 0o600 });
+  const checkedManifest = JSON.parse(await readFile(manifestFile, "utf8"));
+  if (checkedManifest.backupCount !== backedUp.length || checkedManifest.gameIds.length !== backedUp.length)
+    throw new Error("Backup manifest verification failed; no archives were deleted.");
+  console.log(JSON.stringify({ backupComplete: true, backupDir, backedUp: backedUp.length, backupBytes }, null, 2));
+  let deleted = 0, skippedChanged = 0;
+  for (const { id, metadata, archive } of backedUp) {
+    // A newly resaved or modified replay must not be deleted.
+    const latestMetadata = await redis(["HGET", metaHash, id]);
+    const latestArchive = await redis(["GET", prefix + id]);
+    if (latestMetadata !== metadata || latestArchive !== archive) { skippedChanged++; continue; }
     const result = Number(await redis(["DEL", prefix + id])) || 0;
     if (result) deleted++; else alreadyMissing++;
   }
-  console.log(JSON.stringify({deleted, alreadyMissing, skippedNewer, preservedMetadata:true}));
-} else console.log("No changes made. Back up the database, verify stats, then rerun with --apply.");
+  console.log(JSON.stringify({
+    deleted, alreadyMissing, skippedNewer, skippedChanged,
+    backupDir, preservedMetadata: true, preservedLineups: true, preservedInjuries: true
+  }, null, 2));
+} else console.log("No changes made. Rerun with --apply to back up expired archives before removing them.");
