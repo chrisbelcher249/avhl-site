@@ -6,7 +6,7 @@ import { officialReplayExpiryAt, OFFICIAL_REPLAY_TTL_SECONDS } from "../src/lib/
 
 const prefix = "avhl:official-replay:v1:";
 const metaHash = "avhl:official-replay-meta:v1";
-const url = (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_KV_REST_API_URL || "").replace(/\\/+$/, "");
+const url = (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_KV_REST_API_URL || "").replace(/\/+$/, "");
 const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN;
 if (!url || !token) throw new Error("Missing Upstash REST credentials in environment. Use a securely configured local shell.");
 const apply = process.argv.includes("--apply");
@@ -31,7 +31,7 @@ const entries = pairs(await redis(["HGETALL",metaHash]));
 const now = Date.now();
 const expired = [], active = [], unknown = [];
 for (const [id, value] of entries) {
-  if (!/^[1-9]\\d{0,3}$/.test(id) || +id > 1640) continue;
+  if (!/^[1-9]\d{0,3}$/.test(id) || +id > 1640) continue;
   let meta;
   try { meta = typeof value === "string" ? JSON.parse(value) : value; } catch { unknown.push(id); continue; }
   const expiry = officialReplayExpiryAt(meta);
