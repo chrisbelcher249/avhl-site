@@ -1,0 +1,16 @@
+name: AVHL replay PPT retrieval (temporary)
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ppt-replay-audit.yml"
+      - "scripts/avhl-ppt-replay-audit.mjs"
+jobs:
+  replay-ppt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node scripts/avhl-ppt-replay-audit.mjs
