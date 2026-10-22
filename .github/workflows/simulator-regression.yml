@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Retrieve recent SIM PPT (temporary, read-only)
+        run: node scripts/avhl-ppt-replay-audit.mjs
       - run: npm ci
       - run: npm run test:puck-possession
       - run: npm run test:goalie-shutouts
