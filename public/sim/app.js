@@ -1382,7 +1382,6 @@
     { key: "plusMinus", label: "+/-", value: (row) => Number(row?.plusMinus) || 0 },
     { key: "shots", label: "S", value: (row) => Number(row?.shots) || 0 },
     { key: "shotPct", label: "S%", value: (row) => (Number(row?.shots) || 0) ? (Number(row?.goals) || 0) / Number(row.shots) : 0 },
-    { key: "ppToi", label: "PP TOI", value: (row) => Number(row?.ppToi) || 0 },
     { key: "puckPossessionTime", label: "PPT", value: (row) => Number(row?.puckPossessionTime) || 0 },
     { key: "penaltyMinutes", label: "PIM", value: (row) => Number(row?.penaltyMinutes) || 0 },
     { key: "hits", label: "Hits", value: (row) => Number(row?.hits) || 0 },
@@ -1453,7 +1452,7 @@
                 <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)} · ${escapeHtml(row.position)}${row.positionFamiliarity < 1 ? ` · 3% unfamiliar-position penalty` : ""}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${escapeHtml(injuryGamesText(row.injury.gamesMissed))})` : ""}</span></td>
                 <td>${formatStatTime(row.toi, true)}</td>
                 <td>${row.goals || 0}</td><td>${row.assists || 0}</td><td>${row.points || 0}</td><td>${plusMinusText(row.plusMinus)}</td>
-                <td>${row.shots || 0}</td><td>${skaterShotPercentage(row)}</td><td>${formatStatTime(row.ppToi, true)}</td><td>${formatStatTime(row.puckPossessionTime, true)}</td><td>${formatPim(row.penaltyMinutes)}</td>
+                <td>${row.shots || 0}</td><td>${skaterShotPercentage(row)}</td><td>${formatStatTime(row.puckPossessionTime, true)}</td><td>${formatPim(row.penaltyMinutes)}</td>
                 <td>${row.hits || 0}</td><td>${row.powerPlayGoals || 0}</td><td>${row.shorthandedGoals || 0}</td><td>${fot}</td><td>${row.faceoffWins || 0}</td><td>${faceoffPercentage(row)}</td>
               </tr>`;
             }).join("")}
