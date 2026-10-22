@@ -1,4 +1,4 @@
-import { saturdayNightShowdowns } from "../../data/saturdayNightShowdowns";
+import { saturdayNightShowdowns } from "../../data/saturdayNightShowdowns.js";
 import { officialReplayIsExpired } from "./replayRetention.js";
 
 const snsGameKeys = new Set(
