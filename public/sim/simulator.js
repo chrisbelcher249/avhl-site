@@ -1911,7 +1911,7 @@ class AVHLGameSimulator {
         player.stats.longestShift = Math.max(player.stats.longestShift, player.stats.currentShift);
         if (situation === "SH") player.stats.shToi += seconds;
         else if (situation === "OT") player.stats.otToi += seconds;
-        else player.stats.evToi += seconds;
+        else if (situation === "EV") player.stats.evToi += seconds;
         player.fatigue = this.clamp(
           player.fatigue + seconds * (0.00192 - (player.endurance - 70) * 0.000011),
           0,
