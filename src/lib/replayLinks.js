@@ -23,6 +23,23 @@ export function isSaturdayNightShowdown(game) {
 
 const SNS_REPLAY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
+// Before SNS link tracking existed, the Schedule sheet did not record when
+// each YouTube URL was added. For the URLs already observed by rollout on
+// October 22, use the scheduled game date as a conservative one-time proxy.
+// New URLs first seen after rollout always get their own seven-day window.
+const LEGACY_SNS_ROLLOUT_CUTOFF = Date.parse("2026-10-22T17:20:00.000Z");
+const LEGACY_SNS_GAME_DATE_CUTOFF = "2026-10-22";
+
+function wasLegacySnsLink(game, firstSeenAt) {
+  return game?.date < LEGACY_SNS_GAME_DATE_CUTOFF &&
+    firstSeenAt <= LEGACY_SNS_ROLLOUT_CUTOFF;
+}
+
+function hasLegacySnsGameExpired(game, now) {
+  const dayEnd = Date.parse(`${game.date}T23:59:59.999Z`);
+  return Number.isFinite(dayEnd) && now >= dayEnd + SNS_REPLAY_WINDOW_MS;
+}
+
 export function replayPresentationForGame(game, replayMetadata = {}, snsReplayLinks = {}) {
   const sheetUrl = safeExternalUrl(game?.replayUrl);
   if (sheetUrl) {
@@ -30,8 +47,10 @@ export function replayPresentationForGame(game, replayMetadata = {}, snsReplayLi
       const seen = snsReplayLinks[String(game.id)];
       const observedAt = Date.parse(seen?.firstSeenAt || "");
       // Missing tracking data must never make an expired SNS replay reappear.
+      const now = Date.now();
       if (seen?.url !== sheetUrl || !Number.isFinite(observedAt) ||
-          Date.now() >= observedAt + SNS_REPLAY_WINDOW_MS) {
+          now >= observedAt + SNS_REPLAY_WINDOW_MS ||
+          (wasLegacySnsLink(game, observedAt) && hasLegacySnsGameExpired(game, now))) {
         return { available: false, url: null, external: false };
       }
     }

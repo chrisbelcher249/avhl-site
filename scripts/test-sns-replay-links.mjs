@@ -28,8 +28,8 @@ globalThis.fetch = async (_url, init) => {
 
 try {
   const game = {
-    id: 52, date: "2026-09-26",
-    away: "chicago-rockets", home: "st-louis-leopards",
+    id: 52, date: "2026-10-24",
+    away: "detroit-motors", home: "richmond-robbers",
     replayUrl: "https://www.youtube.com/watch?v=example1",
   };
   const first = await observeSnsReplayLinks([game]);
@@ -55,6 +55,23 @@ try {
   await observeSnsReplayLinks([{ ...game, replayUrl: "" }]);
   assert.equal(store.size, 0, "Removing the link resets tracking");
   assert.equal(replayPresentationForGame(changed, {}, await observeSnsReplayLinks([changed])).available, true);
+
+  const legacyGame = {
+    id: 108, date: "2026-10-03",
+    away: "florida-sunshine", home: "charleston-tsunami",
+    replayUrl: "https://www.youtube.com/watch?v=oldSNS",
+  };
+  const priorToRollout = {
+    "108": { url: legacyGame.replayUrl, firstSeenAt: "2026-10-22T17:10:00.000Z" },
+  };
+  assert.equal(replayPresentationForGame(legacyGame, {}, priorToRollout).available, false,
+    "An already-existing October 3 SNS link must not receive a new seven-day clock on rollout");
+
+  const laterAddition = {
+    "108": { url: legacyGame.replayUrl, firstSeenAt: "2026-10-22T17:30:00.000Z" },
+  };
+  assert.equal(replayPresentationForGame(legacyGame, {}, laterAddition).available, true,
+    "SNS links genuinely added after rollout still receive seven days from observation");
 
   const other = { ...game, id: 31, date: "2026-09-20", replayUrl: "https://example.com/other" };
   assert.equal(replayPresentationForGame(other, {}, {}).available, true, "Ordinary external URLs remain unchanged");
