@@ -80,6 +80,7 @@ export default async function StatisticsPage() {
   const goaliesUsed = stats.goalies.filter((goalie) => goalie.gp > 0 && goalie.toi > 0);
   const savePctLeaders = [...goaliesUsed].sort((a, b) => b.savePct - a.savePct || b.saves - a.saves || b.gp - a.gp || a.name.localeCompare(b.name)).slice(0, 5);
   const gaaLeaders = [...goaliesUsed].sort((a, b) => a.gaa - b.gaa || b.gp - a.gp || b.saves - a.saves || a.name.localeCompare(b.name)).slice(0, 5);
+  const shutoutLeaders = [...goaliesUsed].filter((goalie) => goalie.shutouts > 0).sort((a, b) => b.shutouts - a.shutouts || b.saves - a.saves || a.name.localeCompare(b.name)).slice(0, 5);
 
   return (
     <main className="min-h-screen bg-[#F4F7FB] text-[#000B36]">
@@ -159,9 +160,10 @@ export default async function StatisticsPage() {
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#A90117]">Goalie leaders</p>
             <h2 className="mt-1 text-3xl font-black">Top 5 by category</h2>
           </div>
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <div className="mt-5 grid gap-5 md:grid-cols-3">
             <GoalieLeaderCard title="Save percentage" rows={savePctLeaders} value={(row) => savePct(row.savePct)} />
             <GoalieLeaderCard title="Goals-against average" rows={gaaLeaders} value={(row) => gaa(row.gaa)} />
+            <GoalieLeaderCard title="Shutouts" rows={shutoutLeaders} value={(row) => row.shutouts} />
           </div>
         </div>
 

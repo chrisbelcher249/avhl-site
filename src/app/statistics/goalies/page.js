@@ -22,6 +22,7 @@ export default async function DetailedGoalieStatsPage() {
     savePct: row.savePct,
     goalsAgainst: row.goalsAgainst,
     gaa: row.gaa,
+    shutouts: row.shutouts,
     emptyNetGoals: row.emptyNetGoals,
     penaltyMinutes: row.penaltyMinutes,
     goals: row.goals,

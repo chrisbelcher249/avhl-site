@@ -14,8 +14,9 @@
     "test:replays": "node scripts/test-replay-storage.mjs",
     "test:sns-replays": "node scripts/test-sns-replay-links.mjs",
     "test:puck-possession": "node scripts/test-puck-possession.mjs",
-    "prebuild": "npm run test:puck-possession && npm run test:ot-shootout-standings",
-    "test:ot-shootout-standings": "node scripts/test-ot-shootout-standings.mjs"
+    "prebuild": "npm run test:puck-possession && npm run test:ot-shootout-standings && npm run test:goalie-shutouts",
+    "test:ot-shootout-standings": "node scripts/test-ot-shootout-standings.mjs",
+    "test:goalie-shutouts": "node scripts/test-goalie-shutouts.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
