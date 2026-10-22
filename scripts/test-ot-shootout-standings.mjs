@@ -104,8 +104,22 @@ assert.deepEqual(sortLeagueStandings(standings, { key: "rank", direction: "desc"
 for (const column of LEAGUE_STANDINGS_COLUMNS.filter((c) => c.type === "number" && c.key !== "rank")) {
   const asc = sortLeagueStandings(standings, { key: column.key, direction: "asc" });
   const desc = sortLeagueStandings(standings, { key: column.key, direction: "desc" });
-  assert.deepEqual(asc.map((r) => r.officialRank), [...desc.map((r) => r.officialRank)].reverse(),
-    `Sorting ascending and descending must be reversible for ${column.key}`);
+  for (let i = 1; i < asc.length; i += 1) {
+    assert.ok(asc[i - 1].record[column.key] <= asc[i].record[column.key],
+      `Ascending sort failed for ${column.key}`);
+    assert.ok(desc[i - 1].record[column.key] >= desc[i].record[column.key],
+      `Descending sort failed for ${column.key}`);
+  }
+  // Equal values deliberately retain official-rank order, rather than
+  // reverse when direction changes.
+  for (const entries of [asc, desc]) {
+    for (let i = 1; i < entries.length; i += 1) {
+      if (entries[i].record[column.key] === entries[i - 1].record[column.key]) {
+        assert.ok(entries[i - 1].officialRank < entries[i].officialRank,
+          `Tied values must use official rank for ${column.key}`);
+      }
+    }
+  }
 }
 assert.equal(standings[0].team.name, "Zulu", "Sorting must not mutate the official source");
 console.log("League standings all columns, sort direction and official rank: PASS");
