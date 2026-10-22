@@ -74,6 +74,10 @@ const newRows = parseSkaterGameRows([{ "Game ID": "4", "Player ID": "0123", PPT:
 assert.equal(newRows[0].puckPossessionTime, 124, "Current format reads true PPT directly from column P");
 const imputedRows = parseSkaterGameRows([{ "Game ID": "6", "Player ID": "0123", PPT: "02:04", "PPT Provenance": "imputed-v1" }]);
 assert.equal(imputedRows[0].puckPossessionTime, 124, "Historical replay-based imputed PPT must count toward season totals");
+const snsRows = parseSkaterGameRows([{ "Game ID": "52", "Player ID": "0123", Source: "SNS", PPT: "01:26", "PPT Provenance": "" }]);
+assert.equal(snsRows[0].puckPossessionTime, 86, "SNS/EA PPT is valid without the simulator provenance marker");
+const snsZero = parseSkaterGameRows([{ "Game ID": "108", "Player ID": "0123", Source: "SNS", PPT: "0:00" }]);
+assert.equal(snsZero[0].puckPossessionTime, 0, "Actual zero possession in SNS game counts as tracked");
 const unknownAfterRename = parseSkaterGameRows([{ "Game ID": "5", "Player ID": "0123", PPT: "01:23", "PPT Provenance": "" }]);
 assert.equal(unknownAfterRename[0].puckPossessionTime, null, "Unmarked legacy PP TOI stays untracked");
 console.log("Puck possession tracking and Sheet export compatibility: PASS");

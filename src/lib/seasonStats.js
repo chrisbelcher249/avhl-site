@@ -43,6 +43,11 @@ function readPuckPossessionTime(row) {
   if (["v2", "imputed-v1"].includes(marker.toLowerCase())) {
     return text(row.PPT) ? timeToSeconds(row.PPT) : null;
   }
+  // SNS games are scored from EA rather than the AVHL simulator; their
+  // existing PPT values are genuine possession time even without an X marker.
+  if (text(row.Source).toUpperCase() === "SNS") {
+    return text(row.PPT) ? timeToSeconds(row.PPT) : null;
+  }
   if (/^\d+:\d{1,2}(?::\d{1,2})?$/.test(marker)) return timeToSeconds(marker);
   // Compatibility with the brief dual-column schema (P=PP TOI, X=PPT).
   if (row["PP TOI"] != null && text(row.PPT)) return timeToSeconds(row.PPT);
