@@ -1,0 +1,21 @@
+name: AVHL simulator regression tests
+on:
+  pull_request:
+    paths:
+      - "public/sim/**"
+      - "src/lib/**"
+      - "scripts/**"
+      - "package.json"
+  workflow_dispatch:
+jobs:
+  simulator-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm run test:puck-possession
+      - run: npm run test:sim -- 1
