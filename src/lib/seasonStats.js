@@ -117,7 +117,7 @@ function aggregateSkaters(rows) {
   return [...byPlayer.values()].map(({ latestGameId, ...player }) => ({ ...player, shotPct: player.shots ? player.goals / player.shots : 0, faceoffPct: player.faceoffsTaken ? player.faceoffsWon / player.faceoffsTaken : 0, toiPerGame: player.gp ? player.toi / player.gp : 0, puckPossessionTimePerTrackedGame: player.puckPossessionTrackedGames ? player.puckPossessionTime / player.puckPossessionTrackedGames : null, teamInfo: teamByAbbreviation[player.team] || null, gameRows: player.gameRows.sort((a, b) => b.gameId - a.gameId) }));
 }
 
-function aggregateGoalies(rows, teamGameRows) {
+export function aggregateGoalies(rows, teamGameRows) {
   const shutoutsByPlayer = calculateGoalieShutouts(teamGameRows, rows);
   const byPlayer = new Map();
   for (const row of uniquePlayerGameRows(rows)) {
