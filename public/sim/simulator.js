@@ -1969,6 +1969,7 @@ class AVHLGameSimulator {
 
   decrementPenalties(state, seconds) {
     const expired = [];
+    const before = state.period === 4 ? this.strengthCounts(state) : null;
     for (const penalty of state.activePenalties) {
       if (penalty.remaining <= 0) continue;
       penalty.remaining -= seconds;
@@ -1978,7 +1979,6 @@ class AVHLGameSimulator {
       }
     }
     if (expired.length) {
-      const before = state.period === 4 ? this.strengthCounts(state) : null;
       state.activePenalties = state.activePenalties.filter((penalty) => penalty.remaining > 0);
       if (before) {
         // In OT the penalized club adds a skater when the penalty ends;
