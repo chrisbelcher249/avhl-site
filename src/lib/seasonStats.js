@@ -1,4 +1,4 @@
-import { teams } from "../../data/teams";
+import { teams } from "../../data/teams.js";
 import { fetchSeasonSheet, integer, isoDate, normalizePlayerId, numberValue, percentageValue, SEASON_TABS, timeToSeconds } from "./seasonSheets.js";
 
 const teamByAbbreviation = Object.fromEntries(teams.map((team) => [team.abbreviation, team]));
