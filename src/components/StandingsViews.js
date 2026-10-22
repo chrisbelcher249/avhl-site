@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { LEAGUE_STANDINGS_COLUMNS, sortLeagueStandings } from "@/lib/leagueStandingsSort";
 
 const VIEW_OPTIONS = [
   ["league", "League"],
@@ -42,23 +43,43 @@ function TeamCell({ record, compact = false }) {
 }
 
 function DetailedTable({ records }) {
-  const headings = ["#", "Team", "GP", "W", "L", "OTL", "PTS", "PTS%", "RW", "GF/G", "GA/G", "GF", "GA", "GD"];
+  const [sort, setSort] = useState({ key: "rank", direction: "asc" });
+  const rankedRows = sortLeagueStandings(records, sort);
+  const officialRankOrder = sort.key === "rank" && sort.direction === "asc";
+  const handleSort = (key) => setSort((previous) => {
+    if (previous.key === key) {
+      return { key, direction: previous.direction === "asc" ? "desc" : "asc" };
+    }
+    return { key, direction: key === "team" || key === "rank" ? "asc" : "desc" };
+  });
+
   return (
     <div className="overflow-hidden rounded-[1.75rem] border border-[#000B36]/10 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1180px] border-collapse text-sm">
           <thead className="bg-[#000B36] text-white">
             <tr className="text-[9px] font-black uppercase tracking-[0.12em]">
-              {headings.map((heading) => (
-                <th key={heading} className={`px-3 py-3.5 ${heading === "Team" ? "text-left" : "text-center"}`}>{heading}</th>
-              ))}
+              {LEAGUE_STANDINGS_COLUMNS.map(({ key, label }) => {
+                const active = sort.key === key;
+                const direction = active ? sort.direction : null;
+                return (
+                  <th key={key} aria-sort={active ? direction === "asc" ? "ascending" : "descending" : "none"} className={`px-2 py-0 ${key === "team" ? "text-left" : "text-center"}`}>
+                    <button type="button" onClick={() => handleSort(key)} title={`Sort by ${label}`} className={`inline-flex w-full min-h-11 items-center gap-1.5 px-1 py-3.5 transition hover:text-cyan-200 ${key === "team" ? "justify-start" : "justify-center"}`}>
+                      <span>{label}</span>
+                      <span className={`text-[9px] ${active ? "opacity-100" : "opacity-40"}`} aria-hidden="true">
+                        {active ? direction === "asc" ? "▲" : "▼" : "↕"}
+                      </span>
+                    </button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {records.map((record, index) => (
+            {rankedRows.map(({ record, officialRank }, index) => (
               <Fragment key={record.team.slug}>
                 <tr className="border-t border-[#000B36]/8 bg-white even:bg-[#FAFBFD]">
-                  <td className="px-3 py-3 text-center text-xs font-black text-[#000B36]/45">{index + 1}</td>
+                  <td className="px-3 py-3 text-center text-xs font-black text-[#000B36]/45" title="Official AVHL rank">{officialRank}</td>
                   <td className="min-w-[240px] px-4 py-3"><TeamCell record={record} /></td>
                   <td className="px-3 py-3 text-center font-black">{record.gp}</td>
                   <td className="px-3 py-3 text-center font-black">{record.wins}</td>
@@ -73,7 +94,7 @@ function DetailedTable({ records }) {
                   <td className="px-3 py-3 text-center font-bold">{record.ga}</td>
                   <td className={`px-3 py-3 text-center font-black ${record.gd > 0 ? "text-emerald-700" : record.gd < 0 ? "text-[#A90117]" : ""}`}>{record.gd > 0 ? `+${record.gd}` : record.gd}</td>
                 </tr>
-                {index === 36 ? (
+                {officialRankOrder && index === 36 ? (
                   <tr aria-hidden="true">
                     <td colSpan={14} className="p-0">
                       <div className="relative flex h-8 items-center justify-center border-y-2 border-[#A90117]/70 bg-[#A90117]/[0.045]">
@@ -322,7 +343,7 @@ function LiveBracketBoard({ conferences }) {
 function LeagueView({ league }) {
   return (
     <div>
-      <ViewHeading eyebrow="All 40 clubs" title="League standings" detail="One table, ranked 1–40 using the official AVHL tiebreaker sequence." />
+      <ViewHeading eyebrow="All 40 clubs" title="League standings" detail="Official AVHL tiebreakers by default. Click any column heading to sort; the # column always shows official rank." />
       <DetailedTable records={league} />
     </div>
   );

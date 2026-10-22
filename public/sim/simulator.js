@@ -216,12 +216,16 @@ class AVHLGameSimulator {
     const pk1 = requestedUnit(rawTeam.specialTeams?.pk1, 4) ?? automaticPk1;
     const pk2 = requestedUnit(rawTeam.specialTeams?.pk2, 4) ?? automaticPk2;
 
-    const requestedShootout = (rawTeam.shootoutOrder ?? []).filter((id) => playerById[id]);
-    const automaticShootout = forwards
+    // Owner sets the opening five. Rank all remaining dressed skaters for
+    // sudden-death attempts without reusing anyone until every eligible
+    // skater has shot (defensemen must be eligible too).
+    const requestedShootout = [...new Set((rawTeam.shootoutOrder ?? [])
+      .filter((id) => playerById[id]))].slice(0, 5);
+    const automaticShootout = players
       .slice()
       .sort((a, b) => this.shootoutScore(b) - this.shootoutScore(a))
       .map((player) => player.id);
-    const shootoutOrder = [...new Set([...requestedShootout, ...automaticShootout])].slice(0, 5);
+    const shootoutOrder = [...new Set([...requestedShootout, ...automaticShootout])];
 
     return {
       id: rawTeam.id,
@@ -489,6 +493,9 @@ class AVHLGameSimulator {
       powerPlayTime: { [this.homeId]: 0, [this.awayId]: 0 },
       shorthandedGoals: { [this.homeId]: 0, [this.awayId]: 0 },
       activePenalties: [],
+      // Tracks the extra skaters allowed to stay on after OT penalties expire
+      // until the next whistle (e.g., 4v3 becomes 4v4, then 3v3 at stoppage).
+      otCarryoverSkaters: null,
       injuries: [],
       possessionTeam: null,
       puckCarrierId: null,
@@ -735,16 +742,29 @@ class AVHLGameSimulator {
   }
 
   strengthCounts(state) {
-    const base = state.period === 4 ? 3 : 5;
-    const counts = { [this.homeId]: base, [this.awayId]: base };
-
+    if (state.period === 4) {
+      if (state.otCarryoverSkaters) return { ...state.otCarryoverSkaters };
+      const homePenalties = state.activePenalties.filter(
+        (penalty) => penalty.teamId === this.homeId && penalty.affectsStrength && penalty.remaining > 0
+      ).length;
+      const awayPenalties = state.activePenalties.filter(
+        (penalty) => penalty.teamId === this.awayId && penalty.affectsStrength && penalty.remaining > 0
+      ).length;
+      // NHL-style 3v3 overtime: a manpower advantage ADDS attackers to
+      // the other club (4v3 or 5v3); no club ever drops to two skaters.
+      const differential = awayPenalties - homePenalties;
+      return {
+        [this.homeId]: 3 + Math.min(2, Math.max(0, differential)),
+        [this.awayId]: 3 + Math.min(2, Math.max(0, -differential))
+      };
+    }
+    const counts = { [this.homeId]: 5, [this.awayId]: 5 };
     for (const teamId of [this.homeId, this.awayId]) {
       const active = state.activePenalties.filter(
         (penalty) => penalty.teamId === teamId && penalty.affectsStrength && penalty.remaining > 0
       ).length;
-      counts[teamId] = Math.max(state.period === 4 ? 2 : 3, base - active);
+      counts[teamId] = Math.max(3, 5 - active);
     }
-
     return counts;
   }
 
@@ -1949,6 +1969,7 @@ class AVHLGameSimulator {
 
   decrementPenalties(state, seconds) {
     const expired = [];
+    const before = state.period === 4 ? this.strengthCounts(state) : null;
     for (const penalty of state.activePenalties) {
       if (penalty.remaining <= 0) continue;
       penalty.remaining -= seconds;
@@ -1959,6 +1980,22 @@ class AVHLGameSimulator {
     }
     if (expired.length) {
       state.activePenalties = state.activePenalties.filter((penalty) => penalty.remaining > 0);
+      if (before) {
+        // In OT the penalized club adds a skater when the penalty ends;
+        // both teams keep any resulting extra skaters until a whistle.
+        // With offsetting minors at 3v3, simply recalculate the net
+        // manpower advantage instead.
+        if (state.otCarryoverSkaters ||
+            before[this.homeId] !== before[this.awayId]) {
+          const after = { ...before };
+          for (const penalty of expired) {
+            if (penalty.affectsStrength) {
+              after[penalty.teamId] = Math.min(5, after[penalty.teamId] + 1);
+            }
+          }
+          state.otCarryoverSkaters = after;
+        }
+      }
       this.refreshUnits(state, false);
     }
     return expired;
@@ -2365,6 +2402,9 @@ class AVHLGameSimulator {
   }
 
   simulateFaceoff(state, location, reason = "stoppage") {
+    // Correct any temporary 4v4 / 5v4 / 5v5 OT formation at the whistle,
+    // before selecting the on-ice units for the faceoff.
+    if (state.period === 4) state.otCarryoverSkaters = null;
     this.maybeChangeLines(state, true);
     this.refreshUnits(state, false);
     state.puck = { ...location };
@@ -4831,7 +4871,18 @@ class AVHLGameSimulator {
       releasableOnGoal,
       affectsStrength
     };
+    const beforeOtPenalty = state.period === 4 && state.otCarryoverSkaters
+      ? this.strengthCounts(state)
+      : null;
     state.activePenalties.push(penalty);
+    if (beforeOtPenalty && affectsStrength) {
+      // If OT is temporarily 4v4 or 5v5 after an earlier penalty
+      // expired, a new penalty changes that on-ice configuration.
+      const otherTeamId = this.opponent(offenderTeamId);
+      if (beforeOtPenalty[offenderTeamId] > 3) beforeOtPenalty[offenderTeamId] -= 1;
+      else beforeOtPenalty[otherTeamId] = Math.min(5, beforeOtPenalty[otherTeamId] + 1);
+      state.otCarryoverSkaters = beforeOtPenalty;
+    }
     if (affectsStrength) {
       const beneficiaryId = this.opponent(offenderTeamId);
       // A double minor represents two consecutive minor opportunities; other
@@ -5375,6 +5426,7 @@ class AVHLGameSimulator {
     state.goaliePulled[this.homeId] = false;
     state.goaliePulled[this.awayId] = false;
     state.activePenalties = state.activePenalties.filter((penalty) => penalty.remaining > 0);
+    state.otCarryoverSkaters = null;
     this.refreshUnits(state, true);
     this.initializePeriodPositions(state);
     this.addEvent(
@@ -5452,14 +5504,22 @@ class AVHLGameSimulator {
   shootoutClinched(state, completedRegulationAttempts) {
     const homeGoals = state.shootout.goals[this.homeId];
     const awayGoals = state.shootout.goals[this.awayId];
-    const homeRemaining = Math.max(0, 3 - state.shootout.attempts[this.homeId]);
-    const awayRemaining = Math.max(0, 3 - state.shootout.attempts[this.awayId]);
+    const homeRemaining = Math.max(0, 5 - state.shootout.attempts[this.homeId]);
+    const awayRemaining = Math.max(0, 5 - state.shootout.attempts[this.awayId]);
     if (!completedRegulationAttempts) {
       if (homeGoals > awayGoals + awayRemaining) return this.homeId;
       if (awayGoals > homeGoals + homeRemaining) return this.awayId;
       return null;
     }
     return homeGoals === awayGoals ? null : homeGoals > awayGoals ? this.homeId : this.awayId;
+  }
+
+  shootoutShooterForRound(state, teamId, round) {
+    const team = this.teams[teamId];
+    const unavailable = this.unavailablePlayerIds(state, teamId);
+    const eligibleOrder = team.shootoutOrder.filter((id) => !unavailable.has(id));
+    if (!eligibleOrder.length) throw new Error(`No eligible shootout skaters for ${team.name}.`);
+    return team.playerById[eligibleOrder[(round - 1) % eligibleOrder.length]];
   }
 
   simulateShootout(state) {
@@ -5469,15 +5529,13 @@ class AVHLGameSimulator {
       goals: { [this.homeId]: 0, [this.awayId]: 0 },
       attempts: { [this.homeId]: 0, [this.awayId]: 0 }
     };
-    this.addEvent(state, "shootout-start", "The game moves to a three-round shootout.");
+    this.addEvent(state, "shootout-start", "The game moves to a five-round shootout.");
     const firstTeamId = this.random.chance(0.5) ? this.homeId : this.awayId;
     const secondTeamId = this.opponent(firstTeamId);
 
-    for (let round = 0; round < 3; round += 1) {
+    for (let round = 0; round < 5; round += 1) {
       for (const teamId of [firstTeamId, secondTeamId]) {
-        const team = this.teams[teamId];
-        const shooterId = team.shootoutOrder[round % team.shootoutOrder.length];
-        const shooter = team.playerById[shooterId];
+        const shooter = this.shootoutShooterForRound(state, teamId, round + 1);
         this.simulateShootoutAttempt(state, teamId, shooter, round + 1);
         const winner = this.shootoutClinched(state, false);
         if (winner) {
@@ -5489,14 +5547,12 @@ class AVHLGameSimulator {
     }
 
     let winner = this.shootoutClinched(state, true);
-    let suddenDeathRound = 4;
+    let suddenDeathRound = 6;
     let safety = 0;
     while (!winner && safety < 30) {
       safety += 1;
       for (const teamId of [firstTeamId, secondTeamId]) {
-        const team = this.teams[teamId];
-        const orderIndex = (suddenDeathRound - 1) % team.shootoutOrder.length;
-        const shooter = team.playerById[team.shootoutOrder[orderIndex]];
+        const shooter = this.shootoutShooterForRound(state, teamId, suddenDeathRound);
         this.simulateShootoutAttempt(state, teamId, shooter, suddenDeathRound);
       }
       const homeGoals = state.shootout.goals[this.homeId];
