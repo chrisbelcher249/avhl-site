@@ -31,8 +31,8 @@ export default async function DetailedSkaterStatsPage() {
     faceoffPct: row.faceoffPct,
     toi: row.toi,
     toiPerGame: row.toiPerGame,
-    ppToi: row.ppToi,
-    ppToiPerGame: row.ppToiPerGame,
+    puckPossessionTime: row.puckPossessionTrackedGames ? row.puckPossessionTime : null,
+    puckPossessionTimePerTrackedGame: row.puckPossessionTimePerTrackedGame,
   }));
 
   return (
