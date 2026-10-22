@@ -41,7 +41,7 @@ function readPuckPossessionTime(row) {
   if (marker.toLowerCase() === "v2") {
     return text(row.PPT) ? timeToSeconds(row.PPT) : null;
   }
-  if (/^\\d+:\\d{1,2}(?::\\d{1,2})?$/.test(marker)) return timeToSeconds(marker);
+  if (/^\d+:\d{1,2}(?::\d{1,2})?$/.test(marker)) return timeToSeconds(marker);
   // Compatibility with the brief dual-column schema (P=PP TOI, X=PPT).
   if (row["PP TOI"] != null && text(row.PPT)) return timeToSeconds(row.PPT);
   return null;
