@@ -1,4 +1,5 @@
 import { teams } from "../../data/teams.js";
+import { calculateGoalieShutouts } from "./goalieShutouts.js";
 import { fetchSeasonSheet, integer, isoDate, normalizePlayerId, numberValue, percentageValue, SEASON_TABS, timeToSeconds } from "./seasonSheets.js";
 
 const teamByAbbreviation = Object.fromEntries(teams.map((team) => [team.abbreviation, team]));
@@ -116,7 +117,8 @@ function aggregateSkaters(rows) {
   return [...byPlayer.values()].map(({ latestGameId, ...player }) => ({ ...player, shotPct: player.shots ? player.goals / player.shots : 0, faceoffPct: player.faceoffsTaken ? player.faceoffsWon / player.faceoffsTaken : 0, toiPerGame: player.gp ? player.toi / player.gp : 0, puckPossessionTimePerTrackedGame: player.puckPossessionTrackedGames ? player.puckPossessionTime / player.puckPossessionTrackedGames : null, teamInfo: teamByAbbreviation[player.team] || null, gameRows: player.gameRows.sort((a, b) => b.gameId - a.gameId) }));
 }
 
-function aggregateGoalies(rows) {
+function aggregateGoalies(rows, teamGameRows) {
+  const shutoutsByPlayer = calculateGoalieShutouts(teamGameRows, rows);
   const byPlayer = new Map();
   for (const row of uniquePlayerGameRows(rows)) {
     const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, team: row.team, latestGameId: 0, dressed: 0, gp: 0, toi: 0, shotsAgainst: 0, saves: 0, goalsAgainst: 0, emptyNetGoals: 0, penaltyMinutes: 0, goals: 0, assists: 0, points: 0, gameRows: [] };
@@ -141,7 +143,7 @@ function aggregateGoalies(rows) {
     current.gameRows.push(row);
     byPlayer.set(row.playerId, current);
   }
-  return [...byPlayer.values()].map(({ latestGameId, ...goalie }) => ({ ...goalie, savePct: goalie.shotsAgainst ? goalie.saves / goalie.shotsAgainst : 0, gaa: goalie.toi ? (goalie.goalsAgainst * 3600) / goalie.toi : 0, teamInfo: teamByAbbreviation[goalie.team] || null, gameRows: goalie.gameRows.sort((a, b) => b.gameId - a.gameId) }));
+  return [...byPlayer.values()].map(({ latestGameId, ...goalie }) => ({ ...goalie, shutouts: shutoutsByPlayer.get(goalie.playerId) || 0, savePct: goalie.shotsAgainst ? goalie.saves / goalie.shotsAgainst : 0, gaa: goalie.toi ? (goalie.goalsAgainst * 3600) / goalie.toi : 0, teamInfo: teamByAbbreviation[goalie.team] || null, gameRows: goalie.gameRows.sort((a, b) => b.gameId - a.gameId) }));
 }
 
 function emptyTeam(team) {
@@ -170,6 +172,6 @@ export async function getSeasonStats() {
   const rows = requests.map((request, index) => { if (request.status === "fulfilled") return request.value.rows; errors.push(`${tabs[index]}: ${request.reason instanceof Error ? request.reason.message : String(request.reason)}`); return []; });
   const teamGameRows = parseTeamGameRows(rows[0]), skaterGameRows = parseSkaterGameRows(rows[1]), goalieGameRows = parseGoalieGameRows(rows[2]), scheduleRows = parseScheduleRows(rows[3]);
   const scheduleById = Object.fromEntries(scheduleRows.map((game) => [game.id, game]));
-  const skaters = aggregateSkaters(skaterGameRows), goalies = aggregateGoalies(goalieGameRows), teamStats = aggregateTeams(teamGameRows);
+  const skaters = aggregateSkaters(skaterGameRows), goalies = aggregateGoalies(goalieGameRows, teamGameRows), teamStats = aggregateTeams(teamGameRows);
   return { teamGameRows, skaterGameRows, goalieGameRows, scheduleRows, scheduleById, skaters, goalies, teams: teamStats, skaterById: Object.fromEntries(skaters.map((player) => [player.playerId, player])), goalieById: Object.fromEntries(goalies.map((player) => [player.playerId, player])), teamByAbbreviation: Object.fromEntries(teamStats.map((team) => [team.abbreviation, team])), source: errors.length ? (errors.length === 4 ? "unavailable" : "partial") : "live", error: errors.length ? "Some 2026–27 live statistics could not be loaded." : null };
 }
