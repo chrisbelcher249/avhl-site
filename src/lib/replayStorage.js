@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { gunzipSync } from "node:zlib";
+import { OFFICIAL_REPLAY_TTL_SECONDS, officialReplayIsExpired } from "./replayRetention.js";
 
 const REPLAY_META_HASH_KEY = "avhl:official-replay-meta:v1";
 const REPLAY_KEY_PREFIX = "avhl:official-replay:v1:";
@@ -152,10 +153,10 @@ export async function saveOfficialReplay({ gameId, archive, metadata }) {
   if (!status.configured) throw new Error("Persistent replay storage is not configured.");
   const key = String(number);
   const archiveValue = JSON.stringify(archive);
-  const metaValue = JSON.stringify({ ...metadata, gameId: number, schema: "avhl-official-replay-meta-v1" });
+  const metaValue = JSON.stringify({ ...metadata, gameId: number, savedAt: new Date().toISOString(), schema: "avhl-official-replay-meta-v1" });
 
   if (status.mode === "redis") {
-    await redisCommand(["SET", `${REPLAY_KEY_PREFIX}${key}`, archiveValue]);
+    await redisCommand(["SET", `${REPLAY_KEY_PREFIX}${key}`, archiveValue, "EX", OFFICIAL_REPLAY_TTL_SECONDS]);
     try {
       await redisCommand(["HSET", REPLAY_META_HASH_KEY, key, metaValue]);
     } catch (error) {
@@ -242,9 +243,11 @@ export async function getOfficialReplay(gameId) {
     ]);
     if (!archiveValue) return null;
     try {
+      const metadata = metaValue ? (typeof metaValue === "string" ? JSON.parse(metaValue) : metaValue) : null;
+      if (!metadata || officialReplayIsExpired(metadata)) return null;
       return {
         archive: typeof archiveValue === "string" ? JSON.parse(archiveValue) : archiveValue,
-        metadata: metaValue ? (typeof metaValue === "string" ? JSON.parse(metaValue) : metaValue) : null,
+        metadata,
       };
     } catch {
       throw new Error(`Official replay ${number} is corrupted.`);
@@ -252,5 +255,7 @@ export async function getOfficialReplay(gameId) {
   }
   const data = await readDevFile();
   if (!data.archives?.[key]) return null;
-  return { archive: data.archives[key], metadata: data.meta?.[key] || null };
+  const metadata = data.meta?.[key] || null;
+  if (!metadata || officialReplayIsExpired(metadata)) return null;
+  return { archive: data.archives[key], metadata };
 }
