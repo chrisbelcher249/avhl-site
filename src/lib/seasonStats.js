@@ -36,10 +36,11 @@ export function parseTeamGameRows(rows) {
 // are not valid puck possession history. X preserves provenance:
 //   blank = historical PP-TOI-only game (unknown possession)
 //   M:SS  = real PPT saved during the temporary dual-column release
-//   v2    = real PPT now lives in original column P.
+//   v2    = exact simulator PPT in original column P.
+//   imputed-v1 = historical PPT reconstructed approximately from replay events.
 function readPuckPossessionTime(row) {
   const marker = text(row["PPT Provenance"]);
-  if (marker.toLowerCase() === "v2") {
+  if (["v2", "imputed-v1"].includes(marker.toLowerCase())) {
     return text(row.PPT) ? timeToSeconds(row.PPT) : null;
   }
   if (/^\d+:\d{1,2}(?::\d{1,2})?$/.test(marker)) return timeToSeconds(marker);
