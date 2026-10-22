@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getReplayMetadata } from "@/lib/replayStorage";
+import { officialReplayIsExpired } from "@/lib/replayRetention";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function OfficialReplayPage({ params }) {
   const number = Number.parseInt(String(gameId), 10);
   if (!Number.isInteger(number) || number < 1 || number > 1640) notFound();
   const metadata = await getReplayMetadata(number);
-  if (!metadata) notFound();
+  if (!metadata || officialReplayIsExpired(metadata)) notFound();
   if (metadata.externalUrl) redirect(metadata.externalUrl);
 
   return (

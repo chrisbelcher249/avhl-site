@@ -1,4 +1,5 @@
 import { saturdayNightShowdowns } from "../../data/saturdayNightShowdowns";
+import { officialReplayIsExpired } from "./replayRetention.js";
 
 const snsGameKeys = new Set(
   saturdayNightShowdowns.map((game) => `${game.date}|${game.away}|${game.home}`),
@@ -37,5 +38,6 @@ export function replayPresentationForGame(game, replayMetadata = {}) {
 
   const externalUrl = safeExternalUrl(replay.externalUrl);
   if (externalUrl) return { available: true, url: externalUrl, external: true };
+  if (officialReplayIsExpired(replay)) return { available: false, url: null, external: false };
   return { available: true, url: `/sim/replay/${game.id}`, external: false };
 }
