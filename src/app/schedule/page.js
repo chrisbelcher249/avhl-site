@@ -6,6 +6,7 @@ import { calculateRecordSnapshotsByDate } from "@/lib/standings";
 import { saturdayNightShowdowns } from "../../../data/saturdayNightShowdowns";
 import { getReplayMetadataMap } from "@/lib/replayStorage";
 import { replayPresentationForGame } from "@/lib/replayLinks";
+import { observeSnsReplayLinks } from "@/lib/snsReplayTracking";
 
 export const metadata = {
   title: "2026–27 Schedule",
@@ -33,8 +34,14 @@ export default async function Schedule() {
       return {};
     }),
   ]);
+  const snsReplayLinks = source === "live"
+    ? await observeSnsReplayLinks(schedule).catch((trackingError) => {
+        console.error("Unable to track SNS replay link age", trackingError);
+        return {};
+      })
+    : {};
   const scheduleWithReplays = schedule.map((game) => {
-    const replay = replayPresentationForGame(game, replayMetadata);
+    const replay = replayPresentationForGame(game, replayMetadata, snsReplayLinks);
     return {
       ...game,
       replayAvailable: replay.available,
