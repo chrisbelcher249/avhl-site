@@ -21,9 +21,20 @@ export function isSaturdayNightShowdown(game) {
   return snsGameKeys.has(`${game.date}|${game.away}|${game.home}`);
 }
 
-export function replayPresentationForGame(game, replayMetadata = {}) {
+const SNS_REPLAY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function replayPresentationForGame(game, replayMetadata = {}, snsReplayLinks = {}) {
   const sheetUrl = safeExternalUrl(game?.replayUrl);
   if (sheetUrl) {
+    if (isSaturdayNightShowdown(game)) {
+      const seen = snsReplayLinks[String(game.id)];
+      const observedAt = Date.parse(seen?.firstSeenAt || "");
+      // Missing tracking data must never make an expired SNS replay reappear.
+      if (seen?.url !== sheetUrl || !Number.isFinite(observedAt) ||
+          Date.now() >= observedAt + SNS_REPLAY_WINDOW_MS) {
+        return { available: false, url: null, external: false };
+      }
+    }
     return { available: true, url: sheetUrl, external: true };
   }
 
