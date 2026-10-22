@@ -31,9 +31,25 @@ export function parseTeamGameRows(rows) {
   }).filter((row) => row.gameId > 0 && row.team);
 }
 
+// Skater Stats P used to contain power-play TOI, so existing P values
+// are not valid puck possession history. X preserves provenance:
+//   blank = historical PP-TOI-only game (unknown possession)
+//   M:SS  = real PPT saved during the temporary dual-column release
+//   v2    = real PPT now lives in original column P.
+function readPuckPossessionTime(row) {
+  const marker = text(row["PPT Provenance"]);
+  if (marker.toLowerCase() === "v2") {
+    return text(row.PPT) ? timeToSeconds(row.PPT) : null;
+  }
+  if (/^\d+:\d{1,2}(?::\d{1,2})?$/.test(marker)) return timeToSeconds(marker);
+  // Compatibility with the brief dual-column schema (P=PP TOI, X=PPT).
+  if (row["PP TOI"] != null && text(row.PPT)) return timeToSeconds(row.PPT);
+  return null;
+}
+
 export function parseSkaterGameRows(rows) {
   return rows.map((row) => ({
-    gameId: integer(row["Game ID"]), source: text(row.Source).toUpperCase(), team: text(row.Team).toUpperCase(), opponent: text(row.Opponent).toUpperCase(), homeAway: text(row["H/A"]).toUpperCase(), playerId: normalizePlayerId(row["Player ID"]), name: text(row.Name), position: text(row.Pos), toi: timeToSeconds(row.Min), goals: integer(row.G), assists: integer(row.A), points: integer(row.PTS), plusMinus: integer(row["+/-"]), shots: integer(row.S), shotPct: percentageValue(row["S%"]), ppToi: timeToSeconds(row["PP TOI"] ?? row.PPT), puckPossessionTime: row["PP TOI"] != null && text(row.PPT) ? timeToSeconds(row.PPT) : null, penaltyMinutes: penaltyMinutes(row.PIM), hits: integer(row.Hits), powerPlayGoals: integer(row.PPG), shorthandedGoals: integer(row.SHG), faceoffsTaken: integer(row.FOT), faceoffsWon: integer(row.FOW), faceoffPct: percentageValue(row["FO%"]),
+    gameId: integer(row["Game ID"]), source: text(row.Source).toUpperCase(), team: text(row.Team).toUpperCase(), opponent: text(row.Opponent).toUpperCase(), homeAway: text(row["H/A"]).toUpperCase(), playerId: normalizePlayerId(row["Player ID"]), name: text(row.Name), position: text(row.Pos), toi: timeToSeconds(row.Min), goals: integer(row.G), assists: integer(row.A), points: integer(row.PTS), plusMinus: integer(row["+/-"]), shots: integer(row.S), shotPct: percentageValue(row["S%"]), puckPossessionTime: readPuckPossessionTime(row), penaltyMinutes: penaltyMinutes(row.PIM), hits: integer(row.Hits), powerPlayGoals: integer(row.PPG), shorthandedGoals: integer(row.SHG), faceoffsTaken: integer(row.FOT), faceoffsWon: integer(row.FOW), faceoffPct: percentageValue(row["FO%"]),
   })).filter((row) => row.gameId > 0 && row.playerId);
 }
 
@@ -66,7 +82,7 @@ function uniquePlayerGameRows(rows) {
 function aggregateSkaters(rows) {
   const byPlayer = new Map();
   for (const row of uniquePlayerGameRows(rows)) {
-    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, position: row.position, team: row.team, latestGameId: 0, gp: 0, toi: 0, goals: 0, assists: 0, points: 0, plusMinus: 0, shots: 0, ppToi: 0, puckPossessionTime: 0, puckPossessionTrackedGames: 0, penaltyMinutes: 0, hits: 0, powerPlayGoals: 0, shorthandedGoals: 0, faceoffsTaken: 0, faceoffsWon: 0, gameRows: [] };
+    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, position: row.position, team: row.team, latestGameId: 0, gp: 0, toi: 0, goals: 0, assists: 0, points: 0, plusMinus: 0, shots: 0, puckPossessionTime: 0, puckPossessionTrackedGames: 0, penaltyMinutes: 0, hits: 0, powerPlayGoals: 0, shorthandedGoals: 0, faceoffsTaken: 0, faceoffsWon: 0, gameRows: [] };
     if (row.gameId >= current.latestGameId) {
       current.latestGameId = row.gameId;
       current.name = row.name || current.name;
@@ -82,7 +98,6 @@ function aggregateSkaters(rows) {
     current.points += row.points;
     current.plusMinus += row.plusMinus;
     current.shots += row.shots;
-    current.ppToi += row.ppToi;
     // Old games never measured puck possession. Keep them untracked rather
     // than reporting a false zero or treating legacy PP TOI as possession.
     if (row.puckPossessionTime != null) {
@@ -98,7 +113,7 @@ function aggregateSkaters(rows) {
     current.gameRows.push(row);
     byPlayer.set(row.playerId, current);
   }
-  return [...byPlayer.values()].map(({ latestGameId, ...player }) => ({ ...player, shotPct: player.shots ? player.goals / player.shots : 0, faceoffPct: player.faceoffsTaken ? player.faceoffsWon / player.faceoffsTaken : 0, toiPerGame: player.gp ? player.toi / player.gp : 0, ppToiPerGame: player.gp ? player.ppToi / player.gp : 0, teamInfo: teamByAbbreviation[player.team] || null, gameRows: player.gameRows.sort((a, b) => b.gameId - a.gameId) }));
+  return [...byPlayer.values()].map(({ latestGameId, ...player }) => ({ ...player, shotPct: player.shots ? player.goals / player.shots : 0, faceoffPct: player.faceoffsTaken ? player.faceoffsWon / player.faceoffsTaken : 0, toiPerGame: player.gp ? player.toi / player.gp : 0, puckPossessionTimePerTrackedGame: player.puckPossessionTrackedGames ? player.puckPossessionTime / player.puckPossessionTrackedGames : null, teamInfo: teamByAbbreviation[player.team] || null, gameRows: player.gameRows.sort((a, b) => b.gameId - a.gameId) }));
 }
 
 function aggregateGoalies(rows) {

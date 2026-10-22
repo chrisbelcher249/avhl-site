@@ -34,8 +34,8 @@ const SKATER_COLUMNS = [
   { key: "faceoffPct", label: "FO%", number: true, format: (value) => percent(value) },
   { key: "toi", label: "TOI", number: true, format: clock },
   { key: "toiPerGame", label: "TOI/GP", number: true, format: clock },
-  { key: "ppToi", label: "PP TOI", number: true, format: clock },
-  { key: "ppToiPerGame", label: "PP TOI/GP", number: true, format: clock },
+  { key: "puckPossessionTime", label: "PPT", number: true, format: (value) => value == null ? "—" : clock(value) },
+  { key: "puckPossessionTimePerTrackedGame", label: "PPT/Tracked GP", number: true, format: (value) => value == null ? "—" : clock(value) },
 ];
 
 const GOALIE_COLUMNS = [

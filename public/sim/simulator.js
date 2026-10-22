@@ -368,7 +368,6 @@ class AVHLGameSimulator {
       shorthandedGoals: 0,
       toi: 0,
       evToi: 0,
-      ppToi: 0,
       puckPossessionTime: 0,
       shToi: 0,
       otToi: 0,
@@ -1910,10 +1909,9 @@ class AVHLGameSimulator {
         player.stats.toi += seconds;
         player.stats.currentShift += seconds;
         player.stats.longestShift = Math.max(player.stats.longestShift, player.stats.currentShift);
-        if (situation === "PP") player.stats.ppToi += seconds;
-        else if (situation === "SH") player.stats.shToi += seconds;
+        if (situation === "SH") player.stats.shToi += seconds;
         else if (situation === "OT") player.stats.otToi += seconds;
-        else player.stats.evToi += seconds;
+        else if (situation === "EV") player.stats.evToi += seconds;
         player.fatigue = this.clamp(
           player.fatigue + seconds * (0.00192 - (player.endurance - 70) * 0.000011),
           0,
