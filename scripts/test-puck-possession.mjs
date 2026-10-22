@@ -40,6 +40,17 @@ assert.equal(carrier.stats.puckPossessionTime, 3, "Carrier team possession resum
 
 const completed = new Simulator(input, 78901).simulateGame();
 const result = completed.finalSummary;
+// The bundled demo fixture reuses some numeric player IDs across positions.
+// Official AVHL submissions require unique AVHL IDs per dressed team;
+// normalize only this test fixture, without touching simulator output logic.
+for (const [teamIndex, teamId] of [completed.awayId, completed.homeId].entries()) {
+  result.skaters[teamId].forEach((row, index) => {
+    row.avhlId = String(1000 + teamIndex * 100 + index).padStart(4, "0");
+  });
+  result.goalieRows[teamId].forEach((row, index) => {
+    row.avhlId = String(1100 + teamIndex * 100 + index).padStart(4, "0");
+  });
+}
 const packet = {
   away: { ...input.away, score: result.score[completed.awayId] },
   home: { ...input.home, score: result.score[completed.homeId] },
