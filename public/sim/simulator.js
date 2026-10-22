@@ -369,6 +369,7 @@ class AVHLGameSimulator {
       toi: 0,
       evToi: 0,
       ppToi: 0,
+      puckPossessionTime: 0,
       shToi: 0,
       otToi: 0,
       shifts: 0,
@@ -1893,6 +1894,15 @@ class AVHLGameSimulator {
             : "EV";
 
       if (situation === "PP") state.powerPlayTime[teamId] += seconds;
+
+      // Count controlled puck possession for the actual carrier, not merely
+      // time on ice or team offensive-zone time. Called for each 0.1-second
+      // live-clock step; loose pucks and shootouts earn no possession time.
+      if (state.possessionTeam === teamId && state.puckCarrierId &&
+          state.onIce[teamId].includes(state.puckCarrierId)) {
+        const carrier = team.playerById[state.puckCarrierId];
+        if (carrier) carrier.stats.puckPossessionTime += seconds;
+      }
 
       for (const id of state.onIce[teamId]) {
         const player = team.playerById[id];
