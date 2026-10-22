@@ -49,6 +49,7 @@ const GOALIE_COLUMNS = [
   { key: "savePct", label: "SV%", number: true, format: savePct, strong: true },
   { key: "goalsAgainst", label: "GA", number: true },
   { key: "gaa", label: "GAA", number: true, format: (value) => (Number(value) || 0).toFixed(2) },
+  { key: "shutouts", label: "SO", number: true, strong: true },
   { key: "emptyNetGoals", label: "ENG", number: true },
   { key: "penaltyMinutes", label: "PIM", number: true },
   { key: "goals", label: "G", number: true },
