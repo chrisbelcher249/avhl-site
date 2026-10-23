@@ -933,7 +933,7 @@ export default function EditableLineupPage({
         </section>
 
         <section className="mt-10 md:mt-12">
-          <SectionHeading eyebrow="Tiebreaker" title="Shootout order" copy="The first five shooters, in order. If tied after five rounds, sudden death uses other eligible skaters before anyone repeats." />
+          <SectionHeading eyebrow="Tiebreaker" title="Shootout order" copy="Set the first five shooters in order. The first three take the opening shootout attempts; if tied, sudden death begins in Round 4 using the next unused shooters." />
           <div className="mt-4 rounded-2xl border border-[#D7DFEA] bg-white p-3.5 shadow-[0_2px_10px_rgba(0,11,54,0.035)] md:p-4">
             <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
               {[0, 1, 2, 3, 4].map((index) => {
