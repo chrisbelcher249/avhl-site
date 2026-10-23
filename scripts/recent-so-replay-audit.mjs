@@ -1,0 +1,18 @@
+import { gunzipSync } from "node:zlib";
+const n=264;
+const res=await fetch(`https://www.avhl.org/api/replay/${n}`,{signal:AbortSignal.timeout(25000)});
+console.log("REPLAY_HTTP",res.status);
+if(!res.ok)process.exit(0);
+const json=await res.json();
+const a=typeof json.archive==="string"?JSON.parse(json.archive):json.archive;
+const bytes=Buffer.from(a.data,"base64");
+const snap=JSON.parse((a.encoding==="gzip-base64"?gunzipSync(bytes):bytes).toString("utf8"));
+console.log("GAME",snap.gameId,"SIM_VERSION",snap.simulatorVersion,"SEED",snap.seed);
+const teams=Object.fromEntries(["home","away"].map(side=>{const t=snap.matchupData[side];return[t.id,{name:t.abbreviation,configuredOrder:t.shootoutOrder,roster:[...(t.forwards||[]),...(t.defense||[])].map(p=>({id:p.id,name:p.name})), goalie:t.goalies?.find(g=>g.starter)?.name}]}));
+console.log("TEAMS",JSON.stringify(teams));
+const so=snap.events.filter(e=>e.type==="shootout-start"||e.type==="shootout-attempt"||e.type==="shootout");
+const attempts=so.filter(e=>e.type==="shootout-attempt");
+for(const e of so)console.log("SO_EVENT",JSON.stringify({type:e.type,period:e.period,team:e.teamId,player:e.playerId,round:e.details?.attemptNumber,outcome:e.outcome,description:e.description,secondary:e.secondaryPlayerId}));
+const byTeam={};
+for(const e of attempts)(byTeam[e.teamId]??=[]).push(e.playerId);
+for(const [id,t] of Object.entries(teams))console.log("AUDIT",t.name,"attempts",JSON.stringify(byTeam[id]||[]),"configured",JSON.stringify(t.configuredOrder),"unique",new Set(byTeam[id]||[]).size);
