@@ -66,20 +66,48 @@ const attemptsByTeam = { [sim.homeId]: [], [sim.awayId]: [] };
 sim.simulateShootoutAttempt = function(state, teamId, shooter, round) {
   attemptsByTeam[teamId].push({ round, playerId: shooter.id });
   state.shootout.attempts[teamId] += 1;
-  // Guarantee five tied rounds before the home team wins in round six.
-  if (round === 6 && teamId === this.homeId) state.shootout.goals[teamId] += 1;
-  return round === 6 && teamId === this.homeId;
+  // Guarantee three tied rounds before the home team wins in round four.
+  if (round === 4 && teamId === this.homeId) state.shootout.goals[teamId] += 1;
+  return round === 4 && teamId === this.homeId;
 };
 const winner = sim.simulateShootout(soState);
 assert.equal(winner, sim.homeId);
 for (const teamId of [sim.homeId, sim.awayId]) {
   const shots = attemptsByTeam[teamId];
-  assert.deepEqual(shots.map((shot) => shot.round), [1, 2, 3, 4, 5, 6],
-    "Sudden death must begin in round 6 after five full regulation rounds");
-  assert.equal(new Set(shots.map((shot) => shot.playerId)).size, 6,
-    "Sixth shooter must be a previously unused player");
+  assert.deepEqual(shots.map((shot) => shot.round), [1, 2, 3, 4],
+    "Sudden death must begin in round 4 after three tied regulation rounds");
+  assert.equal(new Set(shots.map((shot) => shot.playerId)).size, 4,
+    "Fourth shooter must be a previously unused player");
 }
-assert.deepEqual(attemptsByTeam[sim.homeId].slice(0, 5).map((x) => x.playerId), explicit);
+assert.deepEqual(attemptsByTeam[sim.homeId].slice(0, 4).map((x) => x.playerId), explicit.slice(0, 4));
+
+const earlySim = new Simulator(shootoutInput, 9278);
+const earlyAttempts = { [earlySim.homeId]: [], [earlySim.awayId]: [] };
+earlySim.simulateShootoutAttempt = function(state, teamId, shooter, round) {
+  earlyAttempts[teamId].push({ round, playerId: shooter.id });
+  state.shootout.attempts[teamId] += 1;
+  // Two opening goals by one team must end the shootout after two paired rounds.
+  if (teamId === this.homeId && round <= 2) state.shootout.goals[teamId] += 1;
+  return teamId === this.homeId && round <= 2;
+};
+assert.equal(earlySim.simulateShootout(earlySim.createInitialState()), earlySim.homeId,
+  "A 2-0 lead after two attempts per team must clinch early");
+assert.deepEqual(earlyAttempts[earlySim.homeId].map((x) => x.round), [1, 2]);
+assert.deepEqual(earlyAttempts[earlySim.awayId].map((x) => x.round), [1, 2]);
+
+const threeRoundSim = new Simulator(shootoutInput, 9279);
+const threeRoundAttempts = { [threeRoundSim.homeId]: [], [threeRoundSim.awayId]: [] };
+threeRoundSim.simulateShootoutAttempt = function(state, teamId, shooter, round) {
+  threeRoundAttempts[teamId].push(round);
+  state.shootout.attempts[teamId] += 1;
+  if (teamId === this.homeId && round === 3) state.shootout.goals[teamId] += 1;
+  return teamId === this.homeId && round === 3;
+};
+assert.equal(threeRoundSim.simulateShootout(threeRoundSim.createInitialState()), threeRoundSim.homeId,
+  "A shootout decided after round 3 must never proceed to sudden death");
+assert.deepEqual(threeRoundAttempts[threeRoundSim.homeId], [1, 2, 3]);
+assert.deepEqual(threeRoundAttempts[threeRoundSim.awayId], [1, 2, 3]);
+
 const injuryTest = sim.createInitialState();
 injuryTest.injuries.push({ playerId: shooters[0], teamId: sim.homeId });
 assert.notEqual(sim.shootoutShooterForRound(injuryTest, sim.homeId, 1).id, shooters[0],
@@ -89,7 +117,7 @@ const fullCycle = [...Array(shooters.length + 1)].map((_, index) =>
 assert.equal(new Set(fullCycle.slice(0, shooters.length)).size, shooters.length,
   "No reuse before all eligible skaters shoot");
 assert.equal(fullCycle.at(-1), fullCycle[0], "Cycling resumes after every eligible skater");
-console.log("Five-round shootout, owner order, unused skaters and sudden death: PASS");
+console.log("Three-round shootout, owner order, unused skaters and sudden death: PASS");
 
 // Sorting is presentation-only; the official rank remains attached.
 const standings = [

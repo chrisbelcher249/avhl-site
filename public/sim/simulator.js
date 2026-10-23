@@ -5504,8 +5504,8 @@ class AVHLGameSimulator {
   shootoutClinched(state, completedRegulationAttempts) {
     const homeGoals = state.shootout.goals[this.homeId];
     const awayGoals = state.shootout.goals[this.awayId];
-    const homeRemaining = Math.max(0, 5 - state.shootout.attempts[this.homeId]);
-    const awayRemaining = Math.max(0, 5 - state.shootout.attempts[this.awayId]);
+    const homeRemaining = Math.max(0, 3 - state.shootout.attempts[this.homeId]);
+    const awayRemaining = Math.max(0, 3 - state.shootout.attempts[this.awayId]);
     if (!completedRegulationAttempts) {
       if (homeGoals > awayGoals + awayRemaining) return this.homeId;
       if (awayGoals > homeGoals + homeRemaining) return this.awayId;
@@ -5529,11 +5529,11 @@ class AVHLGameSimulator {
       goals: { [this.homeId]: 0, [this.awayId]: 0 },
       attempts: { [this.homeId]: 0, [this.awayId]: 0 }
     };
-    this.addEvent(state, "shootout-start", "The game moves to a five-round shootout.");
+    this.addEvent(state, "shootout-start", "The game moves to a three-round shootout.");
     const firstTeamId = this.random.chance(0.5) ? this.homeId : this.awayId;
     const secondTeamId = this.opponent(firstTeamId);
 
-    for (let round = 0; round < 5; round += 1) {
+    for (let round = 0; round < 3; round += 1) {
       for (const teamId of [firstTeamId, secondTeamId]) {
         const shooter = this.shootoutShooterForRound(state, teamId, round + 1);
         this.simulateShootoutAttempt(state, teamId, shooter, round + 1);
@@ -5547,10 +5547,10 @@ class AVHLGameSimulator {
     }
 
     let winner = this.shootoutClinched(state, true);
-    let suddenDeathRound = 6;
-    let safety = 0;
-    while (!winner && safety < 30) {
-      safety += 1;
+    let suddenDeathRound = 4;
+    // Continue paired sudden-death rounds until one team actually wins.
+    // All eligible shooters are used before anyone repeats.
+    while (!winner) {
       for (const teamId of [firstTeamId, secondTeamId]) {
         const shooter = this.shootoutShooterForRound(state, teamId, suddenDeathRound);
         this.simulateShootoutAttempt(state, teamId, shooter, suddenDeathRound);
@@ -5561,7 +5561,6 @@ class AVHLGameSimulator {
       suddenDeathRound += 1;
     }
 
-    if (!winner) winner = this.random.chance(0.5) ? this.homeId : this.awayId;
     state.score[winner] += 1;
     this.addEvent(state, "shootout", `${this.teams[winner].name} win the shootout.`, { teamId: winner });
     return winner;
