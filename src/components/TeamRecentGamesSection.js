@@ -22,7 +22,7 @@ export default function TeamRecentGamesSection({ team, teamStats, schedule = [],
         <div className="mt-8 rounded-3xl border border-[#000B36]/10 bg-[#F6F8FC] p-5 md:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#A90117]">Coming up</p><h3 className="mt-1 text-xl font-black">Next 3 games</h3></div>
-            <Link href={`/schedule/${team.slug}`} className="text-xs font-black text-[#000B36]/60 hover:text-[#A90117]">Full team schedule →</Link>
+            <Link href={`/schedule/${team.slug}${upcomingGames[0] ? `#game-${upcomingGames[0].id}` : ""}`} className="text-xs font-black text-[#000B36]/60 hover:text-[#A90117]">Full team schedule →</Link>
           </div>
           {upcomingGames.length ? (
             <div className="mt-4 grid gap-3 md:grid-cols-3">
