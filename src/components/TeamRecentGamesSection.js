@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { replayPresentationForGame } from "@/lib/replayLinks";
 import { gameHasResult } from "@/lib/scheduleFormat";
+import { calculateStandings } from "@/lib/standings";
 import { teamBySlug } from "../../data/teams";
 
 function dateLabel(value) {
@@ -9,6 +10,7 @@ function dateLabel(value) {
 
 export default function TeamRecentGamesSection({ team, teamStats, schedule = [], scheduleById = {}, replayMetadata = {} }) {
   const games = teamStats?.gameRows || [];
+  const records = calculateStandings(schedule).records;
   const upcomingGames = schedule
     .filter((game) => (game.home === team.slug || game.away === team.slug) && !gameHasResult(game))
     .sort((a, b) => a.id - b.id)
@@ -26,11 +28,14 @@ export default function TeamRecentGamesSection({ team, teamStats, schedule = [],
               {upcomingGames.map((game) => {
                 const isHome = game.home === team.slug;
                 const opponent = teamBySlug[isHome ? game.away : game.home];
+                const venue = (isHome ? team.arena : opponent?.arena) || "Venue TBD";
+                const opponentRecord = opponent ? records[opponent.slug] : null;
+                const recordText = opponentRecord ? `${opponentRecord.wins}-${opponentRecord.losses}-${opponentRecord.otl}` : "0-0-0";
                 return (
                   <div key={game.id} className="rounded-2xl border border-[#000B36]/10 bg-white p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.11em] text-[#000B36]/45">Game {game.id} · {dateLabel(game.date)} · {isHome ? "Home" : "Away"}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.11em] text-[#000B36]/45">Game {game.id} · {dateLabel(game.date)} · {venue}</p>
                     <p className="mt-2 text-lg font-black">{isHome ? "vs" : "@"}{" "}
-                      {opponent ? <Link href={`/teams/${opponent.slug}`} className="hover:text-[#A90117]">{opponent.name}</Link> : "Opponent TBD"}
+                      {opponent ? <Link href={`/teams/${opponent.slug}`} className="hover:text-[#A90117]">{opponent.name} ({recordText})</Link> : "Opponent TBD"}
                     </p>
                   </div>
                 );
