@@ -41,7 +41,7 @@ export default function TeamScheduleExplorer({ teamSlug, primary, games, records
 
       <div className="mt-8 space-y-8">
         {filteredGames.map((game) => (
-          <section key={game.id} className="grid gap-3 md:grid-cols-[210px_1fr] md:items-center">
+          <section key={game.id} id={`game-${game.id}`} className="scroll-mt-24 grid gap-3 md:grid-cols-[210px_1fr] md:items-center">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#A90117]">Day {game.day} · Game {game.id}</p>
               <h2 className="mt-1 text-xl font-black">{formatScheduleDate(game.date, { weekday: "short", year: undefined })}</h2>
