@@ -62,7 +62,7 @@ export function parseSkaterGameRows(rows) {
 
 export function parseGoalieGameRows(rows) {
   return rows.map((row) => ({
-    gameId: integer(row["Game ID"]), source: text(row.Source).toUpperCase(), team: text(row.Team).toUpperCase(), opponent: text(row.Opponent).toUpperCase(), homeAway: text(row["H/A"]).toUpperCase(), playerId: normalizePlayerId(row["Player ID"]), name: text(row.Name), toi: timeToSeconds(row.Min), shotsAgainst: integer(row.SA), saves: integer(row.SV), savePct: numberValue(row["SV%"]), goalsAgainst: integer(row.GA), gaa: numberValue(row.GAA), emptyNetGoals: integer(row.ENG), startMarker: ["0", "1"].includes(text(row.GS)) ? integer(row.GS) : null, penaltyMinutes: penaltyMinutes(row.PIM), goals: integer(row.G), assists: integer(row.A), points: integer(row.PTS),
+    gameId: integer(row["Game ID"]), source: text(row.Source).toUpperCase(), team: text(row.Team).toUpperCase(), opponent: text(row.Opponent).toUpperCase(), homeAway: text(row["H/A"]).toUpperCase(), playerId: normalizePlayerId(row["Player ID"]), name: text(row.Name), toi: timeToSeconds(row.Min), shotsAgainst: integer(row.SA), saves: integer(row.SV), savePct: numberValue(row["SV%"]), goalsAgainst: integer(row.GA), gaa: numberValue(row.GAA), emptyNetGoals: integer(row.ENG), startMarker: ["0", "1"].includes(text(row.GS)) ? integer(row.GS) : null, decision: ["W", "L", "OTL"].includes(text(row.Decision).toUpperCase()) ? text(row.Decision).toUpperCase() : "", penaltyMinutes: penaltyMinutes(row.PIM), goals: integer(row.G), assists: integer(row.A), points: integer(row.PTS),
   })).filter((row) => row.gameId > 0 && row.playerId);
 }
 
@@ -137,8 +137,11 @@ export function aggregateGoalies(rows, teamGameRows) {
     grouped.get(key).push(row);
   }
   const startsByGameTeam = new Map();
+  const decisionsConfirmed = new Set();
   for (const [key, entries] of grouped) {
     const explicit = entries.filter((row) => row.startMarker === 1);
+    const decisions = entries.filter((row) => row.decision);
+    if (decisions.length === 1) decisionsConfirmed.add(key);
     if (explicit.length === 1) {
       startsByGameTeam.set(key, explicit[0].playerId);
     } else if (explicit.length === 0 && entries.every((row) => row.startMarker == null)) {
@@ -150,7 +153,7 @@ export function aggregateGoalies(rows, teamGameRows) {
   }
   const byPlayer = new Map();
   for (const row of uniqueRows) {
-    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, team: row.team, latestGameId: 0, dressed: 0, gp: 0, gs: 0, startsUnverified: 0, startsRemaining: 60, toi: 0, shotsAgainst: 0, saves: 0, goalsAgainst: 0, emptyNetGoals: 0, penaltyMinutes: 0, goals: 0, assists: 0, points: 0, gameRows: [] };
+    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, team: row.team, latestGameId: 0, dressed: 0, gp: 0, gs: 0, wins: 0, losses: 0, otl: 0, decisionsUnverified: 0, startsUnverified: 0, startsRemaining: 60, toi: 0, shotsAgainst: 0, saves: 0, goalsAgainst: 0, emptyNetGoals: 0, penaltyMinutes: 0, goals: 0, assists: 0, points: 0, gameRows: [] };
     if (row.gameId >= current.latestGameId) {
       current.latestGameId = row.gameId;
       current.name = row.name || current.name;
@@ -164,6 +167,12 @@ export function aggregateGoalies(rows, teamGameRows) {
     // A dressed backup gets a Dressed appearance but only receives a GP if he
     // actually records ice time. This matches normal goalie GP accounting.
     if (row.toi > 0) current.gp += 1;
+    const decisionVerified = decisionsConfirmed.has(`${row.gameId}:${row.team}`);
+    row.goalieDecision = decisionVerified ? row.decision : "";
+    if (row.toi > 0 && !decisionVerified) current.decisionsUnverified += 1;
+    if (row.goalieDecision === "W") current.wins += 1;
+    else if (row.goalieDecision === "L") current.losses += 1;
+    else if (row.goalieDecision === "OTL") current.otl += 1;
     current.toi += row.toi;
     current.shotsAgainst += row.shotsAgainst;
     current.saves += row.saves;
