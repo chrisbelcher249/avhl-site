@@ -15,6 +15,8 @@ export default async function DetailedGoalieStatsPage() {
     name: row.name,
     team: row.team,
     gp: row.gp,
+    gs: row.gs,
+    startsRemaining: row.startsRemaining,
     dressed: row.dressed,
     toi: row.toi,
     shotsAgainst: row.shotsAgainst,
@@ -36,7 +38,7 @@ export default async function DetailedGoalieStatsPage() {
         <div className="mx-auto max-w-[1500px]">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">2026–27 AVHL</p>
           <h1 className="mt-2 text-4xl font-black uppercase tracking-tight md:text-6xl">Detailed goalie stats</h1>
-          <p className="mt-4 max-w-3xl text-sm font-semibold leading-6 text-white/60 md:text-base">Every official goalie game row rolled into season totals. Click any column heading to sort the entire league by that variable.</p>
+          <p className="mt-4 max-w-3xl text-sm font-semibold leading-6 text-white/60 md:text-base">Every official goalie game row rolled into season totals. GS tracks starts separately from appearances (GP). AVHL goalies may start a maximum of 60 regular-season games. Click any heading to sort.</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/statistics" className="rounded-full bg-white px-5 py-2.5 text-xs font-black uppercase tracking-wide text-[#000B36]">← Statistics home</Link>
             <Link href="/statistics/skaters" className="rounded-full border border-white/15 px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white hover:bg-white hover:text-[#000B36]">Detailed skater stats</Link>

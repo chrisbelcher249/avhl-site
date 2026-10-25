@@ -55,7 +55,7 @@ function GoalieLeaderCard({ title, rows, value }) {
               <span className="text-xs font-black tabular-nums text-[#000B36]/30">{index + 1}</span>
               <div className="min-w-0">
                 <Link href={`/players/${row.playerId}`} className="block truncate text-sm font-black hover:text-[#A90117]">{row.name}</Link>
-                <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#000B36]/35">{row.team} · {row.gp} GP</p>
+                <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#000B36]/35">{row.team} · {row.gp} GP · {row.gs} GS / 60</p>
               </div>
               <span className="text-2xl font-black tabular-nums">{value(row)}</span>
             </div>

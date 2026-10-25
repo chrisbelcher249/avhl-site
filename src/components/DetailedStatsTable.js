@@ -42,6 +42,8 @@ const GOALIE_COLUMNS = [
   { key: "name", label: "Goalie", align: "left" },
   { key: "team", label: "Team" },
   { key: "gp", label: "GP", number: true },
+  { key: "gs", label: "GS", number: true, strong: true },
+  { key: "startsRemaining", label: "GS Left", number: true },
   { key: "dressed", label: "Dressed", number: true },
   { key: "toi", label: "MIN", number: true, format: clock },
   { key: "shotsAgainst", label: "SA", number: true },
@@ -126,7 +128,7 @@ export default function DetailedStatsTable({ type, rows }) {
 
       <div className="mt-5 overflow-hidden rounded-3xl border border-[#000B36]/10 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className={`w-full border-collapse text-sm ${goalie ? "min-w-[1180px]" : "min-w-[1750px]"}`}>
+          <table className={`w-full border-collapse text-sm ${goalie ? "min-w-[1320px]" : "min-w-[1750px]"}`}>
             <thead className="bg-[#000B36] text-[10px] font-black uppercase tracking-[0.12em] text-white/70">
               <tr>
                 {columns.map((column) => {
