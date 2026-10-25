@@ -85,7 +85,15 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
     };
   }, [currentMonth, groupedGames]);
 
-  const visibleGroups = currentAndFutureGroups.slice(0, visibleDateCount);
+  // On first load (and after resetting filters), expose the entire current
+  // month rather than stopping after 14 dates. A selected future month gets
+  // the same treatment; "Load more dates" still reveals later fixtures.
+  const displayMonth = date?.slice(0, 7) || month || currentMonth;
+  const monthDateCount = currentAndFutureGroups.filter(
+    (group) => group.date.slice(0, 7) === displayMonth
+  ).length;
+  const effectiveVisibleDateCount = Math.max(INITIAL_DATE_COUNT, visibleDateCount, monthDateCount);
+  const visibleGroups = currentAndFutureGroups.slice(0, effectiveVisibleDateCount);
   const selectedTeam = teamSlug ? teamLookup[teamSlug] : null;
 
   const clearFilterState = useCallback(() => {
@@ -274,9 +282,9 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
         {visibleGroups.map(renderDateGroup)}
       </div>
 
-      {visibleDateCount < currentAndFutureGroups.length ? (
+      {effectiveVisibleDateCount < currentAndFutureGroups.length ? (
         <div className="mt-10 text-center">
-          <button onClick={() => setVisibleDateCount((count) => count + 14)} className="rounded-full bg-[#000B36] px-7 py-3.5 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#00145C]">Load more dates</button>
+          <button onClick={() => setVisibleDateCount((count) => Math.max(count, effectiveVisibleDateCount) + 14)} className="rounded-full bg-[#000B36] px-7 py-3.5 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#00145C]">Load more dates</button>
         </div>
       ) : null}
 
