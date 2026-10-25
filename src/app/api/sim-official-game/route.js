@@ -258,7 +258,7 @@ export async function POST(request) {
       return Response.json({ ok: false, error: "Official game data was not supplied." }, { status: 400 });
     }
 
-    const { teamRows, skaterRows, goalieRows, finish } = buildOfficialSheetRows(number, body.packet);
+    const finish = String(body.packet.finish || "REG").toUpperCase();
     const injuryRecords = officialInjuryRecords(number, official.game.date, body.packet);
     if (!replayStorageStatus().configured) {
       return Response.json({
@@ -280,6 +280,7 @@ export async function POST(request) {
       scheduledAway: official.away.abbreviation,
       scheduledHome: official.home.abbreviation,
     });
+    const { teamRows, skaterRows, goalieRows } = buildOfficialSheetRows(number, body.packet, replaySnapshot);
     const replayMetadata = {
       date: official.game.date,
       awayAbbreviation: official.away.abbreviation,
