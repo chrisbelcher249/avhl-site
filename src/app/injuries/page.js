@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import InjuriesTable from "@/components/InjuriesTable";
 import { getPlayers } from "@/lib/players";
 import { getCurrentInjuryState } from "@/lib/injuries";
 import { teams } from "../../../data/teams";
@@ -14,18 +14,16 @@ export const metadata = {
 
 const teamByAbbreviation = Object.fromEntries(teams.map((team) => [team.abbreviation, team]));
 
-function formatDate(value) {
-  if (!value) return "After season";
-  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return String(value);
-  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
-}
-
 export default async function InjuriesPage() {
   const { players, source: rosterSource } = await getPlayers();
   const state = await getCurrentInjuryState(players);
   const cannotPlay = Object.values(state.readiness || {}).filter((team) => !team.canPlay);
+  const byPlayerId = new Map(players.map((player) => [String(player.id), player]));
+  const injuries = state.active.map((injury) => {
+    const rating = byPlayerId.get(String(injury.playerId))?.overall;
+    return { ...injury, overall: rating == null || !Number.isFinite(Number(rating)) ? null : Number(rating) };
+  });
+  const filterTeams = teams.map((team) => ({ abbreviation: team.abbreviation, name: team.name, slug: team.slug, logo: team.assets?.logo || null }));
 
   return (
     <main className="min-h-screen bg-[#F4F7FB] text-[#000B36]">
@@ -85,50 +83,7 @@ export default async function InjuriesPage() {
           </section>
         ) : null}
 
-        <section className="overflow-hidden rounded-2xl border border-[#000B36]/10 bg-white shadow-sm">
-          {state.active.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-left">
-                <thead className="bg-[#000B36] text-white">
-                  <tr className="text-[10px] font-black uppercase tracking-[0.13em]">
-                    <th className="px-4 py-3.5">Team</th>
-                    <th className="px-4 py-3.5">Player</th>
-                    <th className="px-4 py-3.5">Injury</th>
-                    <th className="px-4 py-3.5 text-center">Games Remaining</th>
-                    <th className="px-4 py-3.5">Expected Return</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.active.map((injury) => {
-                    const team = teamByAbbreviation[injury.teamAbbreviation];
-                    return (
-                      <tr key={injury.storageKey || `${injury.officialGameId}:${injury.playerId}`} className="border-b border-[#000B36]/7 last:border-b-0">
-                        <td className="px-4 py-3.5">
-                          <Link href={team ? `/teams/${team.slug}` : "/teams"} className="flex items-center gap-2.5 font-black hover:text-[#A90117]">
-                            {team?.assets?.logo ? <Image src={team.assets.logo} alt="" width={30} height={30} className="h-7 w-7 object-contain" /> : null}
-                            <span>{injury.teamAbbreviation}</span>
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <Link href={`/players/${injury.playerId}`} className="font-black hover:text-[#A90117]">{injury.playerName}</Link>
-                          <span className="mt-0.5 block text-[10px] font-bold text-[#000B36]/40">{injury.position || "—"}</span>
-                        </td>
-                        <td className="px-4 py-3.5 text-sm font-bold">{injury.injuryType}</td>
-                        <td className="px-4 py-3.5 text-center text-lg font-black tabular-nums">{injury.gamesRemaining}</td>
-                        <td className="px-4 py-3.5 text-sm font-black">{formatDate(injury.expectedReturnDate)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="px-6 py-14 text-center">
-              <p className="text-xl font-black">No active injuries.</p>
-              <p className="mt-2 text-sm font-semibold text-[#000B36]/45">Official simulator injuries will appear here as soon as a game is saved.</p>
-            </div>
-          )}
-        </section>
+        <InjuriesTable injuries={injuries} teams={filterTeams} />
       </div>
     </main>
   );
