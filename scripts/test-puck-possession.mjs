@@ -65,7 +65,7 @@ for (const row of official.skaterRows) {
   assert.equal(row[23], "v2", "Mark rows that contain true PPT in column P");
 }
 for (const row of official.goalieRows) {
-  assert.equal(row.length, 19, "18 goalie statistics followed by GS in column S");
+  assert.equal(row.length, 20, "18 goalie statistics followed by GS in S and decision in T");
   assert.ok(row[18] === 1 || row[18] === 0, "Each dressed goalie needs an exact GS flag");
 }
 assert.equal(official.goalieRows.filter((row) => row[18] === 1).length, 2,
