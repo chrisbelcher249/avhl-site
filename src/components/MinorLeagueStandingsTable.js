@@ -15,7 +15,7 @@ export default function MinorLeagueStandingsTable({ standings, completedGames })
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] border-collapse text-sm">
+        <table className="w-full min-w-[860px] border-collapse text-sm">
           <thead className="bg-[#F6F8FC] text-[10px] font-black uppercase tracking-[0.12em] text-[#000B36]/42">
             <tr>
               <th className="w-14 px-4 py-3 text-center">#</th>
@@ -25,10 +25,11 @@ export default function MinorLeagueStandingsTable({ standings, completedGames })
               <th className="px-3 py-3 text-center">L</th>
               <th className="px-3 py-3 text-center">OTL</th>
               <th className="px-3 py-3 text-center">RW</th>
-              <th className="px-3 py-3 text-center">GF</th>
-              <th className="px-3 py-3 text-center">GA</th>
+              <th className="px-3 py-3 text-center" title="Goals for per game">GF/G</th>
+              <th className="px-3 py-3 text-center" title="Goals against per game">GA/G</th>
               <th className="px-3 py-3 text-center">GD</th>
               <th className="px-4 py-3 text-center">PTS</th>
+              <th className="px-3 py-3 text-center" title="Points percentage">PTS%</th>
             </tr>
           </thead>
           <tbody>
@@ -55,10 +56,11 @@ export default function MinorLeagueStandingsTable({ standings, completedGames })
                   <td className="px-3 py-3 text-center font-bold">{record.losses}</td>
                   <td className="px-3 py-3 text-center font-bold">{record.otl}</td>
                   <td className="px-3 py-3 text-center font-bold">{record.rw}</td>
-                  <td className="px-3 py-3 text-center font-bold">{record.gf}</td>
-                  <td className="px-3 py-3 text-center font-bold">{record.ga}</td>
+                  <td className="px-3 py-3 text-center font-bold tabular-nums">{record.gfPerGame.toFixed(2)}</td>
+                  <td className="px-3 py-3 text-center font-bold tabular-nums">{record.gaPerGame.toFixed(2)}</td>
                   <td className="px-3 py-3 text-center font-bold">{record.gd > 0 ? `+${record.gd}` : record.gd}</td>
                   <td className="px-4 py-3 text-center text-base font-black">{record.pts}</td>
+                  <td className="px-3 py-3 text-center font-black tabular-nums">{(record.ptsPct * 100).toFixed(1)}%</td>
                 </tr>
               );
             }).reduce((rows, row, index) => {
@@ -66,7 +68,7 @@ export default function MinorLeagueStandingsTable({ standings, completedGames })
               if (index === 2) {
                 rows.push(
                   <tr key="promotion-cutoff" aria-hidden="true">
-                    <td colSpan={11} className="p-0">
+                    <td colSpan={12} className="p-0">
                       <div className="relative h-10 bg-gradient-to-r from-cyan-50 via-white to-cyan-50">
                         <div className="absolute inset-x-4 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-gradient-to-r from-transparent via-[#18BDFC] to-transparent" />
                         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-[#18BDFC]/40 bg-[#000B36] px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-cyan-200 shadow-sm">
