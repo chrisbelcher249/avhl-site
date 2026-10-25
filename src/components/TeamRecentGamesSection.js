@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { replayPresentationForGame } from "@/lib/replayLinks";
 import { gameHasResult } from "@/lib/scheduleFormat";
@@ -34,9 +35,21 @@ export default function TeamRecentGamesSection({ team, teamStats, schedule = [],
                 return (
                   <div key={game.id} className="rounded-2xl border border-[#000B36]/10 bg-white p-4">
                     <p className="text-[10px] font-black uppercase tracking-[0.11em] text-[#000B36]/45">Game {game.id} · {dateLabel(game.date)} · {venue}</p>
-                    <p className="mt-2 text-lg font-black">{isHome ? "vs" : "@"}{" "}
-                      {opponent ? <Link href={`/teams/${opponent.slug}`} className="hover:text-[#A90117]">{opponent.name} ({recordText})</Link> : "Opponent TBD"}
-                    </p>
+                    <div className="mt-3 flex items-center gap-3">
+                      {opponent?.assets?.logo ? (
+                        <Image
+                          src={opponent.assets.logo}
+                          alt=""
+                          width={52}
+                          height={52}
+                          className="h-12 w-12 shrink-0 object-contain"
+                        />
+                      ) : null}
+                      <p className="min-w-0 text-lg font-black leading-snug">
+                        {isHome ? "vs" : "@"}{" "}
+                        {opponent ? <Link href={`/teams/${opponent.slug}`} className="hover:text-[#A90117]">{opponent.name} ({recordText})</Link> : "Opponent TBD"}
+                      </p>
+                    </div>
                   </div>
                 );
               })}
