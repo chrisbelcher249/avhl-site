@@ -7,6 +7,7 @@ import DraftPickSection from "@/components/DraftPickSection";
 import SalaryCapSection from "@/components/SalaryCapSection";
 import FranchiseHistorySection from "@/components/FranchiseHistorySection";
 import TeamSeasonStatsSection from "@/components/TeamSeasonStatsSection";
+import TeamInjuriesSection from "@/components/TeamInjuriesSection";
 import { teams as fallbackTeams } from "../../../../data/teams";
 import { getTeamBySlug } from "@/lib/teams";
 import { getDraftPicksForTeam } from "@/lib/draftPicks";
@@ -15,6 +16,8 @@ import { getPlayers } from "@/lib/players";
 import { getFranchiseHistory, getFranchiseSummary } from "@/lib/history";
 import { getRivalsForTeam, rivalryLevels } from "../../../../data/rivals";
 import { getSeasonStats } from "@/lib/seasonStats";
+import { getSchedule } from "@/lib/schedule";
+import { getCurrentInjuryState } from "@/lib/injuries";
 import { mergePlayerCareer } from "@/lib/careerStats";
 import { getReplayMetadataMap } from "@/lib/replayStorage";
 
@@ -68,14 +71,22 @@ export default async function TeamPage({ params }) {
   if (!team) notFound();
   const teamBySlug = Object.fromEntries(teams.map((candidate) => [candidate.slug, candidate]));
 
-  const [{ players }, seasonStats, replayMetadata] = await Promise.all([
+  const [{ players }, seasonStats, scheduleResult, replayMetadata] = await Promise.all([
     getPlayers(),
     getSeasonStats(),
+    getSchedule(),
     getReplayMetadataMap().catch((replayError) => {
       console.error("Unable to load official replay metadata for team page", replayError);
       return {};
     }),
   ]);
+  const injuryState = await getCurrentInjuryState(players).catch((error) => {
+    console.error("Unable to load team injury status", error);
+    return { byTeam: {}, active: [], error: true };
+  });
+  const currentTeamInjuries = injuryState.byTeam?.[team.abbreviation] || [];
+  const injuredPlayerIds = currentTeamInjuries.map((injury) => String(injury.playerId));
+  const currentPlayersById = Object.fromEntries(players.map((player) => [String(player.id), { overall: player.overall }]));
   const rosterTeamName = fallbackTeams.find((candidate) => candidate.abbreviation === team.abbreviation)?.name || team.name;
   const playersWithLiveCareer = players.map((player) => mergePlayerCareer(player, seasonStats));
   const roster = buildTeamRosterAndCap(playersWithLiveCareer, rosterTeamName);
@@ -230,13 +241,15 @@ export default async function TeamPage({ params }) {
         </div>
       </section>
 
-      <SalaryCapSection roster={roster} primary={team.colors.primary} />
+      <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} scheduleById={seasonStats.scheduleById} schedule={scheduleResult.schedule} replayMetadata={replayMetadata} playerDirectory={currentPlayerDirectory} />
 
-      <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} scheduleById={seasonStats.scheduleById} replayMetadata={replayMetadata} playerDirectory={currentPlayerDirectory} />
+      {injuryState.error ? <p className="mx-auto max-w-7xl px-6 pt-6 text-sm font-bold text-[#A90117]">Current injury status is temporarily unavailable.</p> : <TeamInjuriesSection team={team} injuries={currentTeamInjuries} playersById={currentPlayersById} />}
 
       <section id="roster" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 md:px-8 md:pb-20">
-        <RosterSection roster={roster} primary={team.colors.primary} />
+        <RosterSection roster={roster} primary={team.colors.primary} injuredPlayerIds={injuredPlayerIds} />
       </section>
+
+      <SalaryCapSection roster={roster} primary={team.colors.primary} />
 
       <DraftPickSection team={team} picks={draftPicks} error={draftPickError} />
 
