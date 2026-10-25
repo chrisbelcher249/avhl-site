@@ -64,6 +64,13 @@ for (const row of official.skaterRows) {
   assert.match(row[15], /^\d+:\d\d$/, "Real PPT must replace PP TOI in original column P");
   assert.equal(row[23], "v2", "Mark rows that contain true PPT in column P");
 }
+for (const row of official.goalieRows) {
+  assert.equal(row.length, 19, "18 goalie statistics followed by GS in column S");
+  assert.ok(row[18] === 1 || row[18] === 0, "Each dressed goalie needs an exact GS flag");
+}
+assert.equal(official.goalieRows.filter((row) => row[18] === 1).length, 2,
+  "One starter per team must be recorded in every official SIM export");
+
 const oldRows = parseSkaterGameRows([{ "Game ID": "1", "Player ID": "0123", PPT: "01:23" }]);
 assert.equal(oldRows[0].puckPossessionTime, null, "Never count historical power-play TOI as puck possession");
 const middleRows = parseSkaterGameRows([{ "Game ID": "2", "Player ID": "0123", "PP TOI": "01:23", PPT: "02:04" }]);
