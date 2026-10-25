@@ -248,11 +248,11 @@ export default async function TeamPage({ params }) {
 
       {injuryState.error ? <p className="mx-auto max-w-7xl px-6 pt-6 text-sm font-bold text-[#A90117]">Current injury status is temporarily unavailable.</p> : <TeamInjuriesSection team={team} injuries={currentTeamInjuries} playersById={currentPlayersById} />}
 
+      <SalaryCapSection roster={roster} primary={team.colors.primary} />
+
       <section id="roster" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 md:px-8 md:pb-20">
         <RosterSection roster={roster} primary={team.colors.primary} injuredPlayerIds={injuredPlayerIds} />
       </section>
-
-      <SalaryCapSection roster={roster} primary={team.colors.primary} />
 
       <DraftPickSection team={team} picks={draftPicks} error={draftPickError} />
 
