@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Audit recent goalie decisions (read-only)
+        run: node scripts/temp-audit-goalie-decisions.mjs
       - run: npm ci
       - run: npm run test:puck-possession
       - run: npm run test:goalie-shutouts
