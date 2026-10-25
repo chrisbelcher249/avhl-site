@@ -7,6 +7,7 @@ import DraftPickSection from "@/components/DraftPickSection";
 import SalaryCapSection from "@/components/SalaryCapSection";
 import FranchiseHistorySection from "@/components/FranchiseHistorySection";
 import TeamSeasonStatsSection from "@/components/TeamSeasonStatsSection";
+import TeamRecentGamesSection from "@/components/TeamRecentGamesSection";
 import TeamInjuriesSection from "@/components/TeamInjuriesSection";
 import { teams as fallbackTeams } from "../../../../data/teams";
 import { getTeamBySlug } from "@/lib/teams";
@@ -241,7 +242,9 @@ export default async function TeamPage({ params }) {
         </div>
       </section>
 
-      <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} scheduleById={seasonStats.scheduleById} schedule={scheduleResult.schedule} replayMetadata={replayMetadata} playerDirectory={currentPlayerDirectory} />
+      <TeamRecentGamesSection team={team} teamStats={currentSeasonTeamStats} schedule={scheduleResult.schedule} scheduleById={seasonStats.scheduleById} replayMetadata={replayMetadata} />
+
+      <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} playerDirectory={currentPlayerDirectory} />
 
       {injuryState.error ? <p className="mx-auto max-w-7xl px-6 pt-6 text-sm font-bold text-[#A90117]">Current injury status is temporarily unavailable.</p> : <TeamInjuriesSection team={team} injuries={currentTeamInjuries} playersById={currentPlayersById} />}
 
