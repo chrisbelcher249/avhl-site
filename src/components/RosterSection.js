@@ -93,7 +93,7 @@ function SortHeader({ label, column, sort, onSort, align = "left" }) {
   );
 }
 
-export default function RosterSection({ roster, primary }) {
+export default function RosterSection({ roster, primary, injuredPlayerIds = [] }) {
   const hasSkaters = roster.skaters.length > 0;
   const hasGoalies = roster.goalies.length > 0;
   const [type, setType] = useState(hasSkaters ? "skaters" : "goalies");
@@ -176,6 +176,7 @@ export default function RosterSection({ roster, primary }) {
                 <td className="px-5 py-4">
                   <Link href={`/players/${player.id}`} className="font-black hover:underline" style={{ textDecorationColor: primary }}>
                     {player.name}
+                    {injuredPlayerIds.includes(String(player.id)) ? <span className="ml-2 rounded-full bg-[#A90117]/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#A90117]">INJ</span> : null}
                     <span className="ml-2 text-[10px] font-black uppercase tracking-wide text-[#A90117]">profile</span>
                   </Link>
                   <p className="mt-0.5 text-xs font-semibold text-[#000B36]/40">{player.proTeam || `AVHL ID ${player.id}`}</p>
