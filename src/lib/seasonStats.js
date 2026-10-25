@@ -62,7 +62,7 @@ export function parseSkaterGameRows(rows) {
 
 export function parseGoalieGameRows(rows) {
   return rows.map((row) => ({
-    gameId: integer(row["Game ID"]), source: text(row.Source).toUpperCase(), team: text(row.Team).toUpperCase(), opponent: text(row.Opponent).toUpperCase(), homeAway: text(row["H/A"]).toUpperCase(), playerId: normalizePlayerId(row["Player ID"]), name: text(row.Name), toi: timeToSeconds(row.Min), shotsAgainst: integer(row.SA), saves: integer(row.SV), savePct: numberValue(row["SV%"]), goalsAgainst: integer(row.GA), gaa: numberValue(row.GAA), emptyNetGoals: integer(row.ENG), penaltyMinutes: penaltyMinutes(row.PIM), goals: integer(row.G), assists: integer(row.A), points: integer(row.PTS),
+    gameId: integer(row["Game ID"]), source: text(row.Source).toUpperCase(), team: text(row.Team).toUpperCase(), opponent: text(row.Opponent).toUpperCase(), homeAway: text(row["H/A"]).toUpperCase(), playerId: normalizePlayerId(row["Player ID"]), name: text(row.Name), toi: timeToSeconds(row.Min), shotsAgainst: integer(row.SA), saves: integer(row.SV), savePct: numberValue(row["SV%"]), goalsAgainst: integer(row.GA), gaa: numberValue(row.GAA), emptyNetGoals: integer(row.ENG), startMarker: ["0", "1"].includes(text(row.GS)) ? integer(row.GS) : null, penaltyMinutes: penaltyMinutes(row.PIM), goals: integer(row.G), assists: integer(row.A), points: integer(row.PTS),
   })).filter((row) => row.gameId > 0 && row.playerId);
 }
 
@@ -125,15 +125,42 @@ function aggregateSkaters(rows) {
 
 export function aggregateGoalies(rows, teamGameRows) {
   const shutoutsByPlayer = calculateGoalieShutouts(teamGameRows, rows);
+  const uniqueRows = uniquePlayerGameRows(rows);
+  // Historical SIM exports always list their original starter first. Newly
+  // saved games carry the explicit S-column GS marker instead. For manual
+  // SNS entries with one participating goalie, that goalie is the starter;
+  // two-goalie SNS entries without a starter marker remain unverified.
+  const grouped = new Map();
+  for (const row of uniqueRows) {
+    const key = `${row.gameId}:${row.team}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(row);
+  }
+  const startsByGameTeam = new Map();
+  for (const [key, entries] of grouped) {
+    const explicit = entries.filter((row) => row.startMarker === 1);
+    if (explicit.length === 1) {
+      startsByGameTeam.set(key, explicit[0].playerId);
+    } else if (explicit.length === 0 && entries.every((row) => row.startMarker == null)) {
+      const sim = entries.every((row) => row.source === "SIM");
+      const playing = entries.filter((row) => row.toi > 0);
+      if (sim && entries.length === 2) startsByGameTeam.set(key, entries[0].playerId);
+      else if (playing.length === 1) startsByGameTeam.set(key, playing[0].playerId);
+    }
+  }
   const byPlayer = new Map();
-  for (const row of uniquePlayerGameRows(rows)) {
-    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, team: row.team, latestGameId: 0, dressed: 0, gp: 0, toi: 0, shotsAgainst: 0, saves: 0, goalsAgainst: 0, emptyNetGoals: 0, penaltyMinutes: 0, goals: 0, assists: 0, points: 0, gameRows: [] };
+  for (const row of uniqueRows) {
+    const current = byPlayer.get(row.playerId) || { playerId: row.playerId, name: row.name, team: row.team, latestGameId: 0, dressed: 0, gp: 0, gs: 0, startsUnverified: 0, startsRemaining: 60, toi: 0, shotsAgainst: 0, saves: 0, goalsAgainst: 0, emptyNetGoals: 0, penaltyMinutes: 0, goals: 0, assists: 0, points: 0, gameRows: [] };
     if (row.gameId >= current.latestGameId) {
       current.latestGameId = row.gameId;
       current.name = row.name || current.name;
       current.team = row.team || current.team;
     }
     current.dressed += 1;
+    const recordedStarter = startsByGameTeam.get(`${row.gameId}:${row.team}`);
+    row.started = recordedStarter === row.playerId ? true : recordedStarter ? false : null;
+    if (row.started) current.gs += 1;
+    if (row.started == null && row.toi > 0) current.startsUnverified += 1;
     // A dressed backup gets a Dressed appearance but only receives a GP if he
     // actually records ice time. This matches normal goalie GP accounting.
     if (row.toi > 0) current.gp += 1;
@@ -149,7 +176,7 @@ export function aggregateGoalies(rows, teamGameRows) {
     current.gameRows.push(row);
     byPlayer.set(row.playerId, current);
   }
-  return [...byPlayer.values()].map(({ latestGameId, ...goalie }) => ({ ...goalie, shutouts: shutoutsByPlayer.get(goalie.playerId) || 0, savePct: goalie.shotsAgainst ? goalie.saves / goalie.shotsAgainst : 0, gaa: goalie.toi ? (goalie.goalsAgainst * 3600) / goalie.toi : 0, teamInfo: teamByAbbreviation[goalie.team] || null, gameRows: goalie.gameRows.sort((a, b) => b.gameId - a.gameId) }));
+  return [...byPlayer.values()].map(({ latestGameId, ...goalie }) => ({ ...goalie, shutouts: shutoutsByPlayer.get(goalie.playerId) || 0, startsRemaining: Math.max(0, 60 - goalie.gs), overStartLimit: goalie.gs > 60, savePct: goalie.shotsAgainst ? goalie.saves / goalie.shotsAgainst : 0, gaa: goalie.toi ? (goalie.goalsAgainst * 3600) / goalie.toi : 0, teamInfo: teamByAbbreviation[goalie.team] || null, gameRows: goalie.gameRows.sort((a, b) => b.gameId - a.gameId) }));
 }
 
 function emptyTeam(team) {
