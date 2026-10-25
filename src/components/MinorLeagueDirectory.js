@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 const filters = ["All", "Pacific", "Central", "Atlantic", "Metropolitan"];
 
-function MinorTeamCard({ team }) {
+function MinorTeamCard({ team, record }) {
   return (
     <Link
       href={`/minor-league/${team.slug}`}
@@ -25,6 +25,7 @@ function MinorTeamCard({ team }) {
         </div>
         <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-[#000B36]/40">{team.city}</p>
         <h3 className="mt-1 text-xl font-black leading-tight">{team.nickname}</h3>
+        <p className="mt-2 text-sm font-black tabular-nums text-[#A90117]">{record ? `${record.wins}-${record.losses}-${record.otl}` : "Record unavailable"}</p>
         <p className="mt-3 truncate text-sm font-semibold text-[#000B36]/55">{team.arena}</p>
 
         <div className="mt-5 border-t border-[#000B36]/8 pt-4">
@@ -40,7 +41,7 @@ function MinorTeamCard({ team }) {
   );
 }
 
-export default function MinorLeagueDirectory({ teams }) {
+export default function MinorLeagueDirectory({ teams, recordsBySlug = {} }) {
   const [query, setQuery] = useState("");
   const [division, setDivision] = useState("All");
 
@@ -110,7 +111,7 @@ export default function MinorLeagueDirectory({ teams }) {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {visibleTeams.map((team) => <MinorTeamCard key={team.abbreviation} team={team} />)}
+            {visibleTeams.map((team) => <MinorTeamCard key={team.abbreviation} team={team} record={recordsBySlug[team.slug]} />)}
           </div>
         </div>
       ) : (
@@ -131,7 +132,7 @@ export default function MinorLeagueDirectory({ teams }) {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                  {divisionTeams.map((team) => <MinorTeamCard key={team.abbreviation} team={team} />)}
+                  {divisionTeams.map((team) => <MinorTeamCard key={team.abbreviation} team={team} record={recordsBySlug[team.slug]} />)}
                 </div>
               </section>
             );
