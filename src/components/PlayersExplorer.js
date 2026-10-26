@@ -8,7 +8,6 @@ const PAGE_SIZE = 60;
 
 const teamByName = Object.fromEntries(teams.map((team) => [team.name, team]));
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-const compactCurrency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
 
 const SALARY_STEP = 100000;
 const POSITION_OPTIONS = [
@@ -46,26 +45,76 @@ function hasPosition(player, position) {
   return positions.includes(position);
 }
 
-function RangeFilter({ label, min, max, step, minValue, maxValue, onMinChange, onMaxChange, formatValue }) {
-  const display = formatValue || ((value) => value.toLocaleString());
+function RangeFilter({ label, min, max, step, minValue, maxValue, onMinChange, onMaxChange, valueScale = 1 }) {
+  // Salary text inputs use millions ($3.25M => 3,250,000) while the
+  // actual filter state always keeps exact dollar amounts.
+  const isSalary = valueScale !== 1;
+  const formatInput = (value) => String(Number((Number(value) / valueScale).toFixed(isSalary ? 3 : 0)));
+  const [minDraft, setMinDraft] = useState(() => formatInput(minValue));
+  const [maxDraft, setMaxDraft] = useState(() => formatInput(maxValue));
+
+  // Slider changes and "Clear filters" also update the editable values.
+  useEffect(() => setMinDraft(formatInput(minValue)), [minValue, valueScale]);
+  useEffect(() => setMaxDraft(formatInput(maxValue)), [maxValue, valueScale]);
 
   function changeMin(event) {
-    const next = Math.min(Number(event.target.value), maxValue);
-    onMinChange(next);
+    onMinChange(Math.min(Number(event.target.value), maxValue));
   }
 
   function changeMax(event) {
-    const next = Math.max(Number(event.target.value), minValue);
-    onMaxChange(next);
+    onMaxChange(Math.max(Number(event.target.value), minValue));
+  }
+
+  function commitDraft(bound) {
+    const isMinimum = bound === "min";
+    const draft = isMinimum ? minDraft : maxDraft;
+    const current = isMinimum ? minValue : maxValue;
+    const parsed = draft.trim() !== "" ? Number(draft) : NaN;
+    if (!Number.isFinite(parsed)) {
+      (isMinimum ? setMinDraft : setMaxDraft)(formatInput(current));
+      return;
+    }
+    // Respect available data bounds, the opposite limit and whole-dollar
+    // precision. Unlike the slider, typing does not snap to SALARY_STEP.
+    const exact = Math.round(parsed * valueScale);
+    const next = isMinimum
+      ? Math.max(min, Math.min(maxValue, exact))
+      : Math.min(max, Math.max(minValue, exact));
+    (isMinimum ? onMinChange : onMaxChange)(next);
+    (isMinimum ? setMinDraft : setMaxDraft)(formatInput(next));
+  }
+
+  function numberField(bound) {
+    const isMinimum = bound === "min";
+    return (
+      <label className="flex min-w-0 items-center gap-1 rounded-lg border border-[#000B36]/12 bg-white px-2 py-1 text-[#000B36] transition focus-within:border-[#18BDFC] focus-within:ring-2 focus-within:ring-[#18BDFC]/25">
+        {isSalary ? <span className="text-xs font-black text-[#000B36]/55">$</span> : null}
+        <input
+          type="number"
+          inputMode={isSalary ? "decimal" : "numeric"}
+          step={isSalary ? "0.001" : "1"}
+          min={min / valueScale}
+          max={max / valueScale}
+          value={isMinimum ? minDraft : maxDraft}
+          onChange={(event) => (isMinimum ? setMinDraft : setMaxDraft)(event.target.value)}
+          onBlur={() => commitDraft(bound)}
+          onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+          aria-label={`${label} ${isMinimum ? "minimum" : "maximum"}${isSalary ? " in millions of dollars" : ""}`}
+          title={isSalary ? "Enter an exact AAV in millions (e.g. 3.25 for $3.25M)" : `Enter ${label.toLowerCase()} ${bound === "min" ? "minimum" : "maximum"}`}
+          className="w-[4.5rem] min-w-0 bg-transparent text-right text-sm font-black tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        {isSalary ? <span className="text-xs font-black text-[#000B36]/55">M</span> : null}
+      </label>
+    );
   }
 
   return (
     <fieldset className="min-w-0 rounded-2xl border border-[#000B36]/10 bg-[#F6F8FC] px-4 py-3">
       <legend className="px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/42">{label}</legend>
-      <div className="mt-1 flex items-center justify-between gap-3 text-sm font-black">
-        <span>{display(minValue)}</span>
-        <span className="text-[#000B36]/28">to</span>
-        <span>{display(maxValue)}</span>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        {numberField("min")}
+        <span className="text-xs font-black text-[#000B36]/28">to</span>
+        {numberField("max")}
       </div>
       <div className="mt-3 grid gap-2">
         <label className="grid grid-cols-[2.6rem_1fr] items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[#000B36]/35">
@@ -78,7 +127,7 @@ function RangeFilter({ label, min, max, step, minValue, maxValue, onMinChange, o
             value={minValue}
             onChange={changeMin}
             className="w-full accent-[#A90117]"
-            aria-label={`${label} minimum`}
+            aria-label={`${label} minimum slider`}
           />
         </label>
         <label className="grid grid-cols-[2.6rem_1fr] items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[#000B36]/35">
@@ -91,7 +140,7 @@ function RangeFilter({ label, min, max, step, minValue, maxValue, onMinChange, o
             value={maxValue}
             onChange={changeMax}
             className="w-full accent-[#18BDFC]"
-            aria-label={`${label} maximum`}
+            aria-label={`${label} maximum slider`}
           />
         </label>
       </div>
@@ -339,7 +388,7 @@ export default function PlayersExplorer({ players, playerCounts }) {
             maxValue={maximumSalary}
             onMinChange={setMinimumSalary}
             onMaxChange={setMaximumSalary}
-            formatValue={(value) => compactCurrency.format(value)}
+            valueScale={1_000_000}
           />
 
           <RangeFilter
