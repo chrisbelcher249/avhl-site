@@ -14,11 +14,12 @@
     "test:replays": "node scripts/test-replay-storage.mjs",
     "test:sns-replays": "node scripts/test-sns-replay-links.mjs",
     "test:puck-possession": "node scripts/test-puck-possession.mjs",
-    "prebuild": "npm run test:puck-possession && npm run test:ot-shootout-standings && npm run test:goalie-shutouts && npm run test:goalie-starts && npm run test:goalie-decisions",
+    "prebuild": "npm run test:puck-possession && npm run test:ot-shootout-standings && npm run test:goalie-shutouts && npm run test:goalie-starts && npm run test:goalie-decisions && npm run test:team-stats-sorting",
     "test:ot-shootout-standings": "node scripts/test-ot-shootout-standings.mjs",
     "test:goalie-shutouts": "node scripts/test-goalie-shutouts.mjs",
     "test:goalie-starts": "node scripts/test-goalie-starts.mjs",
-    "test:goalie-decisions": "node scripts/test-goalie-decisions.mjs"
+    "test:goalie-decisions": "node scripts/test-goalie-decisions.mjs",
+    "test:team-stats-sorting": "node scripts/test-team-stats-sorting.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
