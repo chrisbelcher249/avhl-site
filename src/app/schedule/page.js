@@ -1,5 +1,6 @@
 import ScheduleExplorer from "@/components/ScheduleExplorer";
 import ScheduleQuickActions from "@/components/ScheduleQuickActions";
+import { currentEasternDate } from "@/lib/scheduleDateGroups";
 import { getSchedule } from "@/lib/schedule";
 import { gameHasResult } from "@/lib/scheduleFormat";
 import { calculateRecordSnapshotsByDate } from "@/lib/standings";
@@ -14,17 +15,6 @@ export const metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function currentLeagueDate() {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
 
 export default async function Schedule() {
   const [{ schedule, source, error }, replayMetadata] = await Promise.all([
@@ -52,8 +42,7 @@ export default async function Schedule() {
   const seasonDays = new Set(scheduleWithReplays.map((game) => game.date)).size;
   const completedGames = scheduleWithReplays.filter(gameHasResult).length;
   const recordsByDate = calculateRecordSnapshotsByDate(scheduleWithReplays);
-  const todayDate = currentLeagueDate();
-  const hasToday = scheduleWithReplays.some((game) => game.date === todayDate);
+  const todayDate = currentEasternDate();
 
   return (
     <main className="bg-[#F4F7FB] px-6 py-14 text-[#000B36] md:px-8 md:py-20">
@@ -66,7 +55,7 @@ export default async function Schedule() {
               The official AVHL fixture list and live results are joined from the 2026–27 season workbook. Finalized game stats update game cards, team schedules, standings, and the playoff picture automatically.
             </p>
           </div>
-          <ScheduleQuickActions hasToday={hasToday} />
+          <ScheduleQuickActions />
         </div>
 
         <div className="mt-9 grid grid-cols-2 gap-3 md:grid-cols-4">
