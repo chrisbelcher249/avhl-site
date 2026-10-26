@@ -1,6 +1,7 @@
 import MinorLeagueNav from "@/components/MinorLeagueNav";
 import MinorLeagueScheduleExplorer from "@/components/MinorLeagueScheduleExplorer";
 import { getMinorLeagueSchedule } from "@/lib/minorLeague";
+import { currentEasternDate } from "@/lib/scheduleDateGroups";
 
 export const metadata = {
   title: "Minor League Schedule",
@@ -30,7 +31,7 @@ export default async function MinorLeagueSchedulePage() {
         {error ? <p className="mt-6 rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{error}</p> : null}
 
         <div className="mt-8">
-          <MinorLeagueScheduleExplorer schedule={schedule} />
+          <MinorLeagueScheduleExplorer schedule={schedule} todayDate={currentEasternDate()} />
         </div>
       </section>
     </main>
