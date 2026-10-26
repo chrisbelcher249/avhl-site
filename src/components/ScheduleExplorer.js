@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ScheduleGameCard from "@/components/ScheduleGameCard";
+import ScheduleArchiveMonth from "@/components/ScheduleArchiveMonth";
+import { splitScheduleDateGroups, visibleScheduleDates } from "@/lib/scheduleDateGroups";
+import { useLeagueToday } from "@/lib/useLeagueToday";
 import { divisionOrder, teams } from "../../data/teams";
 import { formatScheduleDate, formatScheduleMonth } from "@/lib/scheduleFormat";
 
@@ -21,12 +24,12 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
   const [visibleDateCount, setVisibleDateCount] = useState(INITIAL_DATE_COUNT);
   const [pendingScroll, setPendingScroll] = useState("");
   const [expandedPastMonths, setExpandedPastMonths] = useState({});
+  const liveTodayDate = useLeagueToday(todayDate);
 
   const teamLookup = useMemo(() => Object.fromEntries(teams.map((team) => [team.slug, team])), []);
   const seasonMonths = useMemo(() => [...new Set(schedule.map((game) => game.date.slice(0, 7)))].sort(), [schedule]);
-  const seasonDates = useMemo(() => [...new Set(schedule.map((game) => game.date))], [schedule]);
   const snsGameKeys = useMemo(() => new Set(snsGames.map(gameKey)), [snsGames]);
-  const currentMonth = todayDate ? todayDate.slice(0, 7) : "";
+  const currentMonth = liveTodayDate ? liveTodayDate.slice(0, 7) : "";
 
   const filteredGames = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -61,38 +64,17 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
     return groups;
   }, [filteredGames]);
 
-  const { pastMonthSections, currentAndFutureGroups } = useMemo(() => {
-    const pastByMonth = new Map();
-    const currentAndFuture = [];
+  const { archiveSections, currentAndFutureGroups } = useMemo(
+    () => splitScheduleDateGroups(groupedGames, liveTodayDate),
+    [groupedGames, liveTodayDate]
+  );
 
-    for (const group of groupedGames) {
-      const groupMonth = group.date.slice(0, 7);
-      if (currentMonth && groupMonth < currentMonth) {
-        if (!pastByMonth.has(groupMonth)) pastByMonth.set(groupMonth, []);
-        pastByMonth.get(groupMonth).push(group);
-      } else {
-        currentAndFuture.push(group);
-      }
-    }
-
-    return {
-      pastMonthSections: [...pastByMonth.entries()].map(([monthKey, groups]) => ({
-        monthKey,
-        groups,
-        gameCount: groups.reduce((total, group) => total + group.games.length, 0),
-      })),
-      currentAndFutureGroups: currentAndFuture,
-    };
-  }, [currentMonth, groupedGames]);
-
-  // On first load (and after resetting filters), expose the entire current
-  // month rather than stopping after 14 dates. A selected future month gets
-  // the same treatment; "Load more dates" still reveals later fixtures.
+  // Each month stays available in full, without the former 14-date cutoff.
+  // On the default view, today's date is the first expanded schedule date.
   const displayMonth = date?.slice(0, 7) || month || currentMonth;
-  const monthDateCount = currentAndFutureGroups.filter(
-    (group) => group.date.slice(0, 7) === displayMonth
-  ).length;
-  const effectiveVisibleDateCount = Math.max(INITIAL_DATE_COUNT, visibleDateCount, monthDateCount);
+  const effectiveVisibleDateCount = visibleScheduleDates(
+    currentAndFutureGroups, displayMonth, visibleDateCount, INITIAL_DATE_COUNT
+  );
   const visibleGroups = currentAndFutureGroups.slice(0, effectiveVisibleDateCount);
   const selectedTeam = teamSlug ? teamLookup[teamSlug] : null;
 
@@ -119,36 +101,26 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
 
   useEffect(() => {
     const requestedMonth = date ? date.slice(0, 7) : month;
-    if (!requestedMonth || !currentMonth || requestedMonth >= currentMonth) return;
-    setExpandedPastMonths((current) => ({ ...current, [requestedMonth]: true }));
-  }, [currentMonth, date, month]);
+    if (!requestedMonth || !liveTodayDate) return;
+    // Explicitly requesting an archived month or date must reveal its games.
+    const archived = archiveSections.some((section) => section.monthKey === requestedMonth);
+    if (archived) setExpandedPastMonths((current) => ({ ...current, [requestedMonth]: true }));
+  }, [archiveSections, date, liveTodayDate, month]);
 
   useEffect(() => {
     function showSnsGames() {
       clearFilterState();
       setSnsOnly(true);
       setVisibleDateCount(INITIAL_DATE_COUNT);
+      // Older SNS results may be in an archive, so expand the history
+      // rather than hiding the requested matchups behind month dropdowns.
+      setExpandedPastMonths(Object.fromEntries(seasonMonths.map((key) => [key, true])));
       setPendingScroll("schedule-results");
     }
 
-    function showTodayGames() {
-      if (!todayDate) return;
-      clearFilterState();
-      setSnsOnly(false);
-      const currentAndFutureDates = seasonDates.filter((seasonDate) => !currentMonth || seasonDate.slice(0, 7) >= currentMonth);
-      const dateIndex = currentAndFutureDates.indexOf(todayDate);
-      if (dateIndex < 0) return;
-      setVisibleDateCount(Math.max(INITIAL_DATE_COUNT, dateIndex + 1));
-      setPendingScroll(todayDate);
-    }
-
     window.addEventListener("avhl:schedule:sns", showSnsGames);
-    window.addEventListener("avhl:schedule:today", showTodayGames);
-    return () => {
-      window.removeEventListener("avhl:schedule:sns", showSnsGames);
-      window.removeEventListener("avhl:schedule:today", showTodayGames);
-    };
-  }, [clearFilterState, currentMonth, seasonDates, todayDate]);
+    return () => window.removeEventListener("avhl:schedule:sns", showSnsGames);
+  }, [clearFilterState, seasonMonths]);
 
   useEffect(() => {
     if (!pendingScroll) return;
@@ -170,7 +142,7 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
           <div>
             <div className="flex items-center gap-2">
               <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#000B36]/35">Day {group.games[0].day}</p>
-              {group.date === todayDate ? <span className="rounded-full bg-[#A90117] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white">Today</span> : null}
+              {group.date === liveTodayDate ? <span className="rounded-full bg-[#A90117] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white">Today</span> : null}
             </div>
             <h3 className="mt-1 text-2xl font-black md:text-3xl">{formatScheduleDate(group.date)}</h3>
           </div>
@@ -257,27 +229,16 @@ export default function ScheduleExplorer({ schedule, recordsByDate = {}, snsGame
       </div>
 
       <div className="mt-7 space-y-10">
-        {pastMonthSections.map((section) => {
-          const expanded = Boolean(expandedPastMonths[section.monthKey]);
-          return (
-            <section key={section.monthKey} className="overflow-hidden rounded-3xl border border-[#000B36]/10 bg-white shadow-sm">
-              <button
-                type="button"
-                onClick={() => togglePastMonth(section.monthKey)}
-                aria-expanded={expanded}
-                className="flex w-full items-center justify-between gap-5 px-5 py-5 text-left transition hover:bg-[#F8FAFD] md:px-7"
-              >
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#A90117]">Previous month</p>
-                  <h3 className="mt-1 text-2xl font-black md:text-3xl">{formatScheduleMonth(section.monthKey)}</h3>
-                  <p className="mt-1 text-xs font-bold text-[#000B36]/40">{section.gameCount} games · {section.groups.length} dates</p>
-                </div>
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F1F4F9] text-xl font-black text-[#000B36]" aria-hidden="true">{expanded ? "⌃" : "⌄"}</span>
-              </button>
-              {expanded ? <div className="space-y-10 border-t border-[#000B36]/8 px-5 py-7 md:px-7">{section.groups.map(renderDateGroup)}</div> : null}
-            </section>
-          );
-        })}
+        {archiveSections.map((section) => (
+          <ScheduleArchiveMonth
+            key={section.monthKey}
+            section={section}
+            currentMonth={currentMonth}
+            expanded={Boolean(expandedPastMonths[section.monthKey])}
+            onToggle={togglePastMonth}
+            renderDateGroup={renderDateGroup}
+          />
+        ))}
 
         {visibleGroups.map(renderDateGroup)}
       </div>
