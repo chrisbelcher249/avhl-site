@@ -1,19 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MinorLeagueGameCard from "@/components/MinorLeagueGameCard";
+import ScheduleArchiveMonth from "@/components/ScheduleArchiveMonth";
+import { splitScheduleDateGroups, visibleScheduleDates } from "@/lib/scheduleDateGroups";
+import { useLeagueToday } from "@/lib/useLeagueToday";
 import { minorTeams } from "../../data/minorTeams";
 import { formatScheduleDate, formatScheduleMonth } from "@/lib/scheduleFormat";
 
 const INITIAL_DATE_COUNT = 14;
 
-export default function MinorLeagueScheduleExplorer({ schedule }) {
+export default function MinorLeagueScheduleExplorer({ schedule, todayDate = "" }) {
   const [query, setQuery] = useState("");
   const [teamSlug, setTeamSlug] = useState("");
   const [month, setMonth] = useState("");
   const [date, setDate] = useState("");
   const [venue, setVenue] = useState("");
   const [visibleDateCount, setVisibleDateCount] = useState(INITIAL_DATE_COUNT);
+  const [expandedPastMonths, setExpandedPastMonths] = useState({});
+  const liveTodayDate = useLeagueToday(todayDate);
+  const currentMonth = liveTodayDate ? liveTodayDate.slice(0, 7) : "";
 
   const teamLookup = useMemo(() => Object.fromEntries(minorTeams.map((team) => [team.slug, team])), []);
   const teamOptions = useMemo(() => [...minorTeams].sort((a, b) => a.name.localeCompare(b.name)), []);
@@ -48,6 +54,50 @@ export default function MinorLeagueScheduleExplorer({ schedule }) {
     return groups;
   }, [filteredGames]);
 
+  const { archiveSections, currentAndFutureGroups } = useMemo(
+    () => splitScheduleDateGroups(groupedGames, liveTodayDate),
+    [groupedGames, liveTodayDate]
+  );
+  const displayMonth = date?.slice(0, 7) || month || currentMonth;
+  const effectiveVisibleDateCount = visibleScheduleDates(
+    currentAndFutureGroups, displayMonth, visibleDateCount, INITIAL_DATE_COUNT
+  );
+  const visibleGroups = currentAndFutureGroups.slice(0, effectiveVisibleDateCount);
+
+  function togglePastMonth(monthKey) {
+    setExpandedPastMonths((current) => ({ ...current, [monthKey]: !current[monthKey] }));
+  }
+
+  useEffect(() => {
+    const requestedMonth = date ? date.slice(0, 7) : month;
+    if (!requestedMonth || !liveTodayDate) return;
+    if (archiveSections.some((section) => section.monthKey === requestedMonth)) {
+      setExpandedPastMonths((current) => ({ ...current, [requestedMonth]: true }));
+    }
+  }, [archiveSections, date, liveTodayDate, month]);
+
+  function renderDateGroup(group) {
+    return (
+      <section key={group.date} id={group.date} className="scroll-mt-28">
+        <div className="mb-4 flex items-end justify-between gap-4 border-b border-[#000B36]/10 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#000B36]/35">Day {group.games[0].day}</p>
+              {group.date === liveTodayDate ? <span className="rounded-full bg-[#A90117] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white">Today</span> : null}
+            </div>
+            <h3 className="mt-1 text-2xl font-black md:text-3xl">{formatScheduleDate(group.date)}</h3>
+          </div>
+          <span className="text-xs font-black uppercase tracking-wide text-[#000B36]/32">
+            {group.games.length} game{group.games.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {group.games.map((game) => <MinorLeagueGameCard key={game.id} game={game} focusTeamSlug={teamSlug || null} />)}
+        </div>
+      </section>
+    );
+  }
+
   function resetFilters() {
     setQuery("");
     setTeamSlug("");
@@ -55,10 +105,10 @@ export default function MinorLeagueScheduleExplorer({ schedule }) {
     setDate("");
     setVenue("");
     setVisibleDateCount(INITIAL_DATE_COUNT);
+    setExpandedPastMonths({});
   }
 
   const selectClass = "w-full rounded-2xl border border-[#000B36]/12 bg-white px-4 py-3 text-sm font-bold text-[#000B36] outline-none transition focus:border-[#18BDFC] focus:ring-4 focus:ring-[#18BDFC]/15";
-  const visibleGroups = groupedGames.slice(0, visibleDateCount);
 
   return (
     <div>
@@ -109,25 +159,23 @@ export default function MinorLeagueScheduleExplorer({ schedule }) {
       </div>
 
       <div className="mt-7 space-y-10">
-        {visibleGroups.map((group) => (
-          <section key={group.date} className="scroll-mt-28">
-            <div className="mb-4 flex items-end justify-between gap-4 border-b border-[#000B36]/10 pb-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#000B36]/35">Day {group.games[0].day}</p>
-                <h3 className="mt-1 text-2xl font-black md:text-3xl">{formatScheduleDate(group.date)}</h3>
-              </div>
-              <span className="text-xs font-black uppercase tracking-wide text-[#000B36]/32">{group.games.length} games</span>
-            </div>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {group.games.map((game) => <MinorLeagueGameCard key={game.id} game={game} focusTeamSlug={teamSlug || null} />)}
-            </div>
-          </section>
+        {archiveSections.map((section) => (
+          <ScheduleArchiveMonth
+            key={section.monthKey}
+            section={section}
+            currentMonth={currentMonth}
+            expanded={Boolean(expandedPastMonths[section.monthKey])}
+            onToggle={togglePastMonth}
+            renderDateGroup={renderDateGroup}
+          />
         ))}
+
+        {visibleGroups.map(renderDateGroup)}
       </div>
 
-      {visibleDateCount < groupedGames.length ? (
+      {effectiveVisibleDateCount < currentAndFutureGroups.length ? (
         <div className="mt-10 text-center">
-          <button onClick={() => setVisibleDateCount((count) => count + 14)} className="rounded-full bg-[#000B36] px-7 py-3.5 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#00145C]">Load more dates</button>
+          <button onClick={() => setVisibleDateCount((count) => Math.max(count, effectiveVisibleDateCount) + 14)} className="rounded-full bg-[#000B36] px-7 py-3.5 text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#00145C]">Load more dates</button>
         </div>
       ) : null}
 
