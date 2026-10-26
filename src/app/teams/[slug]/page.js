@@ -251,7 +251,7 @@ export default async function TeamPage({ params }) {
       <SalaryCapSection roster={roster} primary={team.colors.primary} />
 
       <section id="roster" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 md:px-8 md:pb-20">
-        <RosterSection roster={roster} primary={team.colors.primary} injuredPlayerIds={injuredPlayerIds} />
+        <RosterSection roster={roster} primary={team.colors.primary} teamSlug={team.slug} injuredPlayerIds={injuredPlayerIds} />
       </section>
 
       <DraftPickSection team={team} picks={draftPicks} error={draftPickError} />

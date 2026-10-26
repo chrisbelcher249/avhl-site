@@ -93,7 +93,7 @@ function SortHeader({ label, column, sort, onSort, align = "left" }) {
   );
 }
 
-export default function RosterSection({ roster, primary, injuredPlayerIds = [] }) {
+export default function RosterSection({ roster, primary, teamSlug, injuredPlayerIds = [] }) {
   const hasSkaters = roster.skaters.length > 0;
   const hasGoalies = roster.goalies.length > 0;
   const [type, setType] = useState(hasSkaters ? "skaters" : "goalies");
@@ -147,9 +147,12 @@ export default function RosterSection({ roster, primary, injuredPlayerIds = [] }
             {roster.count} total · {roster.skaters.length} skaters · {roster.goalies.length} goalies · click any column to sort
           </p>
         </div>
-        <div className="flex rounded-full bg-[#F1F4F9] p-1">
-          <button disabled={!hasSkaters} onClick={() => switchType("skaters")} className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide transition ${type === "skaters" ? "bg-[#000B36] text-white" : "text-[#000B36]/55"} disabled:opacity-30`}>Skaters</button>
-          <button disabled={!hasGoalies} onClick={() => switchType("goalies")} className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide transition ${type === "goalies" ? "bg-[#000B36] text-white" : "text-[#000B36]/55"} disabled:opacity-30`}>Goalies</button>
+        <div className="flex flex-wrap items-center gap-3">
+          {teamSlug ? <Link href={`/teams/${teamSlug}/lineup`} className="inline-flex items-center justify-center rounded-full border border-[#000B36]/15 bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wide text-[#000B36] transition hover:border-[#18BDFC] hover:bg-[#F1F9FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#18BDFC]">Lineup →</Link> : null}
+          <div className="flex rounded-full bg-[#F1F4F9] p-1">
+            <button disabled={!hasSkaters} onClick={() => switchType("skaters")} className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide transition ${type === "skaters" ? "bg-[#000B36] text-white" : "text-[#000B36]/55"} disabled:opacity-30`}>Skaters</button>
+            <button disabled={!hasGoalies} onClick={() => switchType("goalies")} className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide transition ${type === "goalies" ? "bg-[#000B36] text-white" : "text-[#000B36]/55"} disabled:opacity-30`}>Goalies</button>
+          </div>
         </div>
       </div>
 
