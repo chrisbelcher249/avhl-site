@@ -9,7 +9,7 @@ const PAGE_SIZE = 60;
 const teamByName = Object.fromEntries(teams.map((team) => [team.name, team]));
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-const SALARY_STEP = 100000;
+const SALARY_STEP = 1000; // $0.001M, matching the typed AAV precision.
 const POSITION_OPTIONS = [
   ["LW", "Left wing"],
   ["C", "Center"],
