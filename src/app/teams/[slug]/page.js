@@ -242,7 +242,7 @@ export default async function TeamPage({ params }) {
         </div>
       </section>
 
-      <TeamRecentGamesSection team={team} teamStats={currentSeasonTeamStats} schedule={scheduleResult.schedule} scheduleById={seasonStats.scheduleById} replayMetadata={replayMetadata} />
+      <TeamRecentGamesSection team={team} teams={teams} teamStats={currentSeasonTeamStats} schedule={scheduleResult.schedule} scheduleById={seasonStats.scheduleById} replayMetadata={replayMetadata} />
 
       <TeamSeasonStatsSection team={team} teamStats={currentSeasonTeamStats} skaters={currentSeasonSkaters} goalies={currentSeasonGoalies} playerDirectory={currentPlayerDirectory} />
 
