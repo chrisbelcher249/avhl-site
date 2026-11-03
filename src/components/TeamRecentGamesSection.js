@@ -3,13 +3,15 @@ import Link from "next/link";
 import { replayPresentationForGame } from "@/lib/replayLinks";
 import { gameHasResult } from "@/lib/scheduleFormat";
 import { calculateStandings } from "@/lib/standings";
-import { teamBySlug } from "../../data/teams";
 
 function dateLabel(value) {
   return value ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(`${value}T12:00:00`)) : "—";
 }
 
-export default function TeamRecentGamesSection({ team, teamStats, schedule = [], scheduleById = {}, replayMetadata = {} }) {
+export default function TeamRecentGamesSection({ team, teams, teamStats, schedule = [], scheduleById = {}, replayMetadata = {} }) {
+  // Team pages already fetch the complete live Team Specifications sheet.
+  // Resolve opponent arenas from those same live rows, not bundled static data.
+  const teamBySlug = Object.fromEntries(teams.map((club) => [club.slug, club]));
   const games = teamStats?.gameRows || [];
   const records = calculateStandings(schedule).records;
   const upcomingGames = schedule
@@ -29,7 +31,7 @@ export default function TeamRecentGamesSection({ team, teamStats, schedule = [],
               {upcomingGames.map((game) => {
                 const isHome = game.home === team.slug;
                 const opponent = teamBySlug[isHome ? game.away : game.home];
-                const venue = (isHome ? team.arena : opponent?.arena) || "Venue TBD";
+                const venue = teamBySlug[game.home]?.arena || "Venue TBD";
                 const opponentRecord = opponent ? records[opponent.slug] : null;
                 const recordText = opponentRecord ? `${opponentRecord.wins}-${opponentRecord.losses}-${opponentRecord.otl}` : "0-0-0";
                 return (
