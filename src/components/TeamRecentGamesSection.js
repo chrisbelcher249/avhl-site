@@ -3,6 +3,7 @@ import Link from "next/link";
 import { replayPresentationForGame } from "@/lib/replayLinks";
 import { gameHasResult } from "@/lib/scheduleFormat";
 import { calculateStandings } from "@/lib/standings";
+import { upcomingGameVenue } from "@/lib/upcomingGameVenue";
 
 function dateLabel(value) {
   return value ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(`${value}T12:00:00`)) : "—";
@@ -31,7 +32,7 @@ export default function TeamRecentGamesSection({ team, teams, teamStats, schedul
               {upcomingGames.map((game) => {
                 const isHome = game.home === team.slug;
                 const opponent = teamBySlug[isHome ? game.away : game.home];
-                const venue = teamBySlug[game.home]?.arena || "Venue TBD";
+                const venue = upcomingGameVenue(game, teamBySlug);
                 const opponentRecord = opponent ? records[opponent.slug] : null;
                 const recordText = opponentRecord ? `${opponentRecord.wins}-${opponentRecord.losses}-${opponentRecord.otl}` : "0-0-0";
                 return (
