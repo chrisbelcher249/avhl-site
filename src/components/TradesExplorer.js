@@ -168,7 +168,7 @@ export default function TradesExplorer({ trades, playerNameIndex = {} }) {
                           {retentionList(trade.salaryRetention).map((detail, index) => <li key={`${index}-${detail}`}>{detail}</li>)}
                         </ul>
                       </div>
-                    ) : null
+                    ) : null}
                   </article>
                 ))}
               </div>
