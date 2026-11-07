@@ -1,5 +1,5 @@
-import { players as bundledPlayers } from "./players";
-import { teams } from "./teams";
+import { players as bundledPlayers } from "./players.js";
+import { teams } from "./teams.js";
 
 export const salaryCapRules = {
   cap: 100_000_000,
