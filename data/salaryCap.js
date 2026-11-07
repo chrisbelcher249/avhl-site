@@ -79,7 +79,8 @@ export function buildTeamRosterAndCap(playerList, teamName, options = {}) {
   const ltirRelief = allRosterPlayers
     .filter((player) => ltirPlayerIds.has(String(player.id)))
     .reduce((total, player) => total + Math.max(0, (player.aav || 0) - (obligations.retainedByPlayer?.[player.id]?.total || 0)), 0);
-  const payroll = salaryBeforeAdjustments - previouslyRetained + retainedSalary + deadCap - ltirRelief;
+  const payrollBeforeLtir = salaryBeforeAdjustments - previouslyRetained + retainedSalary + deadCap;
+  const payroll = payrollBeforeLtir - ltirRelief;
   const contractViolations = allRosterPlayers.filter(
     (player) => player.aav === null
       || player.aav < salaryCapRules.minimumSalary
@@ -87,7 +88,11 @@ export function buildTeamRosterAndCap(playerList, teamName, options = {}) {
   );
 
   const overCap = payroll > salaryCapRules.cap;
-  const belowFloor = payroll < salaryCapRules.floor;
+  // The $70M salary floor applies to contractual obligations before LTIR relief.
+  // Dropping below $70M solely because of LTIR remains compliant.
+  const belowFloor = payrollBeforeLtir < salaryCapRules.floor;
+  const effectiveBelowFloor = payroll < salaryCapRules.floor;
+  const ltirFloorException = effectiveBelowFloor && !belowFloor && ltirRelief > 0;
   const contractsCompliant = contractViolations.length === 0;
   const salaryCompliant = !overCap && !belowFloor && contractsCompliant && !options.capDataError;
 
@@ -101,7 +106,7 @@ export function buildTeamRosterAndCap(playerList, teamName, options = {}) {
   const issues = [];
   if (options.capDataError) issues.push("Cap accounting data unavailable");
   if (overCap) issues.push(`$${((payroll - salaryCapRules.cap) / 1_000_000).toFixed(2)}M over cap`);
-  if (belowFloor) issues.push(`$${((salaryCapRules.floor - payroll) / 1_000_000).toFixed(2)}M below floor`);
+  if (belowFloor) issues.push(`${((salaryCapRules.floor - payrollBeforeLtir) / 1_000_000).toFixed(2)}M below floor before LTIR`);
   if (!contractsCompliant) issues.push("Contract salary violation");
   if (!forwardsCompliant) issues.push(`Need ${rosterRules.minimumForwards - forwards.length} F`);
   if (!defensemenCompliant) issues.push(`Need ${rosterRules.minimumDefensemen - defensemen.length} D`);
@@ -129,6 +134,9 @@ export function buildTeamRosterAndCap(playerList, teamName, options = {}) {
     defenseOverallSum: sumOverall(defensemen),
     goalieOverallSum: sumOverall(goalies),
     payroll,
+    payrollBeforeLtir,
+    effectiveBelowFloor,
+    ltirFloorException,
     capBreakdown: {
       rosterSalary: salaryBeforeAdjustments,
       salaryRetainedByOtherTeams: previouslyRetained,
@@ -137,7 +145,7 @@ export function buildTeamRosterAndCap(playerList, teamName, options = {}) {
       ltirRelief,
     },
     capSpace: salaryCapRules.cap - payroll,
-    floorPosition: payroll - salaryCapRules.floor,
+    floorPosition: payrollBeforeLtir - salaryCapRules.floor,
     contractViolations,
     contractsCompliant,
     salaryCompliant,

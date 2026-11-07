@@ -81,8 +81,8 @@ export async function POST(request, { params }) {
         ...teamCapOptions(abbreviation, data.context),
         ltirPlayerIds: [...currentIds, playerId],
       });
-      if (projected.payroll < salaryCapRules.floor) {
-        return fail(`Designation blocked: effective payroll would be $${(projected.payroll / 1_000_000).toFixed(2)}M, below the $70M floor. Add salary first.`);
+      if (projected.belowFloor) {
+        return fail(`Designation blocked: payroll before LTIR relief is ${(projected.payrollBeforeLtir / 1_000_000).toFixed(2)}M, below the $70M floor. Add salary first.`);
       }
       const record = {
         playerId, playerName: player.name, team: abbreviation, injuryKey: activeInjury.storageKey,

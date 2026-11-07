@@ -55,4 +55,45 @@ const roster29 = Array.from({ length: 29 }, (_, index) => ({
 assert.equal(buildTeamRosterAndCap(roster29, teamName("DEN")).rosterSizeCompliant, false);
 assert.equal(buildTeamRosterAndCap(roster29.slice(0, 28), teamName("DEN")).rosterSizeCompliant, true);
 
-console.log("AVHL cap accounting: retention, double retention, waived release, claim, LTIR relief, and 28-player limit PASS");
+// The floor is assessed before LTIR relief, but the $100M ceiling
+// and active-roster requirements continue to apply after LTIR.
+const ltirRoster = Array.from({ length: 24 }, (_, index) => ({
+  ...basePlayer,
+  id: String(index + 1).padStart(4, "0"),
+  name: `LTIR Test ${index + 1}`,
+  position: index < 14 ? "C" : index < 21 ? "D" : "G",
+  role: index < 21 ? "Skater" : "Goalie",
+  aav: index === 0 ? 8_000_000 : 3_000_000,
+}));
+const beforeRelief = buildTeamRosterAndCap(ltirRoster, teamName("DEN"));
+assert.equal(beforeRelief.payroll, 77_000_000);
+assert.equal(beforeRelief.compliant, true);
+
+const ltirOnlyReduction = buildTeamRosterAndCap(ltirRoster, teamName("DEN"), {
+  ltirPlayerIds: ["0001"],
+});
+assert.equal(ltirOnlyReduction.payrollBeforeLtir, 77_000_000);
+assert.equal(ltirOnlyReduction.payroll, 69_000_000);
+assert.equal(ltirOnlyReduction.effectiveBelowFloor, true);
+assert.equal(ltirOnlyReduction.belowFloor, false);
+assert.equal(ltirOnlyReduction.ltirFloorException, true);
+assert.equal(ltirOnlyReduction.salaryCompliant, true);
+assert.equal(ltirOnlyReduction.rosterCompliant, true);
+assert.equal(ltirOnlyReduction.compliant, true);
+assert.equal(ltirOnlyReduction.floorPosition, 7_000_000);
+assert.equal(ltirOnlyReduction.issues.some((issue) => issue.includes("below floor")), false);
+
+const alreadyBelowFloor = ltirRoster.map((player, index) => ({
+  ...player, aav: index === 0 ? 8_000_000 : 2_500_000,
+}));
+const invalidFloor = buildTeamRosterAndCap(alreadyBelowFloor, teamName("DEN"), {
+  ltirPlayerIds: ["0001"],
+});
+assert.equal(invalidFloor.payrollBeforeLtir, 65_500_000);
+assert.equal(invalidFloor.payroll, 57_500_000);
+assert.equal(invalidFloor.belowFloor, true);
+assert.equal(invalidFloor.ltirFloorException, false);
+assert.equal(invalidFloor.compliant, false);
+assert.ok(invalidFloor.issues.some((issue) => issue.includes("below floor before LTIR")));
+
+console.log("AVHL cap accounting: retention, double retention, waivers, 28 players, and LTIR-only floor exception PASS");
