@@ -1,4 +1,4 @@
-import { teams } from "../../data/teams";
+import { teams } from "../../data/teams.js";
 
 export const TRADE_SHEET_ID = "119E8yhrgkXwXbID0BUq-o2v0C7BqTmCMxbjhLc3uImc";
 export const TRADE_SHEET_GID = "0";
