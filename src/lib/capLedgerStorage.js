@@ -4,6 +4,8 @@ import { latestWaiverRecords, waiverPlayerKey } from "./waivers";
 
 const HASH_KEY = "avhl:dead-cap:v1";
 const DEV_FILE = path.join(process.cwd(), ".avhl-dead-cap.dev.json");
+const RETAINED_HASH_KEY = "avhl:retained-cap:v1";
+const RETAINED_DEV_FILE = path.join(process.cwd(), ".avhl-retained-cap.dev.json");
 
 function redis() {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_KV_REST_API_URL;
@@ -38,22 +40,22 @@ function parseHash(value) {
   return output;
 }
 
-async function readRecords() {
-  if (mode() === "unavailable") throw new Error("Persistent dead-cap ledger is unavailable.");
-  if (mode() === "redis") return parseHash(await execute(["HGETALL", HASH_KEY]));
-  try { return JSON.parse(await fs.readFile(DEV_FILE, "utf8")); }
+async function readRecords(hashKey = HASH_KEY, devFile = DEV_FILE) {
+  if (mode() === "unavailable") throw new Error("Persistent cap ledger is unavailable.");
+  if (mode() === "redis") return parseHash(await execute(["HGETALL", hashKey]));
+  try { return JSON.parse(await fs.readFile(devFile, "utf8")); }
   catch (error) { if (error?.code === "ENOENT") return {}; throw error; }
 }
 
-async function writeOnce(key, record) {
+async function writeOnce(key, record, hashKey = HASH_KEY, devFile = DEV_FILE) {
   if (mode() === "redis") {
-    await execute(["HSETNX", HASH_KEY, key, JSON.stringify(record)]);
+    await execute(["HSETNX", hashKey, key, JSON.stringify(record)]);
     return;
   }
-  const current = await readRecords();
+  const current = await readRecords(hashKey, devFile);
   if (!current[key]) {
     current[key] = record;
-    await fs.writeFile(DEV_FILE, `${JSON.stringify(current, null, 2)}\n`, "utf8");
+    await fs.writeFile(devFile, `${JSON.stringify(current, null, 2)}\n`, "utf8");
   }
 }
 
@@ -107,4 +109,60 @@ export async function reconcileDeadCapLedger(releases = [], waiverRecords = []) 
     activeLedger.push({ ...record, type: "release", yearsLeft: record.expiresAfterSeasonYear - currentSeasonYear + 1 });
   }
   return { deadCapByTeam, activeLedger, warnings };
+}
+
+export async function reconcileRetainedCapLedger(retentions = [], trades = []) {
+  const currentSeasonYear = seasonStartYear();
+  const activeTrades = new Map((trades || []).filter((trade) => String(trade.salaryRetention || "").trim())
+    .map((trade) => [Number(trade.number), trade]));
+
+  for (const item of retentions.filter((entry) => entry.type === "retained")) {
+    const trade = activeTrades.get(Number(item.tradeNumber));
+    if (!trade) continue;
+    const key = `trade-${item.tradeNumber}:${item.playerId}:${item.team}`;
+    const tradeDate = new Date(trade.date);
+    const beginning = Number.isNaN(tradeDate.getTime()) ? currentSeasonYear : seasonStartYear(tradeDate);
+    if (!(item.yearsLeft > 0)) continue;
+    await writeOnce(key, {
+      key,
+      playerId: String(item.playerId),
+      playerName: item.playerName,
+      team: item.team,
+      annualCharge: item.annualCharge,
+      originalRemainingSeasons: item.yearsLeft,
+      startsSeasonYear: beginning,
+      expiresAfterSeasonYear: beginning + item.yearsLeft - 1,
+      tradeNumber: item.tradeNumber,
+      recordedAt: new Date().toISOString(),
+    }, RETAINED_HASH_KEY, RETAINED_DEV_FILE);
+  }
+
+  const stored = await readRecords(RETAINED_HASH_KEY, RETAINED_DEV_FILE);
+  const retainedByTeam = {};
+  const retainedByPlayer = {};
+  const activeLedger = [];
+  const warnings = [];
+
+  for (const [key, encoded] of Object.entries(stored)) {
+    let record;
+    try { record = typeof encoded === "string" ? JSON.parse(encoded) : encoded; }
+    catch { warnings.push(`Malformed retained salary record: ${key}`); continue; }
+    const trade = activeTrades.get(Number(record.tradeNumber));
+    if (!trade) continue;
+    if (!String(trade.salaryRetention).toUpperCase().includes(`${record.team} RETAINS`)) continue;
+    if (record.expiresAfterSeasonYear < currentSeasonYear) continue;
+    if (!Number.isFinite(record.annualCharge) || record.annualCharge <= 0) {
+      warnings.push(`Invalid retained salary for ${record.playerName}.`);
+      continue;
+    }
+    const playerId = String(record.playerId);
+    retainedByTeam[record.team] = (retainedByTeam[record.team] || 0) + record.annualCharge;
+    if (!retainedByPlayer[playerId]) retainedByPlayer[playerId] = { total: 0, entries: [] };
+    retainedByPlayer[playerId].total += record.annualCharge;
+    retainedByPlayer[playerId].entries.push({
+      team: record.team, amount: record.annualCharge, tradeNumber: record.tradeNumber,
+    });
+    activeLedger.push({ ...record, type: "retained", yearsLeft: record.expiresAfterSeasonYear - currentSeasonYear + 1 });
+  }
+  return { retainedByTeam, retainedByPlayer, activeLedger, warnings };
 }
