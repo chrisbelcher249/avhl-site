@@ -1,5 +1,6 @@
 import { getTrades } from "./trades";
 import { computeCapObligations } from "./capObligations";
+import { reconcileDeadCapLedger } from "./capLedgerStorage";
 import { getLtirDesignations, ltirStorageStatus } from "./ltirStorage";
 import { teams } from "../../data/teams";
 
@@ -14,7 +15,17 @@ export async function getCapContext(players = [], waiverRecords = [], injuryStat
     }),
   ]);
   const obligations = computeCapObligations(players, tradeResult.trades, waiverRecords);
-  const warnings = [...obligations.warnings];
+  const ledgerResult = await reconcileDeadCapLedger(obligations.ledger, waiverRecords).then((result) => ({
+    ...result, error: null,
+  })).catch((error) => {
+    console.error("Unable to reconcile dead-cap ledger", error);
+    return { error: "Persistent dead-cap obligations are unavailable.", warnings: [], activeLedger: [] };
+  });
+  if (!ledgerResult.error) {
+    obligations.deadCapByTeam = ledgerResult.deadCapByTeam;
+    obligations.ledger = [...obligations.ledger.filter((entry) => entry.type !== "release"), ...ledgerResult.activeLedger];
+  } else obligations.deadCapByTeam = {};
+  const warnings = [...obligations.warnings, ...(ledgerResult.warnings || [])];
   const ltirPlayerIdsByTeam = {};
   const ltirPendingByTeam = {};
   const activeInjuries = new Map((injuryState?.active || []).map((injury) => [String(injury.playerId), injury]));
@@ -47,7 +58,7 @@ export async function getCapContext(players = [], waiverRecords = [], injuryStat
     }
   }
 
-  const error = waiverError || tradeResult.error || designationsResult.error ||
+  const error = waiverError || tradeResult.error || designationsResult.error || ledgerResult.error ||
     (!ltirStorageStatus().configured ? "Persistent LTIR storage is not configured." : null);
 
   return {
