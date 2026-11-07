@@ -70,6 +70,27 @@ export default function SalaryCapSection({ roster, primary }) {
             ))}
           </div>
 
+          {roster.capBreakdown ? (
+            <div className="mt-5 rounded-2xl border border-[#000B36]/10 bg-[#F8FAFD] p-5">
+              <h3 className="text-xs font-black uppercase tracking-[0.15em] text-[#000B36]/55">Annual cap obligations</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {[
+                  ["Roster contract salaries", roster.capBreakdown.rosterSalary],
+                  ["Retained by other teams", -roster.capBreakdown.salaryRetainedByOtherTeams],
+                  ["Retained from trades", roster.capBreakdown.retainedSalary],
+                  ["Dead-cap penalties", roster.capBreakdown.deadCap],
+                  ["Active LTIR relief", -roster.capBreakdown.ltirRelief],
+                ].map(([label, amount]) => (
+                  <div key={label}>
+                    <p className="text-[10px] font-black uppercase tracking-wide text-[#000B36]/45">{label}</p>
+                    <p className="mt-1 text-lg font-black tabular-nums">{amount < 0 ? "−" : "+"}{formatMoney(Math.abs(amount))}</p>
+                  </div>
+                ))}
+              </div>
+              {roster.ltirCount > 0 ? <p className="mt-3 text-xs font-bold text-[#000B36]/50">{roster.ltirCount} player(s) excluded from active roster while on LTIR.</p> : null}
+            </div>
+          ) : null}
+
           <div className="mt-7 rounded-2xl border border-[#000B36]/10 p-5 md:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
