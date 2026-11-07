@@ -4,6 +4,7 @@ import { fallbackTeamByAbbreviation, rosterForTeam } from "@/lib/lineupService";
 import { validateLineupRecord } from "@/lib/lineupRecords";
 import { getSavedLineup, lineupStorageStatus, saveLineupIfRevision } from "@/lib/lineupStorage";
 import { getCurrentInjuryState, healthyRosterForTeam } from "@/lib/injuries";
+import { getCapContext } from "@/lib/capContext";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +48,8 @@ export async function POST(request, { params }) {
       );
     }
 
-    const { players, source: rosterSource } = await getPlayers();
+    const playerData = await getPlayers();
+    const { players, source: rosterSource } = playerData;
     if (rosterSource !== "live") {
       return Response.json(
         { ok: false, error: "The complete live roster is temporarily unavailable. No lineup changes were saved." },
@@ -57,7 +59,13 @@ export async function POST(request, { params }) {
     const rosterPlayers = rosterForTeam(players, abbreviation);
     const injuryState = await getCurrentInjuryState(players);
     const activeInjuries = injuryState.byTeam?.[abbreviation] || [];
-    const eligibleRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries);
+    const capContext = await getCapContext(players, playerData.waiverRecords, injuryState, playerData.waiverError);
+    if (capContext.error) {
+      return Response.json({ ok: false, error: "LTIR/cap records cannot be verified; lineup changes are paused." }, { status: 503 });
+    }
+    const pendingLtir = new Set((capContext.ltirPendingByTeam[abbreviation] || []).map((record) => String(record.playerId)));
+    const eligibleRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries)
+      .filter((player) => !pendingLtir.has(String(player.id)));
     const validation = validateLineupRecord(body?.lineup, eligibleRosterPlayers, abbreviation);
     if (!validation.ok) {
       return Response.json({ ok: false, error: "Lineup does not meet AVHL constraints. Injured players cannot be dressed.", errors: validation.errors }, { status: 400 });
