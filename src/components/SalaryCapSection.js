@@ -60,7 +60,7 @@ export default function SalaryCapSection({ roster, primary }) {
             {[
               ["Current payroll", formatMoney(roster.payroll)],
               ["Cap position", capSpaceText],
-              ["Floor position", floorText],
+              ["Floor position (pre-LTIR)", floorText],
               ["Active roster", `${roster.count} players`],
             ].map(([label, value]) => (
               <div key={label} className="rounded-2xl border border-[#000B36]/10 bg-[#F6F8FC] p-5">
@@ -108,11 +108,16 @@ export default function SalaryCapSection({ roster, primary }) {
               <span>{compactMoney(salaryCapRules.floor)} floor</span>
               <span>{compactMoney(salaryCapRules.cap)} cap</span>
             </div>
+            {roster.ltirFloorException ? (
+              <p className="mt-4 text-sm font-bold text-emerald-700">
+                LTIR floor exception: {compactMoney(roster.payrollBeforeLtir)} before relief meets the {compactMoney(salaryCapRules.floor)} floor. Effective payroll is {compactMoney(roster.payroll)} after relief, and remains compliant with the salary floor.
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Check passed={!roster.overCap}>Payroll is at or below the {formatMoney(salaryCapRules.cap)} salary cap.</Check>
-            <Check passed={!roster.belowFloor}>Payroll meets the {formatMoney(salaryCapRules.floor)} salary floor.</Check>
+            <Check passed={!roster.belowFloor}>Cap obligations before LTIR meet the {formatMoney(salaryCapRules.floor)} salary floor.</Check>
             <Check passed={roster.contractsCompliant}>Every salary is between {formatMoney(salaryCapRules.minimumSalary)} and {formatMoney(salaryCapRules.maximumSalary)}.</Check>
             <Check passed={roster.rosterSizeCompliant}>Roster has no more than {rosterRules.maximumPlayers} total players.</Check>
             <Check passed={roster.forwardsCompliant}>At least {rosterRules.minimumForwards} forwards ({roster.forwardsCount} currently).</Check>
