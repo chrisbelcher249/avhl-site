@@ -1,6 +1,6 @@
 import { getTrades } from "./trades";
 import { computeCapObligations } from "./capObligations";
-import { reconcileDeadCapLedger } from "./capLedgerStorage";
+import { reconcileDeadCapLedger, reconcileRetainedCapLedger } from "./capLedgerStorage";
 import { getLtirDesignations, ltirStorageStatus } from "./ltirStorage";
 import { teams } from "../../data/teams";
 
@@ -15,6 +15,27 @@ export async function getCapContext(players = [], waiverRecords = [], injuryStat
     }),
   ]);
   const obligations = computeCapObligations(players, tradeResult.trades, waiverRecords);
+  const retainedResult = await reconcileRetainedCapLedger(obligations.ledger, tradeResult.trades).then((result) => ({
+    ...result, error: null,
+  })).catch((error) => {
+    console.error("Unable to reconcile retained salary ledger", error);
+    return { error: "Persistent retained-salary obligations are unavailable.", warnings: [], activeLedger: [] };
+  });
+  if (!retainedResult.error) {
+    obligations.retainedByPlayer = retainedResult.retainedByPlayer;
+    obligations.retainedByTeam = retainedResult.retainedByTeam;
+    const byId = new Map(players.map((player) => [String(player.id), player]));
+    for (const item of obligations.ledger) {
+      if (item.type !== "release") continue;
+      const player = byId.get(String(item.playerId));
+      if (player && player.aav > 0) {
+        item.annualCharge = Math.round(Math.max(0, player.aav - (obligations.retainedByPlayer[player.id]?.total || 0)) * 0.25);
+      }
+    }
+  } else {
+    obligations.retainedByPlayer = {};
+    obligations.retainedByTeam = {};
+  }
   const ledgerResult = await reconcileDeadCapLedger(obligations.ledger, waiverRecords).then((result) => ({
     ...result, error: null,
   })).catch((error) => {
@@ -23,9 +44,9 @@ export async function getCapContext(players = [], waiverRecords = [], injuryStat
   });
   if (!ledgerResult.error) {
     obligations.deadCapByTeam = ledgerResult.deadCapByTeam;
-    obligations.ledger = [...obligations.ledger.filter((entry) => entry.type !== "release"), ...ledgerResult.activeLedger];
+    obligations.ledger = [...(!retainedResult.error ? retainedResult.activeLedger : obligations.ledger.filter((entry) => entry.type === "retained")), ...ledgerResult.activeLedger];
   } else obligations.deadCapByTeam = {};
-  const warnings = [...obligations.warnings, ...(ledgerResult.warnings || [])];
+  const warnings = [...obligations.warnings, ...(retainedResult.warnings || []), ...(ledgerResult.warnings || [])];
   const ltirPlayerIdsByTeam = {};
   const ltirPendingByTeam = {};
   const activeInjuries = new Map((injuryState?.active || []).map((injury) => [String(injury.playerId), injury]));
@@ -58,7 +79,7 @@ export async function getCapContext(players = [], waiverRecords = [], injuryStat
     }
   }
 
-  const error = waiverError || tradeResult.error || designationsResult.error || ledgerResult.error ||
+  const error = waiverError || tradeResult.error || designationsResult.error || retainedResult.error || ledgerResult.error ||
     (!ltirStorageStatus().configured ? "Persistent LTIR storage is not configured." : null);
 
   return {
