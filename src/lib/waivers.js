@@ -1,5 +1,5 @@
-import { teams } from "../../data/teams";
-import { parseCsv, TRADE_SHEET_ID } from "./trades";
+import { teams } from "../../data/teams.js";
+import { parseCsv, TRADE_SHEET_ID } from "./trades.js";
 
 export const WAIVER_SHEET_GID = "290425403";
 const WAIVER_CSV_URL = `https://docs.google.com/spreadsheets/d/${TRADE_SHEET_ID}/export?format=csv&gid=${WAIVER_SHEET_GID}`;
