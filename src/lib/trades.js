@@ -76,6 +76,9 @@ export async function getTrades() {
     const teamAReceivesIndex = indexOf("Team A Receives");
     const teamBIndex = indexOf("Team B");
     const teamBReceivesIndex = indexOf("Team B Receives");
+    const teamCIndex = indexOf("Team C");
+    const teamCReceivesIndex = indexOf("Team C Receives");
+    const salaryRetentionIndex = indexOf("Salary Retention");
 
     const required = [tradeNumberIndex, dateIndex, teamAIndex, teamAReceivesIndex, teamBIndex, teamBReceivesIndex];
     if (required.some((index) => index < 0)) {
@@ -89,6 +92,9 @@ export async function getTrades() {
       teamAReceives: String(row[teamAReceivesIndex] || "").trim(),
       teamB: String(row[teamBIndex] || "").trim(),
       teamBReceives: String(row[teamBReceivesIndex] || "").trim(),
+      teamC: teamCIndex >= 0 ? String(row[teamCIndex] || "").trim() : "",
+      teamCReceives: teamCReceivesIndex >= 0 ? String(row[teamCReceivesIndex] || "").trim() : "",
+      salaryRetention: salaryRetentionIndex >= 0 ? String(row[salaryRetentionIndex] || "").trim() : "",
     })).filter((trade) => trade.teamA && trade.teamB);
 
     trades.sort((a, b) => b.number - a.number);
