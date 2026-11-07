@@ -74,8 +74,8 @@ export default function LtirControls({ team }) {
             <h2 className="mt-2 text-2xl font-black md:text-3xl">Long-Term Injured Reserve</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#000B36]/55">
               LTIR is never automatic. Players injured for 10 or more games may be designated by their owner.
-              The $70M floor applies after relief. Once the final missed game ends, relief expires, and the
-              owner must restore cap and roster compliance before the player's first eligible puck drop.
+              The $70M salary floor applies before LTIR relief; effective payroll may fall below it solely due to LTIR.
+              Once the final missed game ends, relief expires, and the owner must restore cap and roster compliance before the player's first eligible puck drop.
             </p>
           </div>
           {state && <div className="rounded-xl bg-[#F4F7FB] px-4 py-3 text-sm font-black">
