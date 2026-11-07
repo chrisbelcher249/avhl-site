@@ -1,6 +1,8 @@
 import { teams } from "../../../data/teams";
 import { buildTeamRosterAndCap, rosterRules, salaryCapRules } from "../../../data/salaryCap";
 import { getPlayers } from "@/lib/players";
+import { getCurrentInjuryState } from "@/lib/injuries";
+import { getCapContext, teamCapOptions } from "@/lib/capContext";
 import CapComplianceTable from "@/components/CapComplianceTable";
 
 export const metadata = {
@@ -16,10 +18,18 @@ function compactMoney(value) {
 }
 
 export default async function CapPage() {
-  const { players } = await getPlayers();
+  const playerData = await getPlayers();
+  const { players } = playerData;
+  const injuryState = await getCurrentInjuryState(players).catch((error) => {
+    console.error("Unable to load injuries while calculating salary cap", error);
+    return { active: [], recovered: [], scheduleError: "Injury state is unavailable." };
+  });
+  const context = await getCapContext(players, playerData.waiverRecords, injuryState, playerData.waiverError);
+  if (injuryState.scheduleError) context.error = context.error || "Injury schedule data is unavailable.";
+  const accountingWarnings = [...(playerData.waiverWarnings || []), ...context.warnings];
   const teamRows = teams
     .map((team) => {
-      const roster = buildTeamRosterAndCap(players, team.name);
+      const roster = buildTeamRosterAndCap(players, team.name, teamCapOptions(team.abbreviation, context));
       return {
         team: {
           slug: team.slug,
@@ -88,10 +98,23 @@ export default async function CapPage() {
           <p className="text-xs font-bold text-[#000B36]/45">Click a column heading to sort · Green dot = requirement met · Red dot = action required</p>
         </div>
 
+        {context.error ? (
+          <p role="alert" className="mb-5 rounded-2xl border border-[#A90117]/20 bg-red-50 p-4 text-sm font-bold text-[#A90117]">
+            Cap calculations are not fully verified: {context.error} The roster-only figures are provisional.
+          </p>
+        ) : null}
+        {accountingWarnings.length ? (
+          <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+            <p className="text-sm font-black text-amber-950">Commissioner accounting checks ({accountingWarnings.length})</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs font-semibold text-amber-950/75">
+              {accountingWarnings.slice(0, 12).map((warning, index) => <li key={index}>{warning}</li>)}
+            </ul>
+          </div>
+        ) : null}
         <CapComplianceTable rows={teamRows} rosterRules={rosterRules} />
 
         <p className="mt-5 text-xs font-semibold leading-5 text-[#000B36]/42">
-          Salary figures, roster counts, and Top 20 Avg OVR are calculated from the live AVHL player database. Top 20 Avg OVR is the average OVR of a team’s 20 highest-rated players, or the full roster when a team has fewer than 20 players. Team pages use the same live source.
+          Salary figures include active roster obligations, retained salary, waiver-release dead cap, and LTIR relief where applicable. The original contract salaries remain unchanged. Top 20 Avg OVR is based on the highest-rated available roster players. Team pages use the same cap accounting.
         </p>
       </section>
     </main>
