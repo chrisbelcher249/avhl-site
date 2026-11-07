@@ -27,7 +27,7 @@ The Waivers tab is the **official decision log**, not an automated Discord bot. 
 - Owners explicitly designate LTIR on their **team page**, using their existing owner password. There is no automatic placement.
 - Eligible: active injury of **at least ten games missed** (based on the official injury record).
 - Relief applies only to the current team's remaining salary share, after any retained salary. Other teams' retention remains charged.
-- A designation cannot be made if it would take the team's effective payroll below the **$70M floor**.
+- The **$70M floor** is evaluated on contractual cap obligations **before LTIR relief**, including retained salary and dead cap. LTIR may lower effective payroll below $70M without a floor violation, but teams must not otherwise fall below $70M. The site marks an otherwise compliant LTIR-only exception green.
 - An LTIR player does not occupy one of the **28 active roster slots** during an eligible designation.
 - The designation's relief ends immediately after the **final game missed**, not at some arbitrary manual reset.
 - Owners have through **puck drop of the player's first eligible game back** to become compliant and reactivate. Reactivation is refused above the **$100M cap** or **28 active players**.
