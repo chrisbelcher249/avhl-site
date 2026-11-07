@@ -12,7 +12,7 @@ export const rosterRules = {
   minimumForwards: 13,
   minimumDefensemen: 7,
   minimumGoalies: 3,
-  maximumPlayers: 26,
+  maximumPlayers: 28,
 };
 
 function positionTokens(player) {
@@ -60,14 +60,27 @@ function topAverageOverall(players, limit) {
   return ratings.reduce((total, overall) => total + overall, 0) / ratings.length;
 }
 
-export function buildTeamRosterAndCap(playerList, teamName) {
-  const rosterPlayers = playerList.filter((player) => player.currentTeam === teamName);
+export function buildTeamRosterAndCap(playerList, teamName, options = {}) {
+  const allRosterPlayers = playerList.filter((player) => player.currentTeam === teamName);
+  const ltirPlayerIds = new Set((options.ltirPlayerIds || []).map(String));
+  const rosterPlayers = allRosterPlayers.filter((player) => !ltirPlayerIds.has(String(player.id)));
   const skaters = rosterPlayers.filter((player) => player.role === "Skater");
   const goalies = rosterPlayers.filter((player) => player.role === "Goalie");
   const forwards = skaters.filter(isForward);
   const defensemen = skaters.filter(isDefenseman);
-  const payroll = rosterPlayers.reduce((total, player) => total + (player.aav || 0), 0);
-  const contractViolations = rosterPlayers.filter(
+  const obligations = options.obligations || {};
+  const abbreviation = teams.find((team) => team.name === teamName)?.abbreviation;
+  const salaryBeforeAdjustments = allRosterPlayers.reduce((total, player) => total + (player.aav || 0), 0);
+  const previouslyRetained = allRosterPlayers.reduce(
+    (total, player) => total + (obligations.retainedByPlayer?.[player.id]?.total || 0), 0
+  );
+  const retainedSalary = obligations.retainedByTeam?.[abbreviation] || 0;
+  const deadCap = obligations.deadCapByTeam?.[abbreviation] || 0;
+  const ltirRelief = allRosterPlayers
+    .filter((player) => ltirPlayerIds.has(String(player.id)))
+    .reduce((total, player) => total + Math.max(0, (player.aav || 0) - (obligations.retainedByPlayer?.[player.id]?.total || 0)), 0);
+  const payroll = salaryBeforeAdjustments - previouslyRetained + retainedSalary + deadCap - ltirRelief;
+  const contractViolations = allRosterPlayers.filter(
     (player) => player.aav === null
       || player.aav < salaryCapRules.minimumSalary
       || player.aav > salaryCapRules.maximumSalary
@@ -76,7 +89,7 @@ export function buildTeamRosterAndCap(playerList, teamName) {
   const overCap = payroll > salaryCapRules.cap;
   const belowFloor = payroll < salaryCapRules.floor;
   const contractsCompliant = contractViolations.length === 0;
-  const salaryCompliant = !overCap && !belowFloor && contractsCompliant;
+  const salaryCompliant = !overCap && !belowFloor && contractsCompliant && !options.capDataError;
 
   const forwardsCompliant = forwards.length >= rosterRules.minimumForwards;
   const defensemenCompliant = defensemen.length >= rosterRules.minimumDefensemen;
@@ -86,6 +99,7 @@ export function buildTeamRosterAndCap(playerList, teamName) {
   const compliant = salaryCompliant && rosterCompliant;
 
   const issues = [];
+  if (options.capDataError) issues.push("Cap accounting data unavailable");
   if (overCap) issues.push(`$${((payroll - salaryCapRules.cap) / 1_000_000).toFixed(2)}M over cap`);
   if (belowFloor) issues.push(`$${((salaryCapRules.floor - payroll) / 1_000_000).toFixed(2)}M below floor`);
   if (!contractsCompliant) issues.push("Contract salary violation");
@@ -97,6 +111,8 @@ export function buildTeamRosterAndCap(playerList, teamName) {
   return {
     teamName,
     count: rosterPlayers.length,
+    ltirCount: allRosterPlayers.length - rosterPlayers.length,
+    allRosterPlayers,
     skaters,
     goalies,
     forwards,
@@ -113,6 +129,13 @@ export function buildTeamRosterAndCap(playerList, teamName) {
     defenseOverallSum: sumOverall(defensemen),
     goalieOverallSum: sumOverall(goalies),
     payroll,
+    capBreakdown: {
+      rosterSalary: salaryBeforeAdjustments,
+      salaryRetainedByOtherTeams: previouslyRetained,
+      retainedSalary,
+      deadCap,
+      ltirRelief,
+    },
     capSpace: salaryCapRules.cap - payroll,
     floorPosition: payroll - salaryCapRules.floor,
     contractViolations,
