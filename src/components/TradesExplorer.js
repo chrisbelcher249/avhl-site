@@ -9,6 +9,10 @@ function assetsList(value) {
   return String(value || "").split(",").map((asset) => asset.trim()).filter(Boolean);
 }
 
+function retentionList(value) {
+  return String(value || "").split(/[;\n]+/).map((detail) => detail.trim()).filter(Boolean);
+}
+
 function TeamSide({ abbreviation, receives, playerNameIndex, playerNames }) {
   const team = teamByAbbreviation[abbreviation];
   const assets = assetsList(receives);
@@ -48,6 +52,7 @@ function TeamSide({ abbreviation, receives, playerNameIndex, playerNames }) {
 function searchText(trade) {
   const teamA = teamByAbbreviation[trade.teamA];
   const teamB = teamByAbbreviation[trade.teamB];
+  const teamC = teamByAbbreviation[trade.teamC];
   return [
     trade.teamA,
     teamA?.name,
@@ -59,6 +64,12 @@ function searchText(trade) {
     teamB?.city,
     teamB?.nickname,
     trade.teamBReceives,
+    trade.teamC,
+    teamC?.name,
+    teamC?.city,
+    teamC?.nickname,
+    trade.teamCReceives,
+    trade.salaryRetention,
   ].filter(Boolean).join(" ").toLowerCase();
 }
 
@@ -77,7 +88,7 @@ export default function TradesExplorer({ trades, playerNameIndex = {} }) {
     );
 
     if (exactTeam) {
-      return trades.filter((trade) => trade.teamA === exactTeam.abbreviation || trade.teamB === exactTeam.abbreviation);
+      return trades.filter((trade) => [trade.teamA, trade.teamB, trade.teamC].includes(exactTeam.abbreviation));
     }
 
     return trades.filter((trade) => searchText(trade).includes(normalizedQuery));
@@ -140,12 +151,24 @@ export default function TradesExplorer({ trades, playerNameIndex = {} }) {
                   <article key={trade.number} className="rounded-3xl border border-[#000B36]/10 bg-white p-4 shadow-sm md:p-5">
                     <div className="mb-4 flex items-center justify-between gap-4 px-1">
                       <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#000B36]/35">Trade #{trade.number}</span>
-                      <span className="rounded-full bg-[#000B36] px-3 py-1 text-[10px] font-black uppercase tracking-[0.13em] text-white">Official</span>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {trade.teamC ? <span className="rounded-full border border-[#000B36]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.13em] text-[#000B36]/65">3-Team Trade</span> : null}
+                        <span className="rounded-full bg-[#000B36] px-3 py-1 text-[10px] font-black uppercase tracking-[0.13em] text-white">Official</span>
+                      </div>
                     </div>
-                    <div className="grid gap-3 lg:grid-cols-2">
+                    <div className={`grid gap-3 ${trade.teamC ? "xl:grid-cols-3" : "lg:grid-cols-2"}`}>
                       <TeamSide abbreviation={trade.teamA} receives={trade.teamAReceives} playerNameIndex={playerNameIndex} playerNames={playerNames} />
                       <TeamSide abbreviation={trade.teamB} receives={trade.teamBReceives} playerNameIndex={playerNameIndex} playerNames={playerNames} />
+                      {trade.teamC ? <TeamSide abbreviation={trade.teamC} receives={trade.teamCReceives} playerNameIndex={playerNameIndex} playerNames={playerNames} /> : null}
                     </div>
+                    {trade.salaryRetention ? (
+                      <div className="mt-3 rounded-2xl border border-[#000B36]/8 bg-[#F7F9FC] px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#000B36]/45">Salary retained</p>
+                        <ul className="mt-2 grid gap-1 text-sm font-bold leading-6 text-[#000B36]/80">
+                          {retentionList(trade.salaryRetention).map((detail, index) => <li key={`${index}-${detail}`}>{detail}</li>)}
+                        </ul>
+                      </div>
+                    ) : null}
                   </article>
                 ))}
               </div>
