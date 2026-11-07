@@ -1,5 +1,5 @@
-import { teams } from "../../data/teams";
-import { waiverPlayerKey, latestWaiverRecords } from "./waivers";
+import { teams } from "../../data/teams.js";
+import { waiverPlayerKey, latestWaiverRecords } from "./waivers.js";
 
 const teamCodes = new Set(teams.map((team) => team.abbreviation));
 const retentionPattern = /^(?:[FDG]\s+)?(.+?)\s*[—–-]\s*([A-Z]{2,4})\s+retains\s+(\d+(?:\.\d+)?)%\s*(of\s+remaining)?\s*$/i;
