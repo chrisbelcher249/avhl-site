@@ -5,6 +5,9 @@ import { getSavedLineup, getSavedLineups, lineupStorageStatus } from "@/lib/line
 import { hydrateLineupRecord, recordFromProjected, validateLineupRecord } from "@/lib/lineupRecords";
 import { blankUnavailableLineupRecord, repairLineupRecord } from "@/lib/lineupRepair";
 import { getCurrentInjuryState, healthyRosterForTeam } from "@/lib/injuries";
+import { getWaiverRecords } from "@/lib/waivers";
+import { getCapContext, teamCapOptions } from "@/lib/capContext";
+import { buildTeamRosterAndCap, salaryCapRules } from "../../data/salaryCap";
 
 export function fallbackTeamByAbbreviation(abbreviation) {
   const code = String(abbreviation || "").toUpperCase();
@@ -40,7 +43,11 @@ export async function getEffectiveLineup(abbreviation) {
 
   const rosterPlayers = rosterForTeam(players, code);
   const activeInjuries = injuryState?.byTeam?.[code] || [];
-  const healthyRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries);
+  const waiverResult = await getWaiverRecords();
+  const capContext = injuryState ? await getCapContext(players, waiverResult.records, injuryState, waiverResult.error) : null;
+  const pendingIds = new Set((capContext?.ltirPendingByTeam?.[code] || []).map((entry) => String(entry.playerId)));
+  const healthyRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries)
+    .filter((player) => !pendingIds.has(String(player.id)));
   const readiness = injuryState?.readiness?.[code] || null;
   const projection = buildProjectedLineup(healthyRosterPlayers);
   const projectedRecord = recordFromProjected(code, projection);
@@ -107,6 +114,9 @@ export async function getEffectiveLineupsForSimulator(players) {
     savedByCode = {};
     injuryState = injuryState || { byTeam: {}, readiness: {} };
   }
+  const waiverResult = await getWaiverRecords();
+  const capContext = await getCapContext(players, waiverResult.records, injuryState, waiverResult.error);
+  if (capContext.error) throw new Error(`Simulator cap accounting unavailable: ${capContext.error}`);
   const records = {};
   const sources = {};
   const invalid = {};
@@ -115,10 +125,19 @@ export async function getEffectiveLineupsForSimulator(players) {
   for (const team of fallbackTeams) {
     const rosterPlayers = rosterForTeam(players, team.abbreviation);
     const activeInjuries = injuryState?.byTeam?.[team.abbreviation] || [];
-    const healthyRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries);
+    const pending = capContext.ltirPendingByTeam[team.abbreviation] || [];
+    const pendingIds = new Set(pending.map((entry) => String(entry.playerId)));
+    const healthyRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries)
+      .filter((player) => !pendingIds.has(String(player.id)));
     const readiness = injuryState?.readiness?.[team.abbreviation] || null;
     const projected = recordFromProjected(team.abbreviation, buildProjectedLineup(healthyRosterPlayers));
     if (readiness && !readiness.canPlay) cannotPlay[team.abbreviation] = readiness;
+    if (pending.length) {
+      const cap = buildTeamRosterAndCap(players, team.name, teamCapOptions(team.abbreviation, capContext));
+      const reasons = [`LTIR reactivation required before puck drop: ${pending.map((player) => player.playerName).join(", ")}.`];
+      if (cap.payroll > salaryCapRules.cap) reasons.push(`${((cap.payroll - salaryCapRules.cap) / 1_000_000).toFixed(2)}M over the cap after LTIR relief expired.`);
+      cannotPlay[team.abbreviation] = { ...(readiness || {}), canPlay: false, reasons: [...(cannotPlay[team.abbreviation]?.reasons || []), ...reasons] };
+    }
     const saved = savedByCode[team.abbreviation];
     if (saved) {
       const validation = validateLineupRecord(saved, healthyRosterPlayers, team.abbreviation);

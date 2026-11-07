@@ -5,6 +5,7 @@ import TeamMark from "@/components/TeamMark";
 import RosterSection from "@/components/RosterSection";
 import DraftPickSection from "@/components/DraftPickSection";
 import SalaryCapSection from "@/components/SalaryCapSection";
+import LtirControls from "@/components/LtirControls";
 import FranchiseHistorySection from "@/components/FranchiseHistorySection";
 import TeamSeasonStatsSection from "@/components/TeamSeasonStatsSection";
 import TeamRecentGamesSection from "@/components/TeamRecentGamesSection";
@@ -19,6 +20,7 @@ import { getRivalsForTeam, rivalryLevels } from "../../../../data/rivals";
 import { getSeasonStats } from "@/lib/seasonStats";
 import { getSchedule } from "@/lib/schedule";
 import { getCurrentInjuryState } from "@/lib/injuries";
+import { getCapContext, teamCapOptions } from "@/lib/capContext";
 import { mergePlayerCareer } from "@/lib/careerStats";
 import { getReplayMetadataMap } from "@/lib/replayStorage";
 
@@ -72,7 +74,7 @@ export default async function TeamPage({ params }) {
   if (!team) notFound();
   const teamBySlug = Object.fromEntries(teams.map((candidate) => [candidate.slug, candidate]));
 
-  const [{ players }, seasonStats, scheduleResult, replayMetadata] = await Promise.all([
+  const [playerData, seasonStats, scheduleResult, replayMetadata] = await Promise.all([
     getPlayers(),
     getSeasonStats(),
     getSchedule(),
@@ -81,16 +83,19 @@ export default async function TeamPage({ params }) {
       return {};
     }),
   ]);
+  const { players } = playerData;
   const injuryState = await getCurrentInjuryState(players).catch((error) => {
     console.error("Unable to load team injury status", error);
-    return { byTeam: {}, active: [], error: true };
+    return { byTeam: {}, active: [], recovered: [], error: true, scheduleError: "Unavailable" };
   });
+  const capContext = await getCapContext(players, playerData.waiverRecords, injuryState, playerData.waiverError);
+  if (injuryState.error || injuryState.scheduleError) capContext.error = capContext.error || "Injury data could not be verified.";
   const currentTeamInjuries = injuryState.byTeam?.[team.abbreviation] || [];
   const injuredPlayerIds = currentTeamInjuries.map((injury) => String(injury.playerId));
   const currentPlayersById = Object.fromEntries(players.map((player) => [String(player.id), { overall: player.overall }]));
   const rosterTeamName = fallbackTeams.find((candidate) => candidate.abbreviation === team.abbreviation)?.name || team.name;
   const playersWithLiveCareer = players.map((player) => mergePlayerCareer(player, seasonStats));
-  const roster = buildTeamRosterAndCap(playersWithLiveCareer, rosterTeamName);
+  const roster = buildTeamRosterAndCap(playersWithLiveCareer, rosterTeamName, teamCapOptions(team.abbreviation, capContext));
   const { picks: draftPicks, error: draftPickError } = await getDraftPicksForTeam(team.abbreviation);
   const rivals = getRivalsForTeam(team.slug).map((rival, index) => ({ ...rival, index, team: teamBySlug[rival.slug] })).filter((rival) => rival.team);
   const franchiseHistory = getFranchiseHistory(team.abbreviation);
@@ -249,6 +254,7 @@ export default async function TeamPage({ params }) {
       {injuryState.error ? <p className="mx-auto max-w-7xl px-6 pt-6 text-sm font-bold text-[#A90117]">Current injury status is temporarily unavailable.</p> : <TeamInjuriesSection team={team} injuries={currentTeamInjuries} playersById={currentPlayersById} />}
 
       <SalaryCapSection roster={roster} primary={team.colors.primary} />
+      <LtirControls team={team} />
 
       <section id="roster" className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-14 md:px-8 md:pb-20">
         <RosterSection roster={roster} primary={team.colors.primary} teamSlug={team.slug} injuredPlayerIds={injuredPlayerIds} />
