@@ -1,4 +1,5 @@
 import { playerCounts as fallbackCounts, players as fallbackPlayers } from "../../data/players";
+import { getWaiverRecords, applyWaiverOutcomes } from "./waivers";
 
 export const PLAYER_SHEET_ID = "1TK2gNvYwXGb_eoVyITBjsgVqZ5m6QnQje6qQtZtxv64";
 
@@ -255,11 +256,18 @@ export async function getPlayers() {
     console.error("Unable to load live goalie database; using bundled fallback", goalieResult.reason);
   }
 
-  const players = [...(liveSkaters || fallbackSkaters), ...(liveGoalies || fallbackGoalies)];
+  const originalPlayers = [...(liveSkaters || fallbackSkaters), ...(liveGoalies || fallbackGoalies)];
+  const waivers = await getWaiverRecords();
+  // Waiver decisions update the website's view of roster ownership. They never
+  // overwrite the source player's contract, AAV, term or original spreadsheet.
+  const updated = applyWaiverOutcomes(originalPlayers, waivers.records);
   return {
-    players,
-    playerCounts: countsFor(players),
+    players: updated.players,
+    playerCounts: countsFor(updated.players),
     source: liveSkaters && liveGoalies ? "live" : liveSkaters || liveGoalies ? "partial" : "fallback",
+    waiverRecords: waivers.records,
+    waiverError: waivers.error,
+    waiverWarnings: updated.warnings,
     fallbackCounts,
   };
 }
