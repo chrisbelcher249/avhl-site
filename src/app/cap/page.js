@@ -24,9 +24,9 @@ export default async function CapPage() {
     console.error("Unable to load injuries while calculating salary cap", error);
     return { active: [], recovered: [], scheduleError: "Injury state is unavailable." };
   });
-  const context = await getCapContext(players, playerData.waiverRecords, injuryState, playerData.waiverError);
+  const context = await getCapContext(players, playerData.waiverRecords, injuryState, playerData.waiverError, playerData.signingError);
   if (injuryState.scheduleError) context.error = context.error || "Injury schedule data is unavailable.";
-  const accountingWarnings = [...(playerData.waiverWarnings || []), ...context.warnings];
+  const accountingWarnings = [...(playerData.waiverWarnings || []), ...(playerData.signingWarnings || []), ...context.warnings];
   const teamRows = teams
     .map((team) => {
       const roster = buildTeamRosterAndCap(players, team.name, teamCapOptions(team.abbreviation, context));
