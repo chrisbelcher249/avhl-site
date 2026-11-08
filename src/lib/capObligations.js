@@ -1,5 +1,5 @@
 import { teams } from "../../data/teams.js";
-import { waiverPlayerKey, latestWaiverRecords } from "./waivers.js";
+import { waiverPlayerKey, latestWaiverRecords, isLegacyWaiver } from "./waivers.js";
 
 const teamCodes = new Set(teams.map((team) => team.abbreviation));
 const retentionPattern = /^(?:[FDG]\s+)?(.+?)\s*[—–-]\s*([A-Z]{2,4})\s+retains\s+(\d+(?:\.\d+)?)%\s*(of\s+remaining)?\s*$/i;
@@ -81,7 +81,7 @@ export function computeCapObligations(players = [], trades = [], waivers = []) {
   }
 
   for (const record of latestWaiverRecords(waivers)) {
-    if (record.outcome !== "Cleared") continue;
+    if (record.outcome !== "Cleared" || isLegacyWaiver(record)) continue;
     if (!teamCodes.has(record.team)) {
       warnings.push(`Waivers row ${record.row}: unknown waiving team ${record.team}.`);
       continue;
