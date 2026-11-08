@@ -65,7 +65,7 @@ function TradeCard({ item }) {
           return (
             <div key={code} className="rounded-2xl border border-[#000B36]/10 bg-[#F6F8FC] p-4">
               <div className="flex items-center gap-3">
-                {team ? <TeamMark team={team} size="xs" framed={false} /> : null}
+                {team ? <TeamMark team={team} size="sm" framed={false} /> : null}
                 <div className="min-w-0">
                   <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#000B36]/45">Receives</p>
                   <TeamLink code={code} />
