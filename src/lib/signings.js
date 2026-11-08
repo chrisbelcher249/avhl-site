@@ -91,6 +91,7 @@ export function applySignings(players = [], signings = []) {
       continue;
     }
     if (player.signedContract && player.signedContract.row === signing.row) continue;
+    if (!player.signedContract && player.currentTeam === team.name && player.aav === signing.aav && player.yearsLeft === signing.term) continue;
     const original = { team: player.currentTeam, aav: player.aav, yearsLeft: player.yearsLeft };
     player.currentTeam = team.name;
     player.aav = signing.aav;
