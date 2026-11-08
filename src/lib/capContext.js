@@ -6,7 +6,7 @@ import { teams } from "../../data/teams";
 
 const teamByName = new Map(teams.map((team) => [team.name, team]));
 
-export async function getCapContext(players = [], waiverRecords = [], injuryState = null, waiverError = null) {
+export async function getCapContext(players = [], waiverRecords = [], injuryState = null, waiverError = null, signingError = null) {
   const [tradeResult, designationsResult] = await Promise.all([
     getTrades(),
     getLtirDesignations().then((records) => ({ records, error: null })).catch((error) => {
@@ -29,7 +29,9 @@ export async function getCapContext(players = [], waiverRecords = [], injuryStat
       if (item.type !== "release") continue;
       const player = byId.get(String(item.playerId));
       if (player && player.aav > 0) {
-        item.annualCharge = Math.round(Math.max(0, player.aav - (obligations.retainedByPlayer[player.id]?.total || 0)) * 0.25);
+        const releaseSalary = player.signedContract?.previous?.team === "UFA"
+          ? player.signedContract.previous.aav : player.aav;
+        item.annualCharge = Math.round(Math.max(0, releaseSalary - (obligations.retainedByPlayer[player.id]?.total || 0)) * 0.25);
       }
     }
   } else {
@@ -79,7 +81,7 @@ export async function getCapContext(players = [], waiverRecords = [], injuryStat
     }
   }
 
-  const error = waiverError || tradeResult.error || designationsResult.error || retainedResult.error || ledgerResult.error ||
+  const error = waiverError || signingError || tradeResult.error || designationsResult.error || retainedResult.error || ledgerResult.error ||
     (!ltirStorageStatus().configured ? "Persistent LTIR storage is not configured." : null);
 
   return {

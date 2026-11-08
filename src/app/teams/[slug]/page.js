@@ -88,7 +88,7 @@ export default async function TeamPage({ params }) {
     console.error("Unable to load team injury status", error);
     return { byTeam: {}, active: [], recovered: [], error: true, scheduleError: "Unavailable" };
   });
-  const capContext = await getCapContext(players, playerData.waiverRecords, injuryState, playerData.waiverError);
+  const capContext = await getCapContext(players, playerData.waiverRecords, injuryState, playerData.waiverError, playerData.signingError);
   if (injuryState.error || injuryState.scheduleError) capContext.error = capContext.error || "Injury data could not be verified.";
   const currentTeamInjuries = injuryState.byTeam?.[team.abbreviation] || [];
   const injuredPlayerIds = currentTeamInjuries.map((injury) => String(injury.playerId));

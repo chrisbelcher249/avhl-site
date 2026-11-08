@@ -1,5 +1,6 @@
 import { playerCounts as fallbackCounts, players as fallbackPlayers } from "../../data/players";
 import { getWaiverRecords, applyWaiverOutcomes } from "./waivers";
+import { getSignings, applySignings } from "./signings";
 
 export const PLAYER_SHEET_ID = "1TK2gNvYwXGb_eoVyITBjsgVqZ5m6QnQje6qQtZtxv64";
 
@@ -257,17 +258,21 @@ export async function getPlayers() {
   }
 
   const originalPlayers = [...(liveSkaters || fallbackSkaters), ...(liveGoalies || fallbackGoalies)];
-  const waivers = await getWaiverRecords();
-  // Waiver decisions update the website's view of roster ownership. They never
-  // overwrite the source player's contract, AAV, term or original spreadsheet.
-  const updated = applyWaiverOutcomes(originalPlayers, waivers.records);
+  const [waivers, signings] = await Promise.all([getWaiverRecords(), getSignings()]);
+  // Waiver and signing results update the site's roster/cap view only;
+  // the original player contracts and source spreadsheet are never edited.
+  const afterWaivers = applyWaiverOutcomes(originalPlayers, waivers.records);
+  const updated = applySignings(afterWaivers.players, signings.records);
   return {
     players: updated.players,
     playerCounts: countsFor(updated.players),
     source: liveSkaters && liveGoalies ? "live" : liveSkaters || liveGoalies ? "partial" : "fallback",
     waiverRecords: waivers.records,
     waiverError: waivers.error,
-    waiverWarnings: updated.warnings,
+    waiverWarnings: afterWaivers.warnings,
+    signingRecords: signings.records,
+    signingError: signings.error,
+    signingWarnings: [...signings.warnings, ...updated.warnings],
     fallbackCounts,
   };
 }

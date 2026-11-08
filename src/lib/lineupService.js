@@ -6,6 +6,7 @@ import { hydrateLineupRecord, recordFromProjected, validateLineupRecord } from "
 import { blankUnavailableLineupRecord, repairLineupRecord } from "@/lib/lineupRepair";
 import { getCurrentInjuryState, healthyRosterForTeam } from "@/lib/injuries";
 import { getWaiverRecords } from "@/lib/waivers";
+import { getSignings } from "@/lib/signings";
 import { getCapContext, teamCapOptions } from "@/lib/capContext";
 import { buildTeamRosterAndCap, salaryCapRules } from "../../data/salaryCap";
 
@@ -43,8 +44,8 @@ export async function getEffectiveLineup(abbreviation) {
 
   const rosterPlayers = rosterForTeam(players, code);
   const activeInjuries = injuryState?.byTeam?.[code] || [];
-  const waiverResult = await getWaiverRecords();
-  const capContext = injuryState ? await getCapContext(players, waiverResult.records, injuryState, waiverResult.error) : null;
+  const [waiverResult, signingResult] = await Promise.all([getWaiverRecords(), getSignings()]);
+  const capContext = injuryState ? await getCapContext(players, waiverResult.records, injuryState, waiverResult.error, signingResult.error) : null;
   const pendingIds = new Set((capContext?.ltirPendingByTeam?.[code] || []).map((entry) => String(entry.playerId)));
   const healthyRosterPlayers = healthyRosterForTeam(rosterPlayers, activeInjuries)
     .filter((player) => !pendingIds.has(String(player.id)));
@@ -114,8 +115,8 @@ export async function getEffectiveLineupsForSimulator(players) {
     savedByCode = {};
     injuryState = injuryState || { byTeam: {}, readiness: {} };
   }
-  const waiverResult = await getWaiverRecords();
-  const capContext = await getCapContext(players, waiverResult.records, injuryState, waiverResult.error);
+  const [waiverResult, signingResult] = await Promise.all([getWaiverRecords(), getSignings()]);
+  const capContext = await getCapContext(players, waiverResult.records, injuryState, waiverResult.error, signingResult.error);
   if (capContext.error) throw new Error(`Simulator cap accounting unavailable: ${capContext.error}`);
   const records = {};
   const sources = {};

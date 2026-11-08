@@ -51,6 +51,7 @@ const navGroups = [
     links: [
       ["Odds", "/odds"],
       ["Cap", "/cap"],
+      ["Transactions", "/transactions"],
       ["Trades", "/trades"],
       ["Draft", "/draft"],
       ["Rivals", "/rivals"],

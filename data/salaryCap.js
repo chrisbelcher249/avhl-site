@@ -72,13 +72,13 @@ export function buildTeamRosterAndCap(playerList, teamName, options = {}) {
   const abbreviation = teams.find((team) => team.name === teamName)?.abbreviation;
   const salaryBeforeAdjustments = allRosterPlayers.reduce((total, player) => total + (player.aav || 0), 0);
   const previouslyRetained = allRosterPlayers.reduce(
-    (total, player) => total + (obligations.retainedByPlayer?.[player.id]?.total || 0), 0
+    (total, player) => total + (player.signedContract ? 0 : (obligations.retainedByPlayer?.[player.id]?.total || 0)), 0
   );
   const retainedSalary = obligations.retainedByTeam?.[abbreviation] || 0;
   const deadCap = obligations.deadCapByTeam?.[abbreviation] || 0;
   const ltirRelief = allRosterPlayers
     .filter((player) => ltirPlayerIds.has(String(player.id)))
-    .reduce((total, player) => total + Math.max(0, (player.aav || 0) - (obligations.retainedByPlayer?.[player.id]?.total || 0)), 0);
+    .reduce((total, player) => total + Math.max(0, (player.aav || 0) - (player.signedContract ? 0 : (obligations.retainedByPlayer?.[player.id]?.total || 0))), 0);
   const payrollBeforeLtir = salaryBeforeAdjustments - previouslyRetained + retainedSalary + deadCap;
   const payroll = payrollBeforeLtir - ltirRelief;
   const contractViolations = allRosterPlayers.filter(

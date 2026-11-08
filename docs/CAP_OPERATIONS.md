@@ -22,6 +22,21 @@ Use **actual AVHL franchise abbreviations** (e.g. ARI, CHI, DEN). A retention ev
 
 The Waivers tab is the **official decision log**, not an automated Discord bot. Never delete historical waiver rows. The website applies valid manual ownership changes as a read-time overlay, without editing the original player/contract Sheet. A release or retained salary is frozen in Redis when first observed, so later roster/contract changes cannot erase its recorded remaining-term charge. If the player name is ambiguous or a claimed destination is missing, the system warns instead of guessing.
 
+## Public transactions and the Signings tab
+
+The public **/transactions** page aggregates the existing Trades and Waivers tabs plus the new **Signings** tab in the same Trade Tracker workbook. The original detailed **/trades** page remains available.
+
+For each completed signing, **append one row** to the Signings tab using exactly four columns:
+
+- **Player:** Exact official AVHL player name (do not prefix F/D/G).
+- **Team:** Official AVHL abbreviation (e.g. CHI) or full franchise name.
+- **Term:** Number of contract years, e.g. `3`.
+- **AAV:** Annual dollar salary, e.g. `4500000` (formats as $4,500,000) or `4.5M` in plain text.
+
+The website validates all four fields and identifies players by exact normalized name; ambiguous player names and invalid rows generate warnings rather than a guessed player. Signings are included in the public feed automatically. A valid signing is also a derived overlay to the public player roster and cap calculations **only if** the live player record is a UFA or already shows the signing team. This prevents an old signing from overriding a later trade recorded in the source database. **Never edit an original source contract merely to simulate a signing in the public display.** The source player sheet itself is not modified by the integration.
+
+Waiver stages are archived in a separate Redis transaction journal when first observed, allowing the initial waiver listing and subsequent claim/release to appear independently. Signings also remain in the journal. No signing/waiver date is requested in the sheet: public dates are explicitly labeled **Logged**, meaning when the site first recorded that entry, not a claimed transaction execution date. Existing trades retain their official dates. Do not overwrite or delete prior rows to log new transactions; append new rows.
+
 ## LTIR
 
 - Owners explicitly designate LTIR on their **team page**, using their existing owner password. There is no automatic placement.
