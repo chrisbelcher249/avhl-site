@@ -29,7 +29,9 @@ export async function getCapContext(players = [], waiverRecords = [], injuryStat
       if (item.type !== "release") continue;
       const player = byId.get(String(item.playerId));
       if (player && player.aav > 0) {
-        item.annualCharge = Math.round(Math.max(0, player.aav - (obligations.retainedByPlayer[player.id]?.total || 0)) * 0.25);
+        const releaseSalary = player.signedContract?.previous?.team === "UFA"
+          ? player.signedContract.previous.aav : player.aav;
+        item.annualCharge = Math.round(Math.max(0, releaseSalary - (obligations.retainedByPlayer[player.id]?.total || 0)) * 0.25);
       }
     }
   } else {
