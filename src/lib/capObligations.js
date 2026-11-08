@@ -90,18 +90,21 @@ export function computeCapObligations(players = [], trades = [], waivers = []) {
     if (!player) continue;
     // A historical clearance must not penalize a team if the player has
     // subsequently joined another franchise on a new contract.
-    if (player.currentTeam !== "UFA") {
+    const original = player.signedContract?.previous?.team === "UFA" ? player.signedContract.previous : null;
+    if (player.currentTeam !== "UFA" && !original) {
       warnings.push(`Waivers row ${record.row}: ${player.name} is currently on ${player.currentTeam}; verify release history before assessing dead cap.`);
       continue;
     }
-    if (!(player.aav > 0) || !(player.yearsLeft > 0)) {
+    const releaseSalary = original?.aav ?? player.aav;
+    const releaseYears = original?.yearsLeft ?? player.yearsLeft;
+    if (!(releaseSalary > 0) || !(releaseYears > 0)) {
       warnings.push(`Waivers row ${record.row}: cannot determine ${player.name}'s contract salary and remaining term.`);
       continue;
     }
-    const currentShare = Math.max(0, player.aav - (retainedByPlayer[player.id]?.total || 0));
+    const currentShare = Math.max(0, releaseSalary - (retainedByPlayer[player.id]?.total || 0));
     const annualCharge = Math.round(currentShare * 0.25);
     deadCapByTeam[record.team] = (deadCapByTeam[record.team] || 0) + annualCharge;
-    ledger.push({ type: "release", team: record.team, playerId: player.id, playerName: player.name, annualCharge, yearsLeft: player.yearsLeft, waiverRow: record.row });
+    ledger.push({ type: "release", team: record.team, playerId: player.id, playerName: player.name, annualCharge, yearsLeft: releaseYears, waiverRow: record.row });
   }
 
   return { retainedByPlayer, retainedByTeam, deadCapByTeam, ledger, warnings };
@@ -109,5 +112,5 @@ export function computeCapObligations(players = [], trades = [], waivers = []) {
 
 export function playerOwnerCapShare(player, obligations) {
   if (!player || !Number.isFinite(player.aav)) return 0;
-  return Math.max(0, player.aav - (obligations?.retainedByPlayer?.[player.id]?.total || 0));
+  return Math.max(0, player.aav - (player.signedContract ? 0 : (obligations?.retainedByPlayer?.[player.id]?.total || 0)));
 }
