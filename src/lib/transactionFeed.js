@@ -74,7 +74,14 @@ function candidatesFromSheets(waivers = [], signings = []) {
       : waiver.outcome === "Cleared" ? "release"
       : waiver.outcome === "On Waivers" ? "waiver" : null;
     if (!type) continue;
+    // The waiver listing is itself a transaction, even when the first import
+    // happens after the claim window has already closed.
     items.push({
+      id: `waiver-${waiver.row}-waiver`, type: "waiver", player: waiver.player,
+      team: waiver.team, teams: [waiver.team], claimedBy: "",
+      sheetRow: waiver.row,
+    });
+    if (type !== "waiver") items.push({
       id: `waiver-${waiver.row}-${type}`, type, player: waiver.player,
       team: waiver.team, teams: [waiver.team, ...(type === "claim" && waiver.claimedBy ? [waiver.claimedBy] : [])],
       claimedBy: waiver.claimedBy || "", sheetRow: waiver.row,
