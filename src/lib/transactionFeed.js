@@ -60,7 +60,7 @@ async function persistNewAndChanged(previous, events) {
   }
 }
 
-function candidatesFromSheets(waivers = [], signings = []) {
+export function candidatesFromSheets(waivers = [], signings = []) {
   const items = [];
   for (const signing of signings) {
     items.push({
