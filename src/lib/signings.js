@@ -47,7 +47,11 @@ export function parseSignings(rows = []) {
       warnings.push(`Signings row ${rowNumber}: enter a player, valid AVHL team, term (1–20 years), and AAV ($900K–$20M).`);
       return;
     }
-    records.push({ row: rowNumber, player, team: team.abbreviation, term, aav });
+    records.push({
+      row: rowNumber, player, team: team.abbreviation, term, aav,
+      submittedAt: headings.includes("Submitted At") ? field(row, "Submitted At") : "",
+      historical: headings.includes("Historical") && field(row, "Historical").toLowerCase() === "yes",
+    });
   });
   return { records, warnings };
 }
@@ -79,6 +83,8 @@ export function applySignings(players = [], signings = []) {
     byName.get(key).push(player);
   }
   for (const signing of signings) {
+    // Historical records show past contracts without overwriting today's live player data.
+    if (signing.historical) continue;
     const matches = byName.get(waiverPlayerKey(signing.player)) || [];
     const team = teamByCode.get(signing.team);
     if (matches.length !== 1 || !team) {

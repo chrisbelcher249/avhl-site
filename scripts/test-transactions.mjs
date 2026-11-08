@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { teams } from "../data/teams.js";
 import { parseSignings, signingAav, applySignings } from "../src/lib/signings.js";
-import { applyWaiverOutcomes } from "../src/lib/waivers.js";
+import { applyWaiverOutcomes, isLegacyWaiver } from "../src/lib/waivers.js";
 import { computeCapObligations } from "../src/lib/capObligations.js";
 import { buildTeamRosterAndCap } from "../data/salaryCap.js";
 import { candidatesFromSheets, transactionSearchText } from "../src/lib/transactionFeed.js";
@@ -82,4 +82,27 @@ assert.equal(events.filter((entry) => entry.type === "release").length, 1);
 assert.equal(events.filter((entry) => entry.type === "signing").length, 2);
 assert.ok(transactionSearchText(events.find((entry) => entry.type === "claim")).includes("chicago"));
 
-console.log("AVHL transactions: four-field signings, ownership safeguards, cap terms, prior dead-cap and transaction categories PASS");
+// Before November 6, 2026: cleared means historical only, with no dead cap,
+// no active roster override and no contractual change from archived signings.
+const historicalWaiver = {
+  row: 20, team: "DEN", player: "John Smith", outcome: "Cleared",
+  claimedBy: "", submittedAt: "2026-11-05T23:59:59",
+};
+const newWaiver = { ...historicalWaiver, row: 21, submittedAt: "2026-11-06T00:00:00" };
+assert.equal(isLegacyWaiver(historicalWaiver), true);
+assert.equal(isLegacyWaiver(newWaiver), false);
+assert.equal(isLegacyWaiver({ ...newWaiver, submittedAt: "" }), false);
+
+const beforeCutoff = applyWaiverOutcomes([{ ...source[0], currentTeam: teamName("DEN") }], [historicalWaiver]);
+assert.equal(beforeCutoff.players[0].currentTeam, teamName("DEN"));
+assert.equal(computeCapObligations(beforeCutoff.players, [], [historicalWaiver]).deadCapByTeam.DEN || 0, 0);
+const afterCutoff = applyWaiverOutcomes([{ ...source[0], currentTeam: teamName("DEN") }], [newWaiver]);
+assert.equal(afterCutoff.players[0].currentTeam, "UFA");
+assert.equal(computeCapObligations(afterCutoff.players, [], [newWaiver]).deadCapByTeam.DEN, 750_000);
+
+const historicalSigning = { row: 8, player: "John Smith", team: "CHI", term: 2, aav: 1_000_000, historical: true };
+const olderSigned = applySignings([{ ...source[0], currentTeam: "UFA" }], [historicalSigning]);
+assert.equal(olderSigned.players[0].currentTeam, "UFA");
+assert.equal(olderSigned.players[0].aav, source[0].aav);
+
+console.log("AVHL transactions: signings, waiver history cutoff, previous liabilities and transaction types PASS");

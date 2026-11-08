@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { latestWaiverRecords, waiverPlayerKey } from "./waivers";
+import { latestWaiverRecords, waiverPlayerKey, isLegacyWaiver } from "./waivers";
 
 const HASH_KEY = "avhl:dead-cap:v1";
 const DEV_FILE = path.join(process.cwd(), ".avhl-dead-cap.dev.json");
@@ -67,7 +67,7 @@ function seasonStartYear(today = new Date()) {
 export async function reconcileDeadCapLedger(releases = [], waiverRecords = []) {
   const currentSeasonYear = seasonStartYear();
   const activeRows = new Map(
-    latestWaiverRecords(waiverRecords).filter((record) => record.outcome === "Cleared")
+    latestWaiverRecords(waiverRecords).filter((record) => record.outcome === "Cleared" && !isLegacyWaiver(record))
       .map((record) => [String(record.row), record]),
   );
   // On the first confirmed release, freeze the salary share and remaining term.

@@ -2,6 +2,16 @@ import { teams } from "../../data/teams.js";
 import { parseCsv, TRADE_SHEET_ID } from "./trades.js";
 
 export const WAIVER_SHEET_GID = "290425403";
+export const WAIVER_PENALTY_START_DATE = "2026-11-06";
+
+// Cutoff uses the date waivers opened, not when they cleared.
+// New undated commissioner entries are treated as post-cutoff.
+export function isLegacyWaiver(record) {
+  const raw = String(record?.submittedAt || "").trim();
+  if (!raw) return false;
+  const date = new Date(raw);
+  return !Number.isNaN(date.getTime()) && date.getTime() < Date.UTC(2026, 10, 6);
+}
 const WAIVER_CSV_URL = `https://docs.google.com/spreadsheets/d/${TRADE_SHEET_ID}/export?format=csv&gid=${WAIVER_SHEET_GID}`;
 const teamByAbbreviation = new Map(teams.map((team) => [team.abbreviation, team]));
 
@@ -25,6 +35,7 @@ export async function getWaiverRecords() {
       player: field(row, "Player"),
       outcome: field(row, "Outcome"),
       claimedBy: headers.includes("Claimed By") ? field(row, "Claimed By").toUpperCase() : "",
+      submittedAt: headers.includes("Submitted At") ? field(row, "Submitted At") : "",
     })).filter((entry) => entry.team && entry.player);
     return { records, error: null };
   } catch (error) {
@@ -51,6 +62,8 @@ export function applyWaiverOutcomes(players, records) {
     byName.get(key).push(player);
   }
   for (const record of latestWaiverRecords(records)) {
+    // Historical waiver submissions remain visible but never change the live roster.
+    if (isLegacyWaiver(record)) continue;
     const matches = byName.get(waiverPlayerKey(record.player)) || [];
     if (matches.length !== 1) {
       warnings.push(`Waivers row ${record.row}: player "${record.player}" is ${matches.length ? "ambiguous" : "not in the live roster"}.`);

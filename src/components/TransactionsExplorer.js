@@ -27,7 +27,8 @@ function dateLabel(record) {
   const value = new Intl.DateTimeFormat("en-US", {
     month: "short", day: "numeric", year: "numeric", timeZone: "UTC",
   }).format(date);
-  return record.dateKind === "logged" ? `Logged ${value}` : value;
+  return record.dateKind === "logged" ? `Logged ${value}`
+    : record.dateKind === "submitted" ? `Submitted ${value}` : value;
 }
 
 function TeamLink({ code }) {
@@ -121,7 +122,7 @@ function TransactionCard({ item, playerIndex }) {
             ) : (
               <p className="mt-1 text-sm font-semibold">
                 Cleared waivers and was released by <TeamLink code={item.team} />.
-                The 25% dead-cap release rule applies.
+                {item.historical ? " Historical clearance — no dead-cap penalty (before Nov 6, 2026)." : " The 25% dead-cap release rule applies."}
               </p>
             )}
           </div>
