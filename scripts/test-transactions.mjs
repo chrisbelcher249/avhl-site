@@ -4,6 +4,7 @@ import { parseSignings, signingAav, applySignings } from "../src/lib/signings.js
 import { applyWaiverOutcomes } from "../src/lib/waivers.js";
 import { computeCapObligations } from "../src/lib/capObligations.js";
 import { buildTeamRosterAndCap } from "../data/salaryCap.js";
+import { candidatesFromSheets, transactionSearchText } from "../src/lib/transactionFeed.js";
 
 const teamName = (code) => teams.find((team) => team.abbreviation === code).name;
 const inputRows = [
@@ -70,4 +71,15 @@ assert.equal(buildTeamRosterAndCap(afterNewContract.players, teamName("DEN"), {
   obligations: priorRetention,
 }).payroll, 2_000_000);
 
-console.log("AVHL transactions: four-field signings, ownership safeguards, new cap terms and prior dead-cap PASS");
+const events = candidatesFromSheets([
+  { row: 4, team: "DEN", player: "John Smith", outcome: "Claimed", claimedBy: "CHI" },
+  { row: 5, team: "ARI", player: "Jane Doe", outcome: "Cleared", claimedBy: "" },
+  { row: 6, team: "CHI", player: "Free Agent", outcome: "On Waivers", claimedBy: "" },
+], parsed.records);
+assert.equal(events.filter((entry) => entry.type === "waiver").length, 3);
+assert.equal(events.filter((entry) => entry.type === "claim").length, 1);
+assert.equal(events.filter((entry) => entry.type === "release").length, 1);
+assert.equal(events.filter((entry) => entry.type === "signing").length, 2);
+assert.ok(transactionSearchText(events.find((entry) => entry.type === "claim")).includes("chicago"));
+
+console.log("AVHL transactions: four-field signings, ownership safeguards, cap terms, prior dead-cap and transaction categories PASS");
