@@ -67,6 +67,7 @@ export function candidatesFromSheets(waivers = [], signings = []) {
       id: `signing-${signing.row}`, type: "signing", player: signing.player,
       team: signing.team, teams: [signing.team], term: signing.term,
       aav: signing.aav, sheetRow: signing.row,
+      occurredAt: signing.submittedAt || null, historical: Boolean(signing.historical),
     });
   }
   for (const waiver of waivers) {
@@ -79,12 +80,15 @@ export function candidatesFromSheets(waivers = [], signings = []) {
     items.push({
       id: `waiver-${waiver.row}-waiver`, type: "waiver", player: waiver.player,
       team: waiver.team, teams: [waiver.team], claimedBy: "",
-      sheetRow: waiver.row,
+      sheetRow: waiver.row, occurredAt: waiver.submittedAt || null,
+      historical: Boolean(waiver.submittedAt) && new Date(waiver.submittedAt).getTime() < Date.UTC(2026, 10, 6),
     });
     if (type !== "waiver") items.push({
       id: `waiver-${waiver.row}-${type}`, type, player: waiver.player,
       team: waiver.team, teams: [waiver.team, ...(type === "claim" && waiver.claimedBy ? [waiver.claimedBy] : [])],
       claimedBy: waiver.claimedBy || "", sheetRow: waiver.row,
+      occurredAt: waiver.submittedAt || null,
+      historical: Boolean(waiver.submittedAt) && new Date(waiver.submittedAt).getTime() < Date.UTC(2026, 10, 6),
     });
   }
   return items;
@@ -119,9 +123,9 @@ export async function buildTransactionFeed(trades = [], waivers = [], signings =
 
   const records = Object.values(seen).map((event) => ({
     ...event,
-    date: event.loggedAt || null,
-    dateKind: "logged",
-    sortAt: parseDate(event.loggedAt),
+    date: event.occurredAt || event.loggedAt || null,
+    dateKind: event.occurredAt ? "submitted" : "logged",
+    sortAt: parseDate(event.occurredAt || event.loggedAt),
   }));
   for (const trade of trades) {
     records.push({
