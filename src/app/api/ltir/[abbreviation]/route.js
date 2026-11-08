@@ -20,7 +20,7 @@ async function contextForTeam(abbreviation) {
   if (roster.source !== "live") throw new Error("Full live player database is temporarily unavailable.");
   const injuries = await getCurrentInjuryState(roster.players);
   if (injuries.scheduleError || injuries.storage?.configured === false) throw new Error("Injury schedule or storage unavailable; LTIR changes are paused.");
-  const context = await getCapContext(roster.players, roster.waiverRecords, injuries, roster.waiverError);
+  const context = await getCapContext(roster.players, roster.waiverRecords, injuries, roster.waiverError, roster.signingError);
   if (context.error) throw new Error(context.error);
   const teamRoster = buildTeamRosterAndCap(roster.players, team.name, teamCapOptions(abbreviation, context));
   const eligibleInjuries = injuries.active.filter((injury) => injury.teamAbbreviation === abbreviation && injury.gamesMissed >= 10);
