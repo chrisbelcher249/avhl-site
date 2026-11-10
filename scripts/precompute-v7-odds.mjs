@@ -5,19 +5,22 @@
 import fs from "node:fs/promises";
 import vm from "node:vm";
 import process from "node:process";
+import {summarizeV7Samples} from "../src/lib/v7OddsSamples.js";
 import { summarizeV7Samples } from "../src/lib/v7OddsSamples.js";
 const args=process.argv.slice(2);
 const opt=(k,def="")=>{const i=args.indexOf(k);return i>=0?args[i+1]||def:def;};
 const away=opt("--away").toUpperCase(), home=opt("--home").toUpperCase();
-const target=Number(opt("--target","1000")),fixture=args.includes("--fixture"),dry=args.includes("--dry-run");
+const target=Number(opt("--target","1000")),fixture=args.includes("--fixture"),dry=args.includes("--dry-run"),oidc=args.includes("--publish-oidc");
 const site=opt("--site",process.env.AVHL_ODDS_SITE_URL||"https://avhl.org").replace(/\/+$/,"");
 if(!/^[A-Z0-9]{2,4}$/.test(away)||!/^[A-Z0-9]{2,4}$/.test(home)||away===home)throw Error("Invalid --away/--home.");
 if(!Number.isInteger(target)||target<1||target>5000)throw Error("Target must be an integer between 1 and 5,000.");
 if(!dry&&target<1000)throw Error("A published odds cache requires 1,000+ V7 games.");
 if(fixture&&!dry)throw Error("Do not publish bundled fixture rosters.");
+if(oidc&&(fixture||dry))throw Error("OIDC publishing only accepts real complete live V7 games.");
+if(oidc&&site!=="https://avhl.org")throw Error("OIDC publisher is restricted to the official AVHL production origin.");
 const redisUrl=process.env.UPSTASH_REDIS_REST_URL||process.env.KV_REST_API_URL||process.env.UPSTASH_REDIS_REST_KV_REST_API_URL;
 const redisToken=process.env.UPSTASH_REDIS_REST_TOKEN||process.env.KV_REST_API_TOKEN||process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN;
-if(!dry&&(!redisUrl||!redisToken))throw Error("Persistent Redis credentials must be configured.");
+if(!dry&&!oidc&&(!redisUrl||!redisToken))throw Error("Persistent Redis credentials must be configured.");
 const files=["public/sim/team-metadata.js","public/sim/data.js","public/sim/simulator.js","public/odds/v7-sample-extractor.js"];
 const scripts=await Promise.all(files.map(f=>fs.readFile(f,"utf8")));
 const fnv=x=>{let h=2166136261;for(let i=0;i<x.length;i++){h^=x.charCodeAt(i);h=Math.imul(h,16777619);}return(h>>>0).toString(16).padStart(8,"0");};
@@ -57,9 +60,40 @@ await ctx.AVHL_LOAD_LIVE_ROSTERS();
 const data=ctx.AVHL_CREATE_MATCHUP_DATA(home,away);
 const key=`v7:3:${fnv(scripts[2])}:${home}:${away}:${fnv(JSON.stringify(data))}`;
 const redisKey="avhl:odds:exact:sample:"+key;
+async function getOidcToken(){
+ const url=process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+ const token=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+ if(!url||!token)throw Error("GitHub Actions workload identity is unavailable.");
+ const separator=url.includes("?")?"&":"?";
+ const response=await fetch(url+separator+"audience="+encodeURIComponent("https://avhl.org/api/odds/v7-ingest"),{
+   headers:{Authorization:`Bearer ${token}`},cache:"no-store",signal:AbortSignal.timeout(10000)
+ });
+ if(!response.ok)throw Error("Could not obtain GitHub Actions OIDC token.");
+ const data=await response.json();
+ if(typeof data.value!=="string")throw Error("GitHub did not return a signed workload token.");
+ return data.value;
+}
+
 const summaryRedisKey="avhl:odds:exact:summary:"+key;
 let samples=[];
-if(!dry){const raw=await redis(["GET",redisKey]);const saved=typeof raw==="string"?JSON.parse(raw):null;if(Array.isArray(saved?.samples))samples=saved.samples;}
+if(oidc){
+  // The normal 30-minute check is cheap: skip without any V7 physics when
+  // identical engine+owner-lineup odds have already been published.
+  const response=await fetch(`${site}/api/odds/v7-cache?key=${encodeURIComponent(key)}`,{
+    cache:"no-store",signal:AbortSignal.timeout(10000)
+  });
+  if(response.ok){
+    const cached=await response.json();
+    if(cached?.ok&&cached.ready&&cached.count>=target){
+      console.log(JSON.stringify({status:"already-cached",away,home,count:cached.count,key}));
+      process.exit(0);
+    }
+  }
+}else if(!dry){
+  const raw=await redis(["GET",redisKey]);
+  const saved=typeof raw==="string"?JSON.parse(raw):null;
+  if(Array.isArray(saved?.samples))samples=saved.samples;
+}
 if(samples.length>5000)throw Error("Corrupt cached sample count.");
 const initial=samples.length;
 if(!dry && samples.length>=1000){
@@ -79,7 +113,7 @@ for(let i=initial;i<target;i++){
  const game=new ctx.AVHLGameSimulator(structuredClone(data),seed,{headless:true}).simulateGame();
  samples.push(ctx.AVHL_ODDS_EXTRACT_SAMPLE(game,away,home));
  if(samples.length%25===0||samples.length===target){
-  if(!dry){
+  if(!dry&&!oidc){
     const generatedAt=new Date().toISOString();
     await redis(["SET",redisKey,JSON.stringify({samples,engineHash:fnv(scripts[2]),away,home,source:"exact-v7",at:generatedAt})]);
     // Published viewers fetch only this compact summary, not 1,000+ box scores.
@@ -92,5 +126,18 @@ for(let i=initial;i<target;i++){
   }
   console.log(`Exact V7 games: ${samples.length} / ${target}`);
  }
+}
+if(oidc){
+  if(samples.length<1000)throw Error("Refusing to publish fewer than 1,000 actual V7 games.");
+  const summary=summarizeV7Samples(samples,away,home);
+  const token=await getOidcToken();
+  const response=await fetch(`${site}/api/odds/v7-ingest`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},
+    body:JSON.stringify({key,summary}),cache:"no-store",signal:AbortSignal.timeout(30000)
+  });
+  const receipt=await response.json();
+  if(!response.ok||!receipt.ok||!receipt.published)throw Error("V7 odds publication failed; HTTP "+response.status+": "+JSON.stringify(receipt));
+  console.log(JSON.stringify({status:"published",away,home,count:receipt.count,key}));
 }
 if(dry)console.log(JSON.stringify({smoke:"PASS",samples:samples.length,scores:samples.slice(0,2).map(s=>[s.a,s.h,s.f]),player:samples[0]?.players?.[0]?.name}));
