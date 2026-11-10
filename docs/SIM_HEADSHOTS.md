@@ -1,9 +1,9 @@
 # AVHL simulator headshots — licensed photo discovery (draft)
 
 ## Status and scope
-- **2026-11-10: 1,099 / 1,908 player records (57.6%)** have Commons photograph entries (1,096 exact-ID records, three initial name-keyed manual entries). **809** still have logo/number fallbacks. These are manifest matches, not a guarantee that every image has been manually reviewed or that every external URL will resolve in every browser.
+- **2026-11-10: 1,103 / 1,908 player records (57.8%)** have Commons photograph entries (1,100 exact-ID records, three initial name-keyed manual entries). **805** still have logo/number fallbacks. These are manifest matches, not a guarantee that every image has been manually reviewed or that every external URL will resolve in every browser.
 - The latest discovery code searches Wikidata English Wikipedia titles first, then exact English labels/aliases and checks birthdate + hockey identity before accepting P18 images. Photos without acceptable Commons licensing and author metadata are rejected.
-- Three additional photographer-credit-reviewed entries added this session: David Pastrnak (ID 0023), Jordan Martinook (ID 0113), Teuvo Teravainen (ID 0125). The original three name-keyed photos remain.
+- Seven additional photographer-credit-reviewed entries added this session: David Pastrnak (0023), Jordan Martinook (0113), Teuvo Teravainen (0125), Jiří Kulich (0063), Mason Lohrei (0030), Olli Määttä (0084), and André Burakovsky (0126). The original three name-keyed photos remain.
 - Discovery workflow is a long-running PR-only GitHub Action. It merges results with the latest branch manifest without clobbering manual records. Newly found entries still need image/attribution spot checks before production release.
 - Display-only feature for the event feed and completed-game skater/goalie tables.
 - **No changes to the V7 game engine, ratings, owner lineups, game export, simulation IDs, or historical replay schemas.**
