@@ -12127,6 +12127,17 @@
       "matchMethod": "manual-commons-review",
       "name": "Andre Burakovsky",
       "birthdate": "1995-02-09"
+    },
+    "0091": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/John_Beecher_Boston_Bruins_2023.jpg?width=128",
+      "author": "Meowwcat",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:John_Beecher_Boston_Bruins_2023.jpg",
+      "note": "Photographed at a Boston Bruins season-ticket event in December 2023; displayed as a cropped thumbnail.",
+      "matchMethod": "manual-commons-review",
+      "name": "John Beecher",
+      "birthdate": "2001-04-05"
     }
   }
 }
