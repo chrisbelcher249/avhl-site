@@ -24,7 +24,7 @@ function merge(label) {
   });
   const totals={};
   for (const key of Object.keys(raw[0])) {
-    if(key==="shotsByStrength" || key==="goalieSamples")continue;
+    if(key==="shotsByStrength" || key==="goalieSamples" || key==="watchedSkaters")continue;
     totals[key]=sum(raw,key);
   }
   totals.shotsByStrength={};
@@ -34,11 +34,11 @@ function merge(label) {
   }
   const byGoalie=new Map();
   for(const r of raw)for(const g of (r.goalieSamples || [])) {
-    const key=String(g.id),p=byGoalie.get(key)||{id:key,name:g.name,overall:g.overall,shots:0,saves:0,goals:0,appearances:0};
-    p.shots+=g.shots;p.saves+=g.saves;p.goals+=g.goals;p.appearances++;
+    const key=String(g.id),p=byGoalie.get(key)||{id:key,name:g.name,overall:g.overall,shots:0,saves:0,goals:0,toi:0,appearances:0};
+    p.shots+=g.shots;p.saves+=g.saves;p.goals+=g.goals;p.toi+=g.toi;p.appearances++;
     byGoalie.set(key,p);
   }
-  const counted=[...byGoalie.values()].filter(g=>g.appearances>=5 && g.shots>=100).map(g=>({...g, savePct:g.saves/g.shots}));
+  const counted=[...byGoalie.values()].filter(g=>g.appearances>=5 && g.shots>=100).map(g=>({...g, savePct:g.saves/g.shots, gaa: g.toi ? g.goals*3600/g.toi : null}));
   const pearson=(xs,xKey,yKey)=>{
     if(xs.length<5)return null;
     const n=xs.length,xm=xs.reduce((s,v)=>s+v[xKey],0)/n,ym=xs.reduce((s,v)=>s+v[yKey],0)/n;
@@ -50,6 +50,7 @@ function merge(label) {
   const goalieSummary={
     eligibleGoalies:counted.length,
     correlationOverallSavePct:pearson(counted,"overall","savePct"),
+    correlationOverallGAA:pearson(counted.filter(g=>g.gaa!=null),"overall","gaa"),
     loganThompson: watchedGoalie ? {
       overall:watchedGoalie.overall,
       appearances:watchedGoalie.appearances,
@@ -63,12 +64,28 @@ function merge(label) {
     lowRated:counted.filter(g=>g.overall<83).length,
     lowRatedSavePct: (()=>{const arr=counted.filter(g=>g.overall<83);return arr.length?Number((arr.reduce((s,g)=>s+g.saves,0)/arr.reduce((s,g)=>s+g.shots,0)).toFixed(4)):null;})()
   };
+  const watched=new Map();
+  for (const r of raw) for (const sk of (r.watchedSkaters || [])) {
+    const key=String(sk.id),p=watched.get(key)||{name:sk.name,overall:sk.overall,games:0,goals:0,assists:0,points:0,shots:0,toi:0};
+    p.games++;p.goals+=sk.goals;p.assists+=sk.assists;p.points+=sk.points;p.shots+=sk.shots;p.toi+=sk.toi;
+    watched.set(key,p);
+  }
+  const starSummaries=[...watched.values()].map(p=>({
+    name:p.name,overall:p.overall,games:p.games,
+    points:p.points,goals:p.goals,assists:p.assists,
+    pointsPerGame:Number((p.points/p.games).toFixed(3)),
+    shotsPerGame:Number((p.shots/p.games).toFixed(3)),
+    timeOnIceMin:Number((p.toi/p.games/60).toFixed(2))
+  })).sort((a,b)=>b.overall-a.overall);
   const pct=(a,b)=>b ? Number((100*a/b).toFixed(2)) : null;
   const rate=(a,b)=>b ? Number((a/b).toFixed(3)) : null;
   return {
     games:totals.games,
     goalsPerTeam:rate(totals.goals,totals.games*2),
     shotsPerTeam:rate(totals.shots,totals.games*2),
+    shootingPct:pct(totals.goals,totals.shots),
+    goalieSavePct:(()=>{const arr=[...byGoalie.values()];const sv=sum(arr,"saves"),sa=sum(arr,"shots");return rate(sv,sa);})(),
+    homeWinPct:pct(totals.homeWins,totals.games),
     PPgoals:totals.ppGoals, PPOpportunities:totals.ppOpp,
     powerPlayPct:pct(totals.ppGoals,totals.ppOpp),
     shortHandedGoals:totals.shGoals,
@@ -86,6 +103,7 @@ function merge(label) {
     elite90ShotsPG:rate(totals.shots90,totals.gp90),
     replayedGoals:totals.goalsWithReplayedScorer,
     goaliePerformance:goalieSummary,
+    watchedStars:starSummaries,
     byManpower:totals.shotsByStrength
   };
 }
