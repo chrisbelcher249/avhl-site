@@ -77,7 +77,7 @@ function gameSample(game,away,home){
     });
     for(const p of s.goalieRows[id]||[])goalies.push({
       id:String(p.avhlId||p.id),name:p.name,t:abbr,started:Boolean(p.starter),
-      sv:Number(p.saves)||0,sa:Number(p.shotsAgainst)||0,ga:Number(p.goalsAgainst)||0
+      sv:Number(p.saves)||0,sa:Number(p.shotsAgainst)||0,ga:Number(p.goalsAgainst)||0,toi:Number(p.toi)||0
     });
   }
   return {
