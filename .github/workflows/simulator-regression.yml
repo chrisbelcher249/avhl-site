@@ -28,6 +28,7 @@ jobs:
       - run: npm run test:lineups
       - run: npm run test:sim-lineups
       - run: npm run test:replays
+      - run: node scripts/test-sim-period-integrity.mjs
       - run: npm run test:sim -- 1
       - run: node scripts/calibrate-simulator-v7.mjs 8
 
