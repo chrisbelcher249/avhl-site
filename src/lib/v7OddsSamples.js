@@ -69,7 +69,9 @@ export function summarizeV7Samples(samples, away, home) {
       if (row.sv>=20) g.metrics.saves20++;
       if (row.sv>=25) g.metrics.saves25++;
       if (row.sv>=30) g.metrics.saves30++;
-      if (row.started && row.ga===0 && row.sa>0)g.metrics.shutouts++;
+      const opponentScore=row.t===away?sample.h:sample.a;
+      const otherGoaliePlayed=(sample.goalies||[]).some(other=>other.t===row.t&&other.id!==row.id&&integer(other.toi)>0);
+      if (row.started && opponentScore===0 && !otherGoaliePlayed && integer(row.toi)>0) g.metrics.shutouts++;
       g.totals.saves += integer(row.sv);
       g.totals.against += integer(row.sa);
     }
