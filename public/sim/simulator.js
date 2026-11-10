@@ -792,6 +792,25 @@ class AVHLGameSimulator {
     return state.period === 4 ? "OT" : "EV";
   }
 
+  // V7: play selection is tactical. A penalty kill prioritizes safe clears
+  // and puck management; the power play uses its extra passing/shooting lanes.
+  // OT has more space and favors skill possessions instead of five-on-five hits.
+  possessionTactics(state, teamId) {
+    const situation = this.teamSituation(state, teamId);
+    if (situation === "PP") return {
+      shoot: 0.37, pass: 0.70, hit: 0.75, takeaway: 0.82, penalty: 0.855, cycle: 0.982
+    };
+    if (situation === "PK") return {
+      shoot: 0.09, pass: 0.42, hit: 0.60, takeaway: 0.77, penalty: 0.855, cycle: 0.94
+    };
+    if (state.period === 4) return {
+      shoot: 0.35, pass: 0.68, hit: 0.73, takeaway: 0.82, penalty: 0.855, cycle: 0.98
+    };
+    return {
+      shoot: 0.27, pass: 0.54, hit: 0.75, takeaway: 0.84, penalty: 0.855, cycle: 0.96
+    };
+  }
+
   goalieOnIce(state, teamId) {
     return !state.goaliePulled?.[teamId];
   }
@@ -2591,6 +2610,8 @@ class AVHLGameSimulator {
       passer.poise * 0.15 +
       passer.offensiveAwareness * 0.11;
     const lanePenalty = laneDefender ? this.clamp((7 - laneDefender.lane.distance) * 0.018, 0, 0.10) : 0;
+    const situation = this.teamSituation(state, teamId);
+    const manpowerPassing = situation === "PP" ? 0.055 : situation === "PK" ? -0.035 : state.period === 4 ? 0.015 : 0;
     const successProbability = this.clamp(
       0.75 +
       (["cycle", "one-timer"].includes(purpose) ? 0.075 : 0) +
@@ -2598,9 +2619,10 @@ class AVHLGameSimulator {
       pressure * 0.17 -
       (defenderSkill - 82) * 0.0032 -
       passer.fatigue * 0.045 -
-      lanePenalty,
-      0.46,
-      0.95
+      lanePenalty +
+      manpowerPassing,
+      0.42,
+      0.965
     );
 
     const distance = Math.hypot(to.x - from.x, to.y - from.y);
@@ -2854,10 +2876,13 @@ class AVHLGameSimulator {
       defender.speed * 0.14 + defender.acceleration * 0.10 + defender.agility * 0.10 +
       defender.stickChecking * 0.24 + defender.defensiveAwareness * 0.25 +
       defender.bodyChecking * 0.11 + defender.balance * 0.06;
+    const situation = this.teamSituation(state, teamId);
+    const strengthAdjustment = situation === "PP" ? 0.07 : situation === "PK" ? -0.10 : state.period === 4 ? 0.045 : 0;
     const entryProbability = this.clamp(
-      0.58 + (carrierEntrySkill - defenderEntrySkill) * 0.012 - carrier.fatigue * 0.055 + defender.fatigue * 0.035,
-      0.32,
-      0.84
+      0.58 + (carrierEntrySkill - defenderEntrySkill) * 0.012 - carrier.fatigue * 0.055 + defender.fatigue * 0.035 +
+        strengthAdjustment,
+      0.25,
+      0.91
     );
 
     if (this.random.chance(entryProbability)) {
@@ -3277,7 +3302,8 @@ class AVHLGameSimulator {
     }
 
     const openness = shot.openness[shot.actualTarget] ?? 0.4;
-    const specialTeams = this.teamSituation(state, shooter.teamId) === "PP" ? 0.014 : 0;
+    const situation = this.teamSituation(state, shooter.teamId);
+    const specialTeams = situation === "PP" ? 0.026 : situation === "PK" ? -0.012 : state.period === 4 ? 0.015 : 0;
     const pressurePenalty = shot.pressure * 0.018;
     const screenBonus = shot.screened ? 0.022 : 0;
     const fatigueAdjustment = (goalie.fatigue - shooter.fatigue) * 0.016;
@@ -5222,21 +5248,22 @@ class AVHLGameSimulator {
     state.zone = zone;
     this.maybeChangeLines(state, zone !== "OZ" && this.random.chance(0.35));
     const roll = this.random.next();
+    const tactics = this.possessionTactics(state, teamId);
+    const situation = this.teamSituation(state, teamId);
 
     if (zone === "OZ") {
-      const penaltyCutoff = state.activePenalties.length < 3 ? 0.835 : 0.828;
-      if (roll < 0.27) {
+      if (roll < tactics.shoot) {
         // Every primary scoring chance gets an explicit 6/16/78 assist
         // setup, built from actual completed passes so the scorer/assist
         // credits and the replay are the same play rather than separate rolls.
         const scoringSetup = this.prepareScoringChance(state, teamId, state.lastContext);
         if (!scoringSetup) return;
         this.simulateShot(state, teamId, scoringSetup);
-      } else if (roll < 0.54) {
+      } else if (roll < tactics.pass) {
         this.simulatePass(state, teamId, "cycle");
-      } else if (roll < 0.75) {
+      } else if (roll < tactics.hit) {
         this.simulateHit(state, opponentId);
-      } else if (roll < 0.84) {
+      } else if (roll < tactics.takeaway) {
         const carrier = this.teams[teamId].playerById[state.puckCarrierId];
         const takeaway = carrier ? this.chooseTakeawayPlayer(state, opponentId, carrier.id, 9.5) : null;
         if (takeaway) {
@@ -5265,9 +5292,9 @@ class AVHLGameSimulator {
         } else {
           this.addEvent(state, "possession", `${carrier.name} keeps possession under pressure.`, { teamId, playerId: carrier.id, location: { ...state.puck } });
         }
-      } else if (roll < Math.max(penaltyCutoff, 0.855)) {
+      } else if (roll < tactics.penalty) {
         this.callPenalty(state, this.random.chance(0.72) ? opponentId : teamId, this.random.chance(0.65) ? "stick" : "net", state.puck);
-      } else if (roll < 0.960) {
+      } else if (roll < tactics.cycle) {
         const carrier = this.teams[teamId].playerById[state.puckCarrierId];
         const current = state.positions[carrier.id] ?? state.puck;
         const direction = this.attackDirection(teamId, state.period);
@@ -5300,7 +5327,11 @@ class AVHLGameSimulator {
     }
 
     if (zone === "NZ") {
-      if (roll < 0.36) {
+      // Shorthanded skaters usually dump the puck and pursue a change rather
+      // than attempt repeated controlled entries while down a skater.
+      if (situation === "PK" && roll < 0.56) {
+        this.simulateZoneEntry(state, teamId, true);
+      } else if (roll < 0.36) {
         this.simulateZoneEntry(state, teamId, false);
       } else if (roll < 0.515) {
         this.simulateZoneEntry(state, teamId, true);
@@ -5363,7 +5394,9 @@ class AVHLGameSimulator {
       return;
     }
 
-    if (roll < 0.4) {
+    if (situation === "PK" && roll < 0.60) {
+      this.simulateClear(state, teamId);
+    } else if (roll < 0.4) {
       this.simulateBreakout(state, teamId);
     } else if (roll < 0.6) {
       this.simulatePass(state, teamId, "breakout");
