@@ -113,7 +113,7 @@ function licensed(info,filename){
   if(!artist || artist.length>220 || artist.toLowerCase()==="unknown")return null;
   if(!["image/jpeg","image/png","image/webp"].includes(info.mime))return null;
   const url=String(info.thumburl||info.url||"");
-  if(!url.startsWith("https://upload.wikimedia.org/"))return null;
+  if(!url.startsWith("https://upload.wikimedia.org/") && !url.startsWith("https://thumb.wikimedia.org/"))return null;
   const source="https://commons.wikimedia.org/wiki/File:"+encodeURIComponent(filename.replace(/ /g,"_"));
   return {url,author:artist,license:label,licenseUrl:rawLicense,source,
     note:"Auto-matched by name and exact birthdate; displayed as a cropped thumbnail.",matchMethod:"wikidata-p18-dob"};
