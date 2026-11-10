@@ -23,4 +23,4 @@ jobs:
       - run: npm run test:goalie-shutouts
       - run: npm run test:ot-shootout-standings
       - run: npm run test:sim -- 1
-      - run: node scripts/calibrate-simulator-v7.mjs 40
+      - run: node scripts/calibrate-simulator-v7.mjs 8
