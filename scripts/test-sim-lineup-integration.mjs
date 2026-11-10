@@ -69,7 +69,20 @@ for (let index = 0; index < teams.length; index += 1) {
       assert(JSON.stringify(after.specialTeams[key]) === JSON.stringify(before.specialTeams[key]), `${before.abbreviation} ${key} changed during simulator normalization.`);
     }
     assert(JSON.stringify(after.overtimeUnits) === JSON.stringify(before.overtimeUnits), `${before.abbreviation} OT groups changed during simulator normalization.`);
-    assert(JSON.stringify(after.shootoutOrder) === JSON.stringify(before.shootoutOrder), `${before.abbreviation} shootout order changed during simulator normalization.`);
+    // The owner's five selected shooters must remain the opening order.
+    // The simulator intentionally appends the remaining dressed skaters for
+    // later sudden-death rounds, without reusing anyone until all have shot.
+    const ownerShooters = before.shootoutOrder;
+    assert(
+      JSON.stringify(after.shootoutOrder.slice(0, ownerShooters.length)) === JSON.stringify(ownerShooters),
+      `${before.abbreviation} owner's opening five shootout shooters changed during normalization.`
+    );
+    assert(
+      after.shootoutOrder.length === after.players.length &&
+      new Set(after.shootoutOrder).size === after.shootoutOrder.length &&
+      after.shootoutOrder.every((id) => after.playerById[id]),
+      `${before.abbreviation} sudden-death shootout roster is incomplete or contains duplicates.`
+    );
     assert(after.lineupSource === before.lineupSource, `${before.abbreviation} lineup source was not preserved.`);
     assert(after.lineupRevision === before.lineupRevision, `${before.abbreviation} lineup revision was not preserved.`);
   }
