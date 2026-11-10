@@ -12,7 +12,8 @@ function gameSample(game,away,home){
     for(const p of s.skaters[id]||[])players.push({
       id:String(p.avhlId||p.id),name:p.name,t:abbr,
       g:Number(p.goals)||0,a:Number(p.assists)||0,
-      p:Number(p.points)||0,s:Number(p.shots)||0,h:Number(p.hits)||0
+      p:Number(p.points)||0,s:Number(p.shots)||0,h:Number(p.hits)||0,
+      tk:Number(p.takeaways)||0,ppg:Number(p.powerPlayGoals)||0,fw:Number(p.faceoffWins)||0
     });
     for(const p of s.goalieRows[id]||[])goalies.push({
       id:String(p.avhlId||p.id),name:p.name,t:abbr,started:Boolean(p.starter),
