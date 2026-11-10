@@ -3355,8 +3355,11 @@ class AVHLGameSimulator {
     // V7: individual glove/stick target abilities and goalie overall are
     // meaningful even against the league's stronger shot creation. This
     // changes genuine save probabilities, not scoring credits or wins.
+    // Center the goalie-skill modifier on the tested league's starter level.
+    // Preserve differentiation without inadvertently suppressing league scoring
+    // and inflating shutouts through an overly strong blanket goalie bonus.
     const goalieTalentEdge = this.clamp(
-      (goalie.overall - 84) * 0.00145 + (targetRating - 84) * 0.00045,
+      (goalie.overall - 87) * 0.00145 + (targetRating - 87) * 0.00045,
       -0.024,
       0.024
     );
