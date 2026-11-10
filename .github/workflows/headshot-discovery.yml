@@ -9,13 +9,17 @@ on:
       - '.github/workflows/headshot-discovery.yml'
   workflow_dispatch:
 
+concurrency:
+  group: avhl-headshot-discovery-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 65
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,6 +46,26 @@ jobs:
           retention-days: 14
       - name: Publish matched, licensed portraits to the headshots PR
         run: |
+          cp public/sim/headshots.json /tmp/avhl-discovered-headshots.json
+          git fetch origin sim-headshots-cc-portraits
+          git reset --hard FETCH_HEAD
+          # Preserve newer manually reviewed photos and independent PR edits;
+          # only add candidate IDs that are not already present on the branch.
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const path = "public/sim/headshots.json";
+          const latest = JSON.parse(fs.readFileSync(path, "utf8"));
+          const discovery = JSON.parse(fs.readFileSync("/tmp/avhl-discovered-headshots.json", "utf8"));
+          latest.playerIds ||= {};
+          let added = 0;
+          for (const [id, record] of Object.entries(discovery.playerIds || {})) {
+            if (latest.playerIds[id] || Object.hasOwn(latest.players || {}, record.name)) continue;
+            latest.playerIds[id] = record;
+            added++;
+          }
+          if (added) fs.writeFileSync(path, JSON.stringify(latest, null, 2) + "\n");
+          console.log("New licensed player photos merged onto latest branch: " + added);
+          NODE
           if git diff --quiet -- public/sim/headshots.json; then
             echo "No new licenses found"
             exit 0
