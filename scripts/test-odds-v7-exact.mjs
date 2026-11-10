@@ -19,6 +19,7 @@ const payload={
 const deliveries=[];
 let resolveDone;
 let rejectDone;
+let resolveDemo;
 let collected=[];
 let sharedReady=null;
 const c={
@@ -31,6 +32,7 @@ const c={
     if(Array.isArray(message.samples))collected=message.samples;
     else if(Array.isArray(message.newSamples))collected.push(...message.newSamples);
     if(message.type==="done")resolveDone?.({...message,samples:collected});
+    if(message.type==="demoDone")resolveDemo?.(message);
     if(message.type==="error")rejectDone?.(new Error(message.error));
   },
   fetch:async uri=>{
@@ -72,6 +74,18 @@ assert.deepEqual(second.samples,first.samples,"same engine/lineups/game index mu
 assert.equal(fairMoneyline(0),"—");
 assert.equal(fairMoneyline(1),"—");
 assert.deepEqual(wilsonInterval(0,0),[0,1]);
+
+// Preview-only demonstration runs real V7 games and reports sample box scores,
+// but never makes a probability claim from those three games.
+const demo=await new Promise((resolve,reject)=>{
+  resolveDemo=resolve;rejectDone=reject;
+  c.onmessage({data:{type:"previewDemo",gameId:230,away:"ARI",home:"ATL"}});
+});
+assert.equal(demo.completed,3);
+assert.equal(demo.results.length,3);
+assert(demo.results.every(game=>Number.isInteger(game.awayScore)&&Number.isInteger(game.homeScore)));
+assert(deliveries.filter(m=>m.type==="demoProgress").length>=3);
+
 
 // Public cache-only mode must deliver a 1,000-game summary without running any
 // V7 games on a visitor's device (the entire motive for 30-minute prewarming).
