@@ -63,9 +63,10 @@ function LeagueFuturesView({ teams, counts, title, eyebrow }) {
 
 export default function OddsFuturesBoard({ mode, schedule, teams }) {
   const workerRef = useRef(null);
-  const [state, setState] = useState({ status: "loading", complete: 0, total: teams.length * (teams.length - 1) * 4, pairs: 0, target: 4, error: "", result: null, seasons: 0 });
+  const [state, setState] = useState({ status: "idle", complete: 0, total: teams.length * (teams.length - 1) * 4, pairs: 0, target: 4, error: "", result: null, seasons: 0 });
   const [requestedSamples, setRequestedSamples] = useState(4);
-  const [paused, setPaused] = useState(false);
+  // Do not start 6,240+ CPU-heavy V7 games just because someone opens a futures tab.
+  const [paused, setPaused] = useState(true);
   const teamBySlug = useMemo(() => Object.fromEntries(teams.map(t => [t.slug, t.abbreviation])), [teams]);
   const remainingPairs = useMemo(() => [...new Set(schedule
     .filter(g => g.awayScore == null && g.homeScore == null)
@@ -137,7 +138,7 @@ export default function OddsFuturesBoard({ mode, schedule, teams }) {
           Completed games remain fixed. This initial full-league calculation is computationally expensive; saved samples resume when you return.
         </p>
         <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
-          Initial futures are provisional: only {state.target} actual V7 games per matchup. Repeated draws from a small sample do not
+          Futures require substantial offline precomputation before public release. This experimental preview uses only {state.target} actual V7 games per matchup. Repeated draws from a small sample do not
           establish precise long-shot or championship probabilities. The estimates should be refined before public release.
         </p>
       </section>
@@ -152,8 +153,8 @@ export default function OddsFuturesBoard({ mode, schedule, teams }) {
             <p className="mt-1 text-xs text-slate-500">
               {state.status === "ready" ? "Empirical V7 futures sample is ready." :
                 state.status === "projecting" ? "Applying official standings, seeding and playoff rules…" :
-                paused ? "Calculation paused. Previously simulated games are saved." :
-                "The first calculation may take considerable time. Keep the tab open, or return later to resume."}
+                paused ? "Calculation not running. Saved V7 samples will be reused when started." :
+                "This experimental calculation is costly. Start it explicitly and return later to resume saved samples."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -163,7 +164,7 @@ export default function OddsFuturesBoard({ mode, schedule, teams }) {
             ) : null}
             {state.status !== "ready" ? <button type="button" onClick={() => setPaused(value => !value)}
               className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-[#000B36]">
-              {paused ? "Resume" : "Pause"}
+              {paused ? (state.pairs ? "Resume calculation" : "Start V7 calculation") : "Pause"}
             </button> : null}
           </div>
         </div>
