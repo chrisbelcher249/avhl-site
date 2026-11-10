@@ -12050,6 +12050,39 @@
       "matchMethod": "wikidata-p18-dob",
       "name": "Garrett Wilson",
       "birthdate": "1991-03-16"
+    },
+    "0023": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/David_Pastr%C5%88%C3%A1k_(2024).jpg?width=128",
+      "author": "Jindřich Nosek (NoJin)",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:David_Pastr%C5%88%C3%A1k_(2024).jpg",
+      "note": "Photograph from 2024; displayed as a cropped thumbnail.",
+      "matchMethod": "manual-commons-review",
+      "name": "David Pastrnak",
+      "birthdate": "1996-05-25"
+    },
+    "0125": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Teuvo_Teravainen_in_2017.jpg?width=128",
+      "author": "Sarah A.",
+      "license": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Teuvo_Teravainen_in_2017.jpg",
+      "note": "Photograph from 2017; displayed as a cropped thumbnail.",
+      "matchMethod": "manual-commons-review",
+      "name": "Teuvo Teravainen",
+      "birthdate": "1994-09-11"
+    },
+    "0113": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Martinook_(51917156919)_(cropped).jpg?width=128",
+      "author": "All-Pro Reels; Commons crop by Denniscabrams",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Martinook_(51917156919)_(cropped).jpg",
+      "note": "Commons crop of an All-Pro Reels photograph; additionally cropped by the AVHL thumbnail display.",
+      "matchMethod": "manual-commons-review",
+      "name": "Jordan Martinook",
+      "birthdate": "1992-07-25"
     }
   }
 }
