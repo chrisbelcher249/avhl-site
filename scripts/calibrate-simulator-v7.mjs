@@ -97,7 +97,31 @@ function simulatorFrom(code) {
   vm.createContext(context);
   vm.runInContext(code, context);
   if (!context.window.AVHLGameSimulator) throw new Error("Simulator constructor missing");
-  return context.window.AVHLGameSimulator;
+  const Simulator = context.window.AVHLGameSimulator;
+  // Instrument actual attempts, on-net shots and goals by manpower state.
+  // Observe the real simulation without adding any random draws or modifying decisions.
+  const originalShot = Simulator.prototype.simulateShot;
+  Simulator.prototype.simulateShot = function(state, teamId, options) {
+    const depth = this.__calibrationShotDepth || 0;
+    const start = depth === 0 ? {
+      situation: this.teamSituation(state, teamId),
+      attempts: state.attempts[teamId], shots: state.shots[teamId], goals: state.score[teamId]
+    } : null;
+    this.__calibrationShotDepth = depth + 1;
+    try {
+      return originalShot.call(this, state, teamId, options);
+    } finally {
+      this.__calibrationShotDepth = depth;
+      if (start) {
+        const bucket = this.__shotByManpower ||= {};
+        const entry = bucket[start.situation] ||= {attempts:0,shots:0,goals:0};
+        entry.attempts += state.attempts[teamId] - start.attempts;
+        entry.shots += state.shots[teamId] - start.shots;
+        entry.goals += state.score[teamId] - start.goals;
+      }
+    }
+  };
+  return Simulator;
 }
 const current = fs.readFileSync("public/sim/simulator.js", "utf8");
 const base = execFileSync("git", ["show", "origin/main:public/sim/simulator.js"], {encoding: "utf8", maxBuffer: 2 * 1024 * 1024});
@@ -112,7 +136,7 @@ for (let i = 0; i < n; i++) {
   games.push({data: {away: teamData[away], home: teamData[home]}, seed: 871000 + i * 37});
 }
 const summarize = (Simulator) => {
- const z = {games: 0, goals: 0, shots: 0, ppGoals: 0, ppOpp: 0, shGoals: 0, defenderGoals: 0, skaterGoals: 0, fShots: 0, dShots: 0, ot: 0, so: 0, shutouts: 0, eng: 0, pts90: 0, gp90: 0, pts95: 0, gp95: 0, shots90: 0, toi90: 0, goalies: 0, goalieGA: 0, goalsWithReplayedScorer:0, eventCount:0 };
+ const z = {games: 0, goals: 0, shots: 0, ppGoals: 0, ppOpp: 0, shGoals: 0, defenderGoals: 0, skaterGoals: 0, fShots: 0, dShots: 0, ot: 0, so: 0, shutouts: 0, eng: 0, pts90: 0, gp90: 0, pts95: 0, gp95: 0, shots90: 0, toi90: 0, goalies: 0, goalieGA: 0, goalsWithReplayedScorer:0, eventCount:0, shotsByStrength: {} };
  for (const fixture of games) {
    // Retain one complete replay; headless mode uses identical hockey mechanics
    // but omits expensive presentation snapshots for distributional testing.
@@ -132,6 +156,12 @@ const summarize = (Simulator) => {
    z.shGoals += s.shorthandedGoals[h] + s.shorthandedGoals[a];
    z.eng += s.goalies[h].emptyNetGoals + s.goalies[a].emptyNetGoals;
    z.eventCount += game.events.length;
+   for (const [strength, numbers] of Object.entries(sim.__shotByManpower || {})) {
+     const v = z.shotsByStrength[strength] ||= {attempts:0,shots:0,goals:0};
+     v.attempts += numbers.attempts;
+     v.shots += numbers.shots;
+     v.goals += numbers.goals;
+   }
    for (const team of [h, a]) {
      z.shutouts += (s.score[team] - (shootout && s.score[team] > s.score[team===h ? a:h] ? 1 : 0)) === 0 ? 1 : 0;
      z.goalieGA += s.goalies[team].goalsAgainst;
@@ -147,7 +177,7 @@ const summarize = (Simulator) => {
    z.goalsWithReplayedScorer += game.events.filter(e => e.type === "goal" && e.replay && e.playerId).length;
  }
  const round = v => Number(v.toFixed(3));
- return {games:z.games, goalsPerTeam:round(z.goals/(2*n)), shotsPerTeam:round(z.shots/(2*n)), powerPlayPct:round(z.ppGoals/Math.max(1,z.ppOpp)*100), PPgoals:z.ppGoals, PPOpp:z.ppOpp, SHgoals:z.shGoals, SHgoalsPerGame:round(z.shGoals/n), defenderGoalSharePct:round(100*z.defenderGoals/Math.max(1,z.skaterGoals)), defenderShotSharePct:round(100*z.dShots/Math.max(1,z.shots)), OTperGamePct:round(100*z.ot/n), OTdecidedPct:round(100*(z.ot-z.so)/Math.max(1,z.ot)), SOgames:z.so, shutoutGamePct:round(100*z.shutouts/n), emptyNetGoalsPerGame:round(z.eng/n), elite90PPG:round(z.pts90/Math.max(1,z.gp90)), elite95PPG:round(z.pts95/Math.max(1,z.gp95)), elite90ShotsPg:round(z.shots90/Math.max(1,z.gp90)), elite90TOImin:round(z.toi90/Math.max(1,z.gp90)/60), goalieGA:z.goalieGA, skaterGoals:z.skaterGoals, totalEvents:z.eventCount, replayedGoals:z.goalsWithReplayedScorer};
+ return {games:z.games, goalsPerTeam:round(z.goals/(2*n)), shotsPerTeam:round(z.shots/(2*n)), powerPlayPct:round(z.ppGoals/Math.max(1,z.ppOpp)*100), PPgoals:z.ppGoals, PPOpp:z.ppOpp, SHgoals:z.shGoals, SHgoalsPerGame:round(z.shGoals/n), defenderGoalSharePct:round(100*z.defenderGoals/Math.max(1,z.skaterGoals)), defenderShotSharePct:round(100*z.dShots/Math.max(1,z.shots)), OTperGamePct:round(100*z.ot/n), OTdecidedPct:round(100*(z.ot-z.so)/Math.max(1,z.ot)), SOgames:z.so, shutoutGamePct:round(100*z.shutouts/n), emptyNetGoalsPerGame:round(z.eng/n), elite90PPG:round(z.pts90/Math.max(1,z.gp90)), elite95PPG:round(z.pts95/Math.max(1,z.gp95)), elite90ShotsPg:round(z.shots90/Math.max(1,z.gp90)), elite90TOImin:round(z.toi90/Math.max(1,z.gp90)/60), goalieGA:z.goalieGA, skaterGoals:z.skaterGoals, totalEvents:z.eventCount, replayedGoals:z.goalsWithReplayedScorer, shootingByStrength:z.shotsByStrength};
 };
 const results = Object.fromEntries(Object.entries(versions).map(([key, Simulator]) => [key, summarize(Simulator)]));
 console.log(JSON.stringify({test:"SIM V7 PAIR-SEEDED CALIBRATION",distinctRosters:names.length,seeds:n,results},null,2));
