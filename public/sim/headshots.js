@@ -27,7 +27,7 @@
       const origin = window.location?.origin || "https://www.avhl.org";
       const parsed = new URL(input, origin);
       if (parsed.protocol !== "https:") return null;
-      if (image && !["commons.wikimedia.org", "upload.wikimedia.org", new URL(origin).hostname].includes(parsed.hostname)) {
+      if (image && !["commons.wikimedia.org", "upload.wikimedia.org", "thumb.wikimedia.org", new URL(origin).hostname].includes(parsed.hostname)) {
         return null;
       }
       return parsed.href;
