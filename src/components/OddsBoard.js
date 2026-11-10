@@ -45,8 +45,8 @@ function OddsRow({label,sub,probability,team}){
     <OddsText probability={probability}/>
   </div>;
 }
-function Panel({title,description,tools,children}){
-  return <section className="min-w-0 rounded-[1.6rem] border border-[#000B36]/10 bg-white p-4 shadow-sm sm:p-5">
+function Panel({title,description,tools,children,wide=false}){
+  return <section className={`min-w-0 rounded-[1.6rem] border border-[#000B36]/10 bg-white p-4 shadow-sm sm:p-5 ${wide?"lg:col-span-2":""}`}>
     <div className="mb-4 flex min-h-[64px] flex-wrap items-center justify-between gap-3">
       <div><h3 className="text-base font-black tracking-tight text-[#000B36]">{title}</h3>
         <p className="mt-1 text-xs leading-5 text-[#000B36]/50">{description}</p></div>
@@ -274,17 +274,17 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate,preview
                 <OddsRow team={home} label={`${home.abbreviation} −${puckLine}`} sub="Cover the spread" probability={marketPuck?.homeCover||0}/>
               </div>
             </Panel>
-            <Panel title="Team goals" description="Individual team totals, single adjustable threshold"
+            <Panel wide title="Team goals" description="Individual team totals, single adjustable threshold"
               tools={<Choice label="Team goals threshold" value={teamLine} onChange={setTeamLine}
               options={selectOptions([1.5,2.5,3.5,4.5])}/>}>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 {[away,home].map(team=><OddsRow key={team.abbreviation} team={team}
                   label={`Over ${teamLine}`} sub={team.abbreviation+" goals"}
                   probability={odds.teamTotals[team.abbreviation]?.find(x=>x.line===Number(teamLine))?.over||0}/>)}
               </div>
             </Panel>
-            <Panel title="Other game markets" description="Outcomes not already reflected by the moneyline">
-              <div className="grid gap-2 sm:grid-cols-2">
+            <Panel wide title="Other game markets" description="Outcomes not already reflected by the moneyline">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <OddsRow label="Overtime" sub="Game reaches OT" probability={odds.ot}/>
                 <OddsRow label="Shootout" sub="Game reaches a shootout" probability={odds.shootout}/>
                 <OddsRow label="Both teams score" sub="At least one each" probability={odds.bothScore}/>
