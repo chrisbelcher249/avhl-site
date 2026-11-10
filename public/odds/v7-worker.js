@@ -90,7 +90,7 @@ function gameSample(game,away,home){
 async function start(message){
   const request = ++activeRequest;
   const {away,home,gameId} = message;
-  const target = Math.max(1,Math.min(512,Math.floor(Number(message.target)||12)));
+  const target = Math.max(1,Math.min(5000,Math.floor(Number(message.target)||1000)));
   if (!/^[A-Z0-9]{2,4}$/.test(away)|| !/^[A-Z0-9]{2,4}$/.test(home)||away===home) {
     throw new Error("Invalid game matchup.");
   }
@@ -101,23 +101,35 @@ async function start(message){
   const key=`v7:${SCHEMA}:${engine}:${home}:${away}:${fnv(JSON.stringify(matchup))}`;
   const samples=await readCache(key);
   if(request!==activeRequest)return;
-  self.postMessage({type:"progress",gameId,key,completed:samples.length,target,samples,fromCache:true});
+  // Restore persisted work once. Subsequent messages report only NEW samples.
+  // Previously sending all accumulated player statistics every two games was
+  // O(n^2) structured-clone traffic and got expensive at 1,000+ games.
+  self.postMessage({type:"progress",gameId,key,completed:samples.length,
+    target:Math.max(target,samples.length),samples,fromCache:true});
+  let unsent=[];
   for(let i=samples.length;i<target;i++){
-    if(request!==activeRequest)break;
+    if(request!==activeRequest)return;
     // Stable independent seed for every distinct game/lineup/version and run.
     const seed=parseInt(fnv(`${key}:${i}`),16);
     const sim=new self.AVHLGameSimulator(structuredClone(matchup),seed,{headless:true});
     const game=sim.simulateGame();
-    samples.push(gameSample(game,away,home));
-    if(samples.length%2===0||samples.length===target){
-      self.postMessage({type:"progress",gameId,key,completed:samples.length,target,samples,fromCache:false});
+    const sample=gameSample(game,away,home);
+    samples.push(sample);
+    unsent.push(sample);
+    if(unsent.length>=5 || samples.length===target){
+      self.postMessage({type:"progress",gameId,key,completed:samples.length,target,
+        newSamples:unsent,fromCache:false});
+      unsent=[];
     }
-    if(samples.length%4===0||samples.length===target)await writeCache(key,samples);
+    // Persist in bounded batches, rather than overwriting a growing array
+    // every few games. If a tab closes, at most 24 unfinished games are lost.
+    if(samples.length%25===0||samples.length===target)await writeCache(key,samples);
     // Give the worker's message queue a turn so navigation can cancel the job.
     await new Promise(resolve=>setTimeout(resolve,0));
   }
-  await writeCache(key,samples);
-  if(request===activeRequest)self.postMessage({type:"done",gameId,key,completed:samples.length,target,samples});
+  if(request===activeRequest)
+    self.postMessage({type:"done",gameId,key,completed:samples.length,target,
+      newSamples:unsent,fromCache:samples.length>=target && !unsent.length});
 }
 
 self.onmessage=(event)=>{
