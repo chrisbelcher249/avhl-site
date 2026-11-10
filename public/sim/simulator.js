@@ -5741,7 +5741,7 @@ class AVHLGameSimulator {
         [this.awayId]: aggregateGoalieStats(this.awayId)
       },
       ratingModel: {
-        version: "V7-dev",
+        version: "V7.0.0",
         syntheticRatings: false,
         skaterRatingsUsed: 26,
         goalieRatingsUsed: 20,
