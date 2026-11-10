@@ -4,7 +4,7 @@
  * Strong match: exact AVHL player name + verified birthdate + Wikidata
  * picture + Commons API license/artist. No fuzzy name-only acceptance.
  * Run: HEADSHOT_LIMIT=80 node scripts/discover-sim-headshots.mjs
- * HEADSHOT_LIMIT=0 selects all 1908 players; HEADSHOT_COMMIT controls git
+ * HEADSHOT_LIMIT=0 selects all still-unmatched players; HEADSHOT_COMMIT controls git
  * in the workflow rather than this script.
  */
 import fs from "node:fs";
@@ -14,9 +14,12 @@ const manifestPath = "public/sim/headshots.json";
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const users = input.players;
 if (input.count !== 1908 || users.length !== 1908) throw new Error("AVHL roster index must have exactly 1908 players");
+manifest.playerIds ||= {};
 
+// Recheck only unfilled IDs. Existing licensed entries are not overwritten.
+const unfilled = users.filter(p => !manifest.playerIds[p.id] && !Object.hasOwn(manifest.players || {}, p.name));
 const limit = Number(process.env.HEADSHOT_LIMIT || 0);
-const selected = limit > 0 ? users.slice(0, Math.min(limit, users.length)) : users;
+const selected = limit > 0 ? unfilled.slice(0, Math.min(limit, unfilled.length)) : unfilled;
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const chunks = (array, size) => { const out=[]; for(let i=0;i<array.length;i+=size)out.push(array.slice(i,i+size)); return out; };
 const clean = value => String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -100,6 +103,56 @@ for (const suffix of suffixes) {
     await pause(300);
   }
 }
+// Second pass: search Wikidata labels/aliases when the English Wikipedia
+// title is different (often diacritics or transliterations). Each accepted
+// result MUST also match the player's exact birthdate and ice-hockey identity.
+// Do not use Commons image-search guesses or names alone.
+const searchRemaining=selected.filter(p => !candidates.has(clean(p.name)));
+const searchLimit=Number(process.env.HEADSHOT_SEARCH_LIMIT || 0);
+const searchTargets=searchLimit > 0 ? searchRemaining.slice(0,searchLimit) : searchRemaining;
+const entityPlayers=new Map();
+console.log("Searching Wikidata labels and aliases for "+searchTargets.length+" remaining players.");
+for(const [index,player] of searchTargets.entries()){
+  const data=await getJSON(wdApi,{
+    action:"wbsearchentities",search:player.name,language:"en",uselang:"en",type:"item",limit:"8"
+  });
+  apiCalls++;
+  for(const hit of data.search || []){
+    if(!/^Q[0-9]+$/.test(hit.id || ""))continue;
+    const matchingLabel=clean(hit.label)===clean(player.name);
+    const matchingAlias=(hit.aliases || []).some(alias => clean(alias)===clean(player.name));
+    if(!matchingLabel && !matchingAlias)continue;
+    const list=entityPlayers.get(hit.id) || [];
+    list.push(player);
+    entityPlayers.set(hit.id,list);
+  }
+  if((index+1)%100===0)console.log("Searched "+(index+1)+"/"+searchTargets.length+" unmatched names");
+}
+let aliasMatches=0;
+for(const ids of chunks([...entityPlayers.keys()],30)){
+  const data=await getJSON(wdApi,{
+    action:"wbgetentities",ids:ids.join("|"),props:"claims|labels|aliases|descriptions",languages:"en"
+  });
+  apiCalls++;
+  for(const item of Object.values(data.entities || {})){
+    if(!item?.id || item.missing)continue;
+    const description=String(item.descriptions?.en?.value || "");
+    if(!/(ice hockey|hockey player|goaltender|ice-hockey)/i.test(description))continue;
+    const names=[item.labels?.en?.value,...(item.aliases?.en || []).map(a=>a.value)].map(clean);
+    const dates=(item.claims?.P569 || []).map(c=>c?.mainsnak?.datavalue?.value)
+      .filter(v=>v?.time && Number(v.precision)>=11).map(v=>v.time.slice(1,11));
+    const image=(item.claims?.P18 || []).map(c=>c?.mainsnak?.datavalue?.value).find(v=>typeof v==="string");
+    if(!image || !dates.length)continue;
+    for(const player of entityPlayers.get(item.id) || []){
+      const key=clean(player.name);
+      if(candidates.has(key) || !names.includes(key) || !dates.includes(player.birth))continue;
+      candidates.set(key,{item,image,matched:[player]});
+      aliasMatches++;
+    }
+  }
+}
+console.log("Wikidata alias pass added "+aliasMatches+" birthdate-verified image candidates.");
+
 const titlesToCheck=[...new Set([...candidates.values()].map(x=>"File:"+x.image))];
 console.log("Matched "+matchNames+" Wikidata identities with P18; checking licensing for "+titlesToCheck.length+" Commons images.");
 
@@ -163,7 +216,7 @@ const remaining=selected.filter(p=>!manifest.playerIds[p.id]&&!Object.hasOwn(man
 const coverage=users.filter(p=>manifest.playerIds[p.id]||Object.hasOwn(manifest.players||{},p.name));
 const report={
   examined:selected.length,totalPlayers:users.length,
-  matchedWikidataNames:matchNames,licensedCandidates:added,
+  matchedWikidataNames:matchNames,aliasCandidateMatches:aliasMatches,aliasSearches:searchTargets.length,licensedCandidates:added,
   preexistingManualPhotos:Object.keys(manifest.players||{}).length,
   byIdPhotos:Object.keys(manifest.playerIds).length,
   allCoveredPlayers:coverage.length,coveragePercent:Number((100*coverage.length/users.length).toFixed(1)),
