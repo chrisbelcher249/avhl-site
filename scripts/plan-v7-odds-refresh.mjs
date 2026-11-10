@@ -39,12 +39,27 @@ async function main() {
     // Local tests only; the production workflow never supplies this variable.
     manifest = JSON.parse(await fs.readFile(fixtureFile,"utf8"));
   } else {
-    const response = await fetch(`${site}/api/odds/upcoming`,{
-      headers:{Accept:"application/json"},cache:"no-store",
-      signal:AbortSignal.timeout(30000),
-    });
-    if (!response.ok) throw new Error(`Live upcoming odds API returned ${response.status}`);
-    manifest=await response.json();
+    let lastFailure;
+    for(let attempt=1;attempt<=3;attempt++){
+      try{
+        const response=await fetch(`${site}/api/odds/upcoming`,{
+          headers:{Accept:"application/json"},cache:"no-store",
+          signal:AbortSignal.timeout(35000),
+        });
+        if(!response.ok)throw new Error(`Live upcoming odds API returned ${response.status}`);
+        const candidate=await response.json();
+        if(!candidate?.ok||candidate.source!=="live")throw new Error("Official live schedule unavailable.");
+        manifest=candidate;
+        break;
+      }catch(error){
+        lastFailure=error;
+        if(attempt<3){
+          console.warn(`Live odds schedule read attempt ${attempt} failed; retrying.`);
+          await new Promise(resolve=>setTimeout(resolve,10000*attempt));
+        }
+      }
+    }
+    if(!manifest)throw lastFailure;
   }
   const selected=selectUpcomingGames(manifest,Math.min(32,Math.max(1,Number(process.env.AVHL_ODDS_MAX_MATCHUPS)||16)));
   const matrix={include:selected.map(({away,home})=>({away,home}))};
