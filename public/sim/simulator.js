@@ -821,7 +821,7 @@ class AVHLGameSimulator {
   possessionTactics(state, teamId) {
     const situation = this.teamSituation(state, teamId);
     if (situation === "PP") return {
-      shoot: 0.415, pass: 0.715, hit: 0.762, takeaway: 0.828, penalty: 0.843, cycle: 0.985
+      shoot: 0.47, pass: 0.75, hit: 0.79, takeaway: 0.841, penalty: 0.856, cycle: 0.985
     };
     if (situation === "PK") return {
       shoot: 0.115, pass: 0.44, hit: 0.61, takeaway: 0.77, penalty: 0.785, cycle: 0.94
@@ -5379,7 +5379,7 @@ class AVHLGameSimulator {
         this.simulateZoneEntry(state, teamId, false);
       } else if (situation === "PK" && roll < 0.56) {
         this.simulateZoneEntry(state, teamId, true);
-      } else if (situation === "PP" && roll < 0.55) {
+      } else if (situation === "PP" && roll < 0.62) {
         this.simulateZoneEntry(state, teamId, false);
       } else if (roll < 0.36) {
         this.simulateZoneEntry(state, teamId, false);
@@ -5448,7 +5448,7 @@ class AVHLGameSimulator {
       this.simulateBreakout(state, teamId);
     } else if (situation === "PK" && roll < 0.60) {
       this.simulateClear(state, teamId);
-    } else if (situation === "PP" && roll < 0.65) {
+    } else if (situation === "PP" && roll < 0.69) {
       this.simulateBreakout(state, teamId);
     } else if (roll < 0.4) {
       this.simulateBreakout(state, teamId);
