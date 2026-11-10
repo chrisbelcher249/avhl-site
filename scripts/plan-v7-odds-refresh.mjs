@@ -32,7 +32,7 @@ export function selectUpcomingGames(manifest, limit = 16) {
 }
 
 async function main() {
-  const site = (process.env.AVHL_ODDS_SITE_URL || "https://avhl.org").replace(/\/+$/,"");
+  const site = (process.env.AVHL_ODDS_SITE_URL || "https://www.avhl.org").replace(/\/+$/,"");
   const fixtureFile = process.env.AVHL_TEST_MANIFEST_FILE;
   let manifest;
   if (fixtureFile) {
