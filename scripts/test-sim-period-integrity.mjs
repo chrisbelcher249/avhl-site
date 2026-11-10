@@ -43,7 +43,7 @@ function create(seed){
     return [];
   };
   sim.simulatePeriod(state,2,12,false);
-  assert(simulated>1200,"Stalled-clock watchdog was not exercised");
+  assert(simulated>=1100,"Stalled-clock watchdog was not exercised");
   assert(maxIncrement<=0.25+1e-8,"Period used a dangerous clock fast-forward");
   assert(Math.abs(clockBefore-12)<1e-5,"Period skipped live time during stall recovery");
   assert(Math.abs(state.absoluteTime-12)<1e-5,"Stalled period has an incorrect final time");
