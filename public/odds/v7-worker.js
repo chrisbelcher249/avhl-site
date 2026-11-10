@@ -7,7 +7,7 @@ importScripts("/sim/team-metadata.js", "/sim/data.js", "/sim/simulator.js", "/od
 
 const CACHE_DB = "avhl-v7-game-odds";
 const CACHE_STORE = "matchups";
-const SCHEMA = 2;
+const SCHEMA = 3;
 let activeRequest = 0;
 let engineHashPromise = null;
 
