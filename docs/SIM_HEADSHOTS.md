@@ -1,6 +1,10 @@
-# AVHL simulator headshots — first incremental pass
+# AVHL simulator headshots — licensed photo discovery (draft)
 
 ## Status and scope
+- **2026-11-10: 1,099 / 1,908 player records (57.6%)** have Commons photograph entries (1,096 exact-ID records, three initial name-keyed manual entries). **809** still have logo/number fallbacks. These are manifest matches, not a guarantee that every image has been manually reviewed or that every external URL will resolve in every browser.
+- The latest discovery code searches Wikidata English Wikipedia titles first, then exact English labels/aliases and checks birthdate + hockey identity before accepting P18 images. Photos without acceptable Commons licensing and author metadata are rejected.
+- Three additional photographer-credit-reviewed entries added this session: David Pastrnak (ID 0023), Jordan Martinook (ID 0113), Teuvo Teravainen (ID 0125). The original three name-keyed photos remain.
+- Discovery workflow is a long-running PR-only GitHub Action. It merges results with the latest branch manifest without clobbering manual records. Newly found entries still need image/attribution spot checks before production release.
 - Display-only feature for the event feed and completed-game skater/goalie tables.
 - **No changes to the V7 game engine, ratings, owner lineups, game export, simulation IDs, or historical replay schemas.**
 - Images are externally hosted at thumbnail resolution and requested lazily in the browser. The Git repository contains only a small JSON manifest with URLs and rights metadata. There are **no image binary files in the site**.
@@ -43,4 +47,4 @@ No assumption is made that every AVHL player has a rights-cleared Commons photo.
 Run `npm run test:headshots`. Existing CI also checks this command. A full browser look at the PR preview should confirm Commons URLs resolve from your network, and that the fallback behaves correctly with unavailable images.
 
 ## Future expansion
-To reach broad roster coverage, obtain rights-cleared portraits or agree an authorized headshot-provider arrangement, then add player/photo entries to the manifest. There should be no automated harvesting of proprietary NHL headshots without rights review.
+To increase coverage, run the identity-checked alias discovery on the PR branch, then review its audit report and inspect samples across leagues. Remaining players without suitable Commons images require independently licensed photos or an authorized headshot-provider arrangement. A 100% coverage guarantee cannot be made from Commons availability alone. There should be no automated harvesting of proprietary NHL headshots without rights review.
