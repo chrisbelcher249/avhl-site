@@ -3471,6 +3471,17 @@
       "name": "Ville Husso",
       "birthdate": "1995-02-06"
     },
+    "1699": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Jeremy_Swayman_(35724913496).jpg?width=128",
+      "author": "Marissa Babin",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Jeremy_Swayman_(35724913496).jpg",
+      "note": "Photographed at Bruins development camp in July 2017; displayed as a cropped thumbnail.",
+      "matchMethod": "manual-commons-review",
+      "name": "Jeremy Swayman",
+      "birthdate": "1998-11-24"
+    },
     "1700": {
       "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Joonas_Korpisalo_hoists_the_Calder_Cup.jpg/250px-Joonas_Korpisalo_hoists_the_Calder_Cup.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
       "author": "TheAHL",
@@ -3734,6 +3745,17 @@
       "matchMethod": "wikidata-p18-dob",
       "name": "Justus Annunen",
       "birthdate": "2000-03-11"
+    },
+    "1732": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Jacob_Markstrom.jpg?width=128",
+      "author": "Tlop2000",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Jacob_Markstrom.jpg",
+      "note": "Photographed October 2021; displayed as a cropped thumbnail.",
+      "matchMethod": "manual-commons-review",
+      "name": "Jacob Markstrom",
+      "birthdate": "1990-01-31"
     },
     "1733": {
       "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Jake_Allen_Award_%28cropped%29.jpg/250px-Jake_Allen_Award_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -12182,6 +12204,28 @@
       "matchMethod": "manual-commons-review",
       "name": "Juraj Slafkovsky",
       "birthdate": "2004-03-30"
+    },
+    "0149": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Necas_2018.jpg?width=128",
+      "author": "OISV",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Necas_2018.jpg",
+      "note": "Photographed during a 2018 interview; displayed as a cropped thumbnail.",
+      "matchMethod": "manual-commons-review",
+      "name": "Martin Necas",
+      "birthdate": "1999-01-15"
+    },
+    "0311": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Matthew_Boldy_2019.jpg?width=128",
+      "author": "Dominic Dobrzensky; Commons crop by Hephaion",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Matthew_Boldy_2019.jpg",
+      "note": "Photographed at the 2019 NHL Entry Draft; Commons crop, additionally cropped for display.",
+      "matchMethod": "manual-commons-review",
+      "name": "Matthew Boldy",
+      "birthdate": "2001-04-05"
     }
   }
 }
