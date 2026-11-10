@@ -83,6 +83,13 @@ async function start(message){
       const response=await fetch(`/api/odds/v7-cache?key=${encodeURIComponent(key)}`,{cache:"no-store"});
       if(response.ok){
         const shared=await response.json();
+        if(shared?.ok && shared.ready && shared.count>=1000 &&
+            shared.summary?.source==="v7-complete-games" &&
+            shared.summary?.count===shared.count){
+          self.postMessage({type:"done",gameId,key,completed:shared.count,target:shared.count,
+            summary:shared.summary,fromCache:true});
+          return;
+        }
         if(shared?.ok && shared.ready && Array.isArray(shared.samples) &&
             shared.samples.length>=1000 && shared.samples.length>samples.length){
           samples=shared.samples;
@@ -111,6 +118,13 @@ async function start(message){
         const response=await fetch(`/api/odds/v7-cache?key=${encodeURIComponent(key)}`,{cache:"no-store"});
         if(!response.ok)continue;
         const shared=await response.json();
+        if(shared?.ok && shared.ready && shared.count>=1000 &&
+            shared.summary?.source==="v7-complete-games" &&
+            shared.summary?.count===shared.count){
+          self.postMessage({type:"done",gameId,key,completed:shared.count,target:shared.count,
+            summary:shared.summary,fromCache:true});
+          return;
+        }
         if(!shared?.ok || !shared.ready || !Array.isArray(shared.samples) || shared.samples.length<1000)continue;
         samples=shared.samples;
         await writeCache(key,samples);
