@@ -172,7 +172,7 @@ if (process.env.CALIBRATE_OT_ONLY === "1") {
   process.exit(0);
 }
 const summarize = (Simulator) => {
- const z = {games: 0, goals: 0, shots: 0, ppGoals: 0, ppOpp: 0, shGoals: 0, defenderGoals: 0, skaterGoals: 0, fShots: 0, dShots: 0, ot: 0, so: 0, shutouts: 0, eng: 0, pts90: 0, gp90: 0, pts95: 0, gp95: 0, shots90: 0, toi90: 0, goalies: 0, goalieGA: 0, goalsWithReplayedScorer:0, eventCount:0, shotsByStrength: {}, goalieSamples: [] };
+ const z = {games: 0, goals: 0, shots: 0, homeWins: 0, watchedSkaters: [], ppGoals: 0, ppOpp: 0, shGoals: 0, defenderGoals: 0, skaterGoals: 0, fShots: 0, dShots: 0, ot: 0, so: 0, shutouts: 0, eng: 0, pts90: 0, gp90: 0, pts95: 0, gp95: 0, shots90: 0, toi90: 0, goalies: 0, goalieGA: 0, goalsWithReplayedScorer:0, eventCount:0, shotsByStrength: {}, goalieSamples: [] };
  for (const fixture of games) {
    // Retain one complete replay; headless mode uses identical hockey mechanics
    // but omits expensive presentation snapshots for distributional testing.
@@ -183,6 +183,7 @@ const summarize = (Simulator) => {
    const shootout = game.events.some(e => e.type === "shootout-start");
    const overtime = game.events.some(e => Number(e.period) === 4);
    z.games++;
+   z.homeWins += s.score[h] > s.score[a] ? 1 : 0;
    z.so += shootout ? 1 : 0;
    z.ot += overtime ? 1 : 0;
    z.goals += s.score[h] + s.score[a] - (shootout ? 1 : 0);
@@ -212,6 +213,9 @@ const summarize = (Simulator) => {
      z.shutouts += (s.score[team] - (shootout && s.score[team] > s.score[team===h ? a:h] ? 1 : 0)) === 0 ? 1 : 0;
      z.goalieGA += s.goalies[team].goalsAgainst;
      for (const sk of s.skaters[team]) {
+       if (["Connor McDavid", "Nathan MacKinnon", "Leon Draisaitl", "Cale Makar", "Auston Matthews"].includes(sk.name)) {
+         z.watchedSkaters.push({name:sk.name,id:String(sk.avhlId || sk.id),overall:sk.overall,points:sk.points,goals:sk.goals,assists:sk.assists,shots:sk.shots,toi:sk.toi});
+       }
        z.skaterGoals += sk.goals;
        const defender = sk.position.includes("D");
        if (defender) {z.defenderGoals += sk.goals; z.dShots += sk.shots;}
