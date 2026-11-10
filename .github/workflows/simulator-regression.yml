@@ -7,6 +7,9 @@ on:
       - "scripts/**"
       - "package.json"
   workflow_dispatch:
+concurrency:
+  group: sim-regression-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   simulator-check:
     runs-on: ubuntu-latest
