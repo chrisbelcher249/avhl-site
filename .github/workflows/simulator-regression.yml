@@ -20,4 +20,5 @@ jobs:
       - run: npm run test:puck-possession
       - run: npm run test:goalie-shutouts
       - run: npm run test:ot-shootout-standings
+      - run: node scripts/test-sim-period-integrity.mjs
       - run: npm run test:sim -- 1
