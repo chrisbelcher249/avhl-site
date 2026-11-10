@@ -12138,6 +12138,50 @@
       "matchMethod": "manual-commons-review",
       "name": "John Beecher",
       "birthdate": "2001-04-05"
+    },
+    "0699": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Alexander_Ovechkin_in_2026_(cropped).jpg?width=128",
+      "author": "Quintin Soloviev",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Alexander_Ovechkin_in_2026_(cropped).jpg",
+      "note": "Photographed February 2026; Commons crop, additionally cropped for thumbnail display.",
+      "matchMethod": "manual-commons-review",
+      "name": "Alex Ovechkin",
+      "birthdate": "1985-09-17"
+    },
+    "0261": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Headshot_of_Aleksander_Barkov.jpg?width=128",
+      "author": "Don Bigileone; Commons crop by Hurrygane",
+      "license": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Headshot_of_Aleksander_Barkov.jpg",
+      "note": "Photographed July 2016; Commons crop, additionally cropped for thumbnail display.",
+      "matchMethod": "manual-commons-review",
+      "name": "Aleksander Barkov",
+      "birthdate": "1995-09-02"
+    },
+    "0289": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Anze_Kopitar_2023-12-16_(cropped).jpg?width=128",
+      "author": "Jenn G; Commons crop by Xgeorg",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Anze_Kopitar_2023-12-16_(cropped).jpg",
+      "note": "Photographed December 2023; Commons crop, additionally cropped for thumbnail display.",
+      "matchMethod": "manual-commons-review",
+      "name": "Anze Kopitar",
+      "birthdate": "1987-08-24"
+    },
+    "0338": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Juraj_Slafkovsk%C3%BD_(52551461180)_(1).jpg?width=128",
+      "author": "Jenn G; Commons crop by SecretName101",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Juraj_Slafkovsk%C3%BD_(52551461180)_(1).jpg",
+      "note": "Photographed December 2022; Commons crop, additionally cropped for thumbnail display.",
+      "matchMethod": "manual-commons-review",
+      "name": "Juraj Slafkovsky",
+      "birthdate": "2004-03-30"
     }
   }
 }
