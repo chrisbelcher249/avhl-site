@@ -96,7 +96,7 @@ for(const titles of chunks(titlesToCheck,35)){
   for(const page of (data.query?.pages||[])){
     const info=page.imageinfo?.[0];
     if(!info||!page.title)continue;
-    infoByFile.set(page.title.replace(/^File:/i,""),info);
+    infoByFile.set(page.title.replace(/^File:/i,"").replace(/_/g, " ").normalize("NFC"),info);
   }
   await pause(130);
 }
@@ -121,10 +121,24 @@ function licensed(info,filename){
 manifest.playerIds ||= {};
 let added=0,licenseSkipped=0,already=0;
 for(const candidate of candidates.values()) {
-  const info=infoByFile.get(candidate.image);
-  if(!info){licenseSkipped++;continue;}
+  const canonicalName = x => String(x || "").replace(/_/g, " ").normalize("NFC");
+  const info=infoByFile.get(candidate.image) || infoByFile.get(canonicalName(candidate.image));
+  if(!info){licenseSkipped++;if(licenseSkipped<=7)console.log("Image metadata unavailable for "+candidate.image);continue;}
   const entry=licensed(info,candidate.image);
-  if(!entry){licenseSkipped++;continue;}
+  if(!entry){
+    licenseSkipped++;
+    if(licenseSkipped<=9) {
+      const md=info.extmetadata||{};
+      console.log("Rejected Commons image",JSON.stringify({
+        filename:candidate.image,mime:info.mime,
+        license:md.LicenseShortName?.value,licenseUrl:md.LicenseUrl?.value,
+        artist:String(md.Artist?.value||"").slice(0,170),
+        thumburl:String(info.thumburl||"").slice(0,145),
+        url:String(info.url||"").slice(0,145)
+      }));
+    }
+    continue;
+  }
   for(const player of candidate.matched) {
     if(manifest.playerIds[player.id] || Object.hasOwn(manifest.players||{},player.name)){already++;continue;}
     manifest.playerIds[player.id]={...entry,name:player.name,birthdate:player.birth};
