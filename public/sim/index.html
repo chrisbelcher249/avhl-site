@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000b36" />
   <title>AVHL Game Simulator V7.0.0</title>
-  <link rel="stylesheet" href="styles.css?v=7.0.0-dev" />
+  <link rel="stylesheet" href="styles.css?v=7.0.1-headshots" />
   <script src="rink.js?v=7.0.0-dev" defer></script>
   <script src="team-metadata.js?v=7.0.0-dev" defer></script>
   <script src="data.js?v=7.0.0-dev" defer></script>
   <script src="simulator.js?v=7.0.0-dev" defer></script>
-  <script src="app.js?v=7.0.0-dev" defer></script>
+  <script src="headshots.js?v=7.0.1-cc" defer></script>
+  <script src="app.js?v=7.0.1-headshots" defer></script>
 </head>
 <body>
   <main class="app-shell">
@@ -419,6 +420,10 @@
     <footer class="site-footer">
       <span>AVHL Game Simulator V7.0.0</span>
       <span>Away left · Home right · selectable sweaters · V2.2 chronological event engine preserved</span>
+      <details id="sim-photo-credits" class="sim-photo-credits" hidden>
+        <summary>Player photo credits</summary>
+        <ul id="sim-photo-credits-list"></ul>
+      </details>
     </footer>
   </main>
 </body>
