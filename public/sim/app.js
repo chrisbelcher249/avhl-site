@@ -796,7 +796,7 @@
         ? `<img class="event-team-logo" src="${escapeHtml(team.assets.logo)}" alt="" onerror="this.remove(); this.parentElement.querySelector('span').hidden=false" /><span hidden>${escapeHtml(player.number ?? initials)}</span>`
         : `<span>${escapeHtml(player.number ?? initials)}</span>`;
     return `
-      <div class="event-player" style="--event-team:${escapeHtml(team.primaryColor)}" title="${escapeHtml(player.name)}">
+      <div class="event-player" data-avhl-photo-name="${escapeHtml(player.name)}" style="--event-team:${escapeHtml(team.primaryColor)}" title="${escapeHtml(player.name)}">
         ${headshot}
       </div>
     `;
@@ -815,6 +815,7 @@
       </div>
     `;
     elements.feed.append(row);
+    window.AVHL_HEADSHOTS?.hydrate(row);
 
     while (elements.feed.children.length > 180) {
       elements.feed.firstElementChild?.remove();
@@ -1449,7 +1450,7 @@
             ${rows.map((row) => {
               const fot = (row.faceoffWins || 0) + (row.faceoffLosses || 0);
               return `<tr>
-                <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)} · ${escapeHtml(row.position)}${row.positionFamiliarity < 1 ? ` · 3% unfamiliar-position penalty` : ""}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${escapeHtml(injuryGamesText(row.injury.gamesMissed))})` : ""}</span></td>
+                <td class="player-name-cell"><span class="boxscore-photo-slot" data-avhl-photo-name="${escapeHtml(row.name)}" aria-hidden="true"></span><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)} · ${escapeHtml(row.position)}${row.positionFamiliarity < 1 ? ` · 3% unfamiliar-position penalty` : ""}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${escapeHtml(injuryGamesText(row.injury.gamesMissed))})` : ""}</span></td>
                 <td>${formatStatTime(row.toi, true)}</td>
                 <td>${row.goals || 0}</td><td>${row.assists || 0}</td><td>${row.points || 0}</td><td>${plusMinusText(row.plusMinus)}</td>
                 <td>${row.shots || 0}</td><td>${skaterShotPercentage(row)}</td><td>${formatStatTime(row.puckPossessionTime, true)}</td><td>${formatPim(row.penaltyMinutes)}</td>
@@ -1476,7 +1477,7 @@
           <thead><tr>${sortableBoxHeaders(GOALIE_BOX_COLUMNS, activeBoxTab)}</tr></thead>
           <tbody>
             ${rows.map((row) => `<tr>
-              <td class="player-name-cell"><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)}${row.starter ? " · Starter" : " · Backup"}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${escapeHtml(injuryGamesText(row.injury.gamesMissed))})` : ""}</span></td>
+              <td class="player-name-cell"><span class="boxscore-photo-slot" data-avhl-photo-name="${escapeHtml(row.name)}" aria-hidden="true"></span><strong>${escapeHtml(row.name)}</strong><span>#${escapeHtml(row.number)}${row.starter ? " · Starter" : " · Backup"}${row.injury ? ` · INJ: ${escapeHtml(row.injury.bodyArea)} (${escapeHtml(injuryGamesText(row.injury.gamesMissed))})` : ""}</span></td>
               <td>${formatStatTime(row.toi, true)}</td><td>${row.shotsAgainst || 0}</td><td>${row.saves || 0}</td><td>${goalieSavePercentageFull(row)}</td>
               <td>${row.goalsAgainst || 0}</td><td>${goalieGaa(row)}</td><td>${row.emptyNetGoals || 0}</td><td>${formatPim(row.penaltyMinutes)}</td>
               <td>${row.goals || 0}</td><td>${row.assists || 0}</td><td>${row.points || 0}</td>
@@ -1494,6 +1495,7 @@
     else if (activeBoxTab === "away-goalies") renderGoalieTable(summary, awayId);
     else if (activeBoxTab === "home-skaters") renderSkaterTable(summary, homeId);
     else if (activeBoxTab === "home-goalies") renderGoalieTable(summary, homeId);
+    window.AVHL_HEADSHOTS?.hydrate(elements.boxScoreContent);
   }
 
   function selectBoxScoreTab(tabName) {
@@ -1989,6 +1991,8 @@
     loadGoalReplay
   };
   initializeLeagueBranding();
+  // Presentation-only photos load independently, never blocking rosters or games.
+  void window.AVHL_HEADSHOTS?.load();
   if (window.AVHL_LOAD_LIVE_BRANDING) {
     try {
       const brandingStatus = await window.AVHL_LOAD_LIVE_BRANDING();
