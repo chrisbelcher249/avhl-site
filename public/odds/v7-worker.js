@@ -165,10 +165,42 @@ async function start(message){
       newSamples:unsent,fromCache:samples.length>=target && !unsent.length});
 }
 
+// Explicit preview smoke test. Three actual full V7 games, with final box
+// scores, never published or used to claim probability estimates.
+async function previewDemo(message) {
+  const request=++activeRequest;
+  const {away,home,gameId}=message;
+  if(!/^[A-Z0-9]{2,4}$/.test(away) || !/^[A-Z0-9]{2,4}$/.test(home) || away===home)
+    throw new Error("Invalid V7 demonstration matchup.");
+  await self.AVHL_LOAD_LIVE_ROSTERS();
+  if(request!==activeRequest)return;
+  const matchup=self.AVHL_CREATE_MATCHUP_DATA(home,away);
+  const results=[];
+  for(let i=0;i<3;i++){
+    if(request!==activeRequest)return;
+    const seed=(Date.now()+i*100003)>>>0;
+    const game=new self.AVHLGameSimulator(structuredClone(matchup),seed,{headless:true}).simulateGame();
+    const s=game.finalSummary;
+    results.push({
+      awayScore:Number(s.score[game.awayId]),homeScore:Number(s.score[game.homeId]),
+      leadingScorers:Object.values(s.skaters||{}).flat()
+        .filter(row=>row.points>0)
+        .sort((a,b)=>b.points-a.points).slice(0,3)
+        .map(row=>({name:row.name,points:row.points}))
+    });
+    self.postMessage({type:"demoProgress",gameId,completed:i+1,target:3,results});
+    await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  if(request===activeRequest)self.postMessage({type:"demoDone",gameId,completed:3,target:3,results});
+}
+
 self.onmessage=(event)=>{
   const message=event.data||{};
   if(message.type==="cancel"){activeRequest++;return;}
   if(message.type==="start")start(message).catch(error=>{
     self.postMessage({type:"error",gameId:message.gameId,error:error instanceof Error?error.message:String(error)});
+  });
+  if(message.type==="previewDemo")previewDemo(message).catch(error=>{
+    self.postMessage({type:"demoError",gameId:message.gameId,error:error instanceof Error?error.message:String(error)});
   });
 };
