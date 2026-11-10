@@ -12083,6 +12083,50 @@
       "matchMethod": "manual-commons-review",
       "name": "Jordan Martinook",
       "birthdate": "1992-07-25"
+    },
+    "0063": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Ji%C5%99%C3%AD_Kulich.jpg?width=128",
+      "author": "TheAHL",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Ji%C5%99%C3%AD_Kulich.jpg",
+      "note": "Official AHL-season portrait released under CC BY 4.0; displayed as a cropped thumbnail.",
+      "matchMethod": "manual-commons-review",
+      "name": "Jiri Kulich",
+      "birthdate": "2004-04-14"
+    },
+    "0030": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mason_Lohrei_Boston_Bruins_2023.jpg?width=128",
+      "author": "Meowwcat",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Mason_Lohrei_Boston_Bruins_2023.jpg",
+      "note": "Photographed at a 2023 Bruins fan event; displayed as a cropped thumbnail.",
+      "matchMethod": "manual-commons-review",
+      "name": "Mason Lohrei",
+      "birthdate": "2001-01-17"
+    },
+    "0084": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Olli_Maatta_2017-10-04.jpg?width=128",
+      "author": "Michael Miller",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Olli_Maatta_2017-10-04.jpg",
+      "note": "Photographed in 2017; displayed as a cropped thumbnail.",
+      "matchMethod": "manual-commons-review",
+      "name": "Olli Maatta",
+      "birthdate": "1994-08-22"
+    },
+    "0126": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Burakovsky_during_Seattle_Kraken_skills_showcase_on_Nov._9%2C_2024_(cropped).jpg?width=128",
+      "author": "Jenn G; Commons crop by Kimikel",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Burakovsky_during_Seattle_Kraken_skills_showcase_on_Nov._9%2C_2024_(cropped).jpg",
+      "note": "Commons crop from 2024 Kraken photograph, additionally cropped in display.",
+      "matchMethod": "manual-commons-review",
+      "name": "Andre Burakovsky",
+      "birthdate": "1995-02-09"
     }
   }
 }
