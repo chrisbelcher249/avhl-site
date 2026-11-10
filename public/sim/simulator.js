@@ -3352,9 +3352,18 @@ class AVHLGameSimulator {
       ? (shot.region === "point" ? -0.018 : shot.region === "high slot" ? -0.024 : -0.027)
       : 0.004;
     const eliteFinish = this.eliteFinishAdjustment(shooter);
+    // V7: individual glove/stick target abilities and goalie overall are
+    // meaningful even against the league's stronger shot creation. This
+    // changes genuine save probabilities, not scoring credits or wins.
+    const goalieTalentEdge = this.clamp(
+      (goalie.overall - 84) * 0.00145 + (targetRating - 84) * 0.00045,
+      -0.024,
+      0.024
+    );
     return this.clamp(
       base +
-      (shooterSkill - goalieSkill) * 0.0022 +
+      (shooterSkill - goalieSkill) * 0.0022 -
+      goalieTalentEdge +
       defenseShotAdjustment + eliteFinish +
       (openness - 0.4) * 0.055 +
       specialTeams +
