@@ -64,16 +64,46 @@ function SampleTable({rows,kind}){
     </table>
   </div>;
 }
-export default function OddsBoard({games,dates,teamDirectory,initialDate}){
+export default function OddsBoard({games,dates,teamDirectory,initialDate,previewOnly=false}){
   const [selectedDate,setSelectedDate]=useState(initialDate||dates[0]||"");
   const [selectedGameId,setSelectedGameId]=useState(null);
   const [marketTab,setMarketTab]=useState("game");
   const [job,setJob]=useState({status:"loading",samples:[],summary:null,completed:0,target:INITIAL_V7_SAMPLES,error:"",cached:false});
   const workerRef=useRef(null);
+  const demoWorkerRef=useRef(null);
+  const [demo,setDemo]=useState({status:"idle",completed:0,results:[],error:""});
   const slate=useMemo(()=>games.filter(g=>g.date===selectedDate),[games,selectedDate]);
   const selected=slate.find(g=>g.id===selectedGameId)||slate[0]||null;
   const away=selected?teamDirectory[selected.away]:null;
   const home=selected?teamDirectory[selected.home]:null;
+
+  useEffect(()=>{
+    if(demoWorkerRef.current){demoWorkerRef.current.terminate();demoWorkerRef.current=null;}
+    setDemo({status:"idle",completed:0,results:[],error:""});
+    return ()=>{if(demoWorkerRef.current){demoWorkerRef.current.terminate();demoWorkerRef.current=null;}};
+  },[selected?.id,away?.abbreviation,home?.abbreviation]);
+
+  function runDemo(){
+    if(!previewOnly||!selected||!home||!away||demo.status==="running")return;
+    if(demoWorkerRef.current)demoWorkerRef.current.terminate();
+    const worker=new Worker("/odds/v7-worker.js");
+    demoWorkerRef.current=worker;
+    setDemo({status:"running",completed:0,results:[],error:""});
+    worker.onmessage=event=>{
+      const data=event.data||{};
+      if(String(data.gameId)!==String(selected.id))return;
+      if(data.type==="demoError"){
+        setDemo(current=>({...current,status:"error",error:data.error||"The V7 demonstration failed."}));
+        worker.terminate();if(demoWorkerRef.current===worker)demoWorkerRef.current=null;
+      }else if(data.type==="demoProgress"||data.type==="demoDone"){
+        setDemo({status:data.type==="demoDone"?"done":"running",
+          completed:data.completed||0,results:data.results||[],error:""});
+        if(data.type==="demoDone"){worker.terminate();if(demoWorkerRef.current===worker)demoWorkerRef.current=null;}
+      }
+    };
+    worker.onerror=()=>setDemo(current=>({...current,status:"error",error:"The V7 demonstration worker failed."}));
+    worker.postMessage({type:"previewDemo",gameId:selected.id,away:away.abbreviation,home:home.abbreviation});
+  }
 
   useEffect(()=>{
     if(!selected||!away||!home)return undefined;
@@ -148,7 +178,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
       {job.status==="error"?<div role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-900">{job.error}</div>:<>
         <div className="mt-6 rounded-2xl bg-slate-50 p-4" aria-live="polite">
           <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="font-black text-[#000B36]">{job.status==="ready"?"V7 odds ready":job.status==="pending"?"Preparing odds on the server…":"Checking current V7 odds…"}</span>
+            <span className="font-black text-[#000B36]">{job.status==="ready"?"V7 odds ready":job.status==="pending"?(previewOnly?"No odds samples generated for this preview":"Waiting for the scheduled server calculation"):"Checking current V7 odds…"}</span>
             <span className="font-bold tabular-nums text-[#000B36]">{job.completed} / {job.target}</span>
           </div>
           <div role="progressbar" aria-valuenow={job.completed} aria-valuemin={0} aria-valuemax={job.target}
@@ -157,10 +187,33 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
           </div>
           <p className="mt-2 text-xs leading-5 text-slate-600">
             {v7SampleCaveat(job.completed)} {job.cached?"Shared precomputed V7 results loaded.":""}
-            {pending?" The scheduled odds job checks upcoming matchups every 30 minutes. You do not need to keep this page open.":""}
+            {pending?(previewOnly?" The 30-minute scheduled calculation is not activated in this draft preview. No odds will appear here until the precompute system is configured.":" Upcoming matchups are checked every 30 minutes; newly changed lineups must be recomputed. You do not need to keep this tab open."):""}
           </p>
 
         </div>
+        {previewOnly&&!odds?<div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-black text-amber-950">Preview: automatic odds generation is not active</p>
+          <p className="mt-1 text-xs leading-5 text-amber-900">
+            This draft has not been published to the main site, so the scheduled batch job has not produced
+            the required 1,000 complete V7 games. The odds page is waiting for a cache that is not yet filled.
+          </p>
+          <button type="button" onClick={runDemo} disabled={demo.status==="running"}
+            className="mt-3 rounded-xl bg-[#000B36] px-4 py-2 text-xs font-black text-white disabled:opacity-60">
+            {demo.status==="running"?"Running V7 demonstration…":"Test the V7 engine with 3 actual games"}
+          </button>
+          {demo.status==="running"||demo.status==="done"?<div className="mt-3" aria-live="polite">
+            <p className="text-xs font-bold text-amber-950">{demo.completed}/3 complete V7 games · Demonstration only, not published odds</p>
+            <div role="progressbar" aria-valuenow={demo.completed} aria-valuemin={0} aria-valuemax={3}
+              aria-label="V7 demonstration games simulated" className="mt-2 h-2 overflow-hidden rounded-full bg-amber-200">
+              <div className="h-full bg-[#18BDFC] transition-[width] duration-300" style={{width:`${Math.round(demo.completed/3*100)}%`}}/>
+            </div>
+            {demo.results.map((sample,i)=><p key={i} className="mt-2 text-xs text-amber-950">
+              Game {i+1}: {away.abbreviation} {sample.awayScore} – {home.abbreviation} {sample.homeScore}
+              {sample.leadingScorers?.length?" · "+sample.leadingScorers.map(p=>`${p.name} ${p.points}P`).join(", "):""}
+            </p>)}
+          </div>:null}
+          {demo.status==="error"?<p role="alert" className="mt-2 text-xs font-bold text-red-700">{demo.error}</p>:null}
+        </div>:null}
         {odds?<div className="mt-6 space-y-5">
           <div className="grid gap-3 sm:grid-cols-2">
             {[[away,odds.awayWin,odds.awayCI,odds.awayMoneyline],[home,odds.homeWin,odds.homeCI,odds.homeMoneyline]].map(([team,p,ci,line])=>
