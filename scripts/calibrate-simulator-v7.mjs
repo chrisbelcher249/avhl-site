@@ -178,7 +178,7 @@ const summarize = (Simulator) => {
    z.goalsWithReplayedScorer += game.events.filter(e => e.type === "goal" && e.replay && e.playerId).length;
  }
  const round = v => Number(v.toFixed(3));
- return {games:z.games, goalsPerTeam:round(z.goals/(2*n)), shotsPerTeam:round(z.shots/(2*n)), powerPlayPct:round(z.ppGoals/Math.max(1,z.ppOpp)*100), PPgoals:z.ppGoals, PPOpp:z.ppOpp, SHgoals:z.shGoals, SHgoalsPerGame:round(z.shGoals/n), defenderGoalSharePct:round(100*z.defenderGoals/Math.max(1,z.skaterGoals)), defenderShotSharePct:round(100*z.dShots/Math.max(1,z.shots)), OTperGamePct:round(100*z.ot/n), OTdecidedPct:round(100*(z.ot-z.so)/Math.max(1,z.ot)), SOgames:z.so, shutoutGamePct:round(100*z.shutouts/n), emptyNetGoalsPerGame:round(z.eng/n), elite90PPG:round(z.pts90/Math.max(1,z.gp90)), elite95PPG:round(z.pts95/Math.max(1,z.gp95)), elite90ShotsPg:round(z.shots90/Math.max(1,z.gp90)), elite90TOImin:round(z.toi90/Math.max(1,z.gp90)/60), goalieGA:z.goalieGA, skaterGoals:z.skaterGoals, totalEvents:z.eventCount, replayedGoals:z.goalsWithReplayedScorer, shootingByStrength:z.shotsByStrength};
+ return {games:z.games, goalsPerTeam:round(z.goals/(2*n)), shotsPerTeam:round(z.shots/(2*n)), powerPlayPct:round(z.ppGoals/Math.max(1,z.ppOpp)*100), PPgoals:z.ppGoals, PPOpp:z.ppOpp, SHgoals:z.shGoals, SHgoalsPerGame:round(z.shGoals/n), defenderGoalSharePct:round(100*z.defenderGoals/Math.max(1,z.skaterGoals)), defenderShotSharePct:round(100*z.dShots/Math.max(1,z.shots)), OTperGamePct:round(100*z.ot/n), OTdecidedPct:round(100*(z.ot-z.so)/Math.max(1,z.ot)), SOgames:z.so, shutoutGamePct:round(100*z.shutouts/n), emptyNetGoalsPerGame:round(z.eng/n), elite90PPG:round(z.pts90/Math.max(1,z.gp90)), elite95PPG:round(z.pts95/Math.max(1,z.gp95)), elite90ShotsPg:round(z.shots90/Math.max(1,z.gp90)), elite90TOImin:round(z.toi90/Math.max(1,z.gp90)/60), goalieGA:z.goalieGA, skaterGoals:z.skaterGoals, totalEvents:z.eventCount, replayedGoals:z.goalsWithReplayedScorer, shootingByStrength:z.shotsByStrength, raw: z};
 };
 // A headless comparison is meaningful only if it generates exactly the same
 // hockey as the full, replay-producing simulator. Check for RNG divergence.
@@ -199,7 +199,9 @@ for (const [label, Simulator] of Object.entries(versions)) {
   if (fingerprint(normal) !== fingerprint(fast)) throw new Error(label + ": headless gameplay differs from complete replay mode");
 }
 const results = Object.fromEntries(Object.entries(versions).map(([key, Simulator]) => [key, summarize(Simulator)]));
-console.log(JSON.stringify({test:"SIM V7 PAIR-SEEDED CALIBRATION",distinctRosters:names.length,seeds:n,offset,results},null,2));
+const report = {test:"SIM V7 PAIR-SEEDED CALIBRATION",distinctRosters:names.length,seeds:n,offset,results};
+console.log(JSON.stringify(report,null,2));
+if (process.env.CALIBRATION_OUTPUT) fs.writeFileSync(process.env.CALIBRATION_OUTPUT, JSON.stringify(report,null,2)+"\n");
 // Safety invariants: all player goals counted and replay source remains available.
 for (const [label,x] of Object.entries(results)) {
   if (!x.replayedGoals || x.skaterGoals < x.goalieGA) throw new Error(label + ": invalid scoring / replay accounting");
