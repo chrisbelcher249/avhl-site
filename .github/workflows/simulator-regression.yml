@@ -25,5 +25,54 @@ jobs:
       - run: npm run test:puck-possession
       - run: npm run test:goalie-shutouts
       - run: npm run test:ot-shootout-standings
+      - run: npm run test:lineups
+      - run: npm run test:sim-lineups
+      - run: npm run test:replays
       - run: npm run test:sim -- 1
-      - run: node scripts/calibrate-simulator-v7.mjs 24
+      - run: node scripts/calibrate-simulator-v7.mjs 8
+
+  distribution-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        offset: [0, 24, 48, 72, 96, 120, 144, 168]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: node scripts/calibrate-simulator-v7.mjs 24 ${{ matrix.offset }}
+        env:
+          CALIBRATION_OUTPUT: result-${{ matrix.offset }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-v7-shard-${{ matrix.offset }}
+          path: result-${{ matrix.offset }}.json
+          retention-days: 14
+
+  distribution-summary:
+    needs: distribution-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sim-v7-shard-*
+          merge-multiple: true
+          path: calibration-results
+      - run: node scripts/aggregate-simulator-v7.mjs calibration-results
+        env:
+          CALIBRATION_EXPECT_SHARDS: "8"
+          CALIBRATION_SUMMARY: sim-v7-calibration-summary.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-v7-192-game-summary
+          path: sim-v7-calibration-summary.json
+          retention-days: 14
