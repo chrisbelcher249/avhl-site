@@ -16,11 +16,23 @@ const photos = window.AVHL_HEADSHOTS;
 
 assert.equal(manifest.version, 1);
 assert.equal(Object.keys(manifest.players).length, 3);
-assert.equal(photos.ingest(manifest), 3, "all three licensed photos should be accepted");
+assert.equal(photos.ingest(manifest), 3 + Object.keys(manifest.playerIds || {}).length, "all licensed photos should be accepted");
 assert.ok(photos.lookup("LOGAN  THOMPSON"));
 assert.ok(photos.lookup("Connor McDavid"));
 assert.equal(photos.lookup("Someone Else"), null, "unknown players retain normal team logo");
 assert.ok(photos.lookup("Logan Thompson").url.includes("commons.wikimedia.org"));
+const sharedPhoto = manifest.players["Connor McDavid"];
+photos.ingest({
+  version: 1, players: {},
+  playerIds: {
+    "0099": { ...sharedPhoto, name: "Sebastian Aho" },
+    "1175": { ...manifest.players["Logan Thompson"], name: "Sebastian Aho" }
+  }
+});
+assert.notEqual(photos.lookup("Sebastian Aho", "0099").url, photos.lookup("Sebastian Aho", "1175").url, "namesake photos must respect AVHL IDs");
+assert.equal(photos.lookup("Sebastian Aho", "0001"), null, "wrong ID must not assign a namesake portrait");
+photos.ingest(manifest);
+
 
 const sample = {
   version: 1,
