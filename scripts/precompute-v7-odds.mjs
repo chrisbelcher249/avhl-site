@@ -17,7 +17,7 @@ if(!Number.isInteger(target)||target<1||target>5000)throw Error("Target must be 
 if(!dry&&target<1000)throw Error("A published odds cache requires 1,000+ V7 games.");
 if(fixture&&!dry)throw Error("Do not publish bundled fixture rosters.");
 if(oidc&&(fixture||dry))throw Error("OIDC publishing only accepts real complete live V7 games.");
-if(oidc&&site!=="https://avhl.org")throw Error("OIDC publisher is restricted to the official AVHL production origin.");
+if(oidc&&!["https://avhl.org","https://www.avhl.org"].includes(site))throw Error("OIDC publisher is restricted to the official AVHL production origin.");
 const redisUrl=process.env.UPSTASH_REDIS_REST_URL||process.env.KV_REST_API_URL||process.env.UPSTASH_REDIS_REST_KV_REST_API_URL;
 const redisToken=process.env.UPSTASH_REDIS_REST_TOKEN||process.env.KV_REST_API_TOKEN||process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN;
 if(!dry&&!oidc&&(!redisUrl||!redisToken))throw Error("Persistent Redis credentials must be configured.");
