@@ -9,14 +9,18 @@ process.env.UPSTASH_REDIS_REST_URL="https://fake-upstash.invalid";
 process.env.UPSTASH_REDIS_REST_TOKEN="test-only-token";
 const key="v7:2:1234abcd:ARI:ATL:abcdef12";
 let cached=[];
+let compact=null;
 let remoteReads=0;
+let sampleReads=0;
 globalThis.fetch=async (_url,options)=>{
   const cmd=JSON.parse(options.body);
   assert.equal(cmd[0],"GET");
-  assert.equal(cmd[1],"avhl:odds:exact:sample:"+key);
+  assert([ "avhl:odds:exact:sample:"+key, "avhl:odds:exact:summary:"+key ].includes(cmd[1]));
   remoteReads++;
+  if(cmd[1].includes(":sample:"))sampleReads++;
+  const value=cmd[1].includes(":summary:")?compact:{samples:cached};
   return {ok:true,status:200,json:async()=>({
-    result:JSON.stringify({samples:cached})
+    result:value==null?null:JSON.stringify(value)
   })};
 };
 try {
@@ -35,7 +39,17 @@ try {
   assert.equal(result.ready,true);
   assert.equal(result.count,1000);
   assert.equal(result.samples.length,1000);
-  console.log("Exact V7 shared cache: PASS (restricted keys, >=1,000 samples, no premature publication).");
+  compact={count:1000,summary:{count:1000,source:"v7-complete-games",homeWin:0.62,awayWin:0.38}};
+  cached=[]; // A small summary alone should now be enough.
+  const readsBefore=sampleReads;
+  const summaryResponse=await GET(new Request("https://site.invalid/api/odds/v7-cache?key="+encodeURIComponent(key)));
+  const summaryResult=await summaryResponse.json();
+  assert.equal(summaryResult.ready,true);
+  assert.equal(summaryResult.count,1000);
+  assert.equal(summaryResult.summary.homeWin,0.62);
+  assert.equal(summaryResult.samples,undefined);
+  assert.equal(sampleReads,readsBefore,"Summary lookup must avoid reading heavy game samples.");
+  console.log("Exact V7 shared cache: PASS (restricted keys, 1k gate, instant compact summary lookup).");
 } finally {
   globalThis.fetch=oldFetch;
   for (const [key,value] of Object.entries({
