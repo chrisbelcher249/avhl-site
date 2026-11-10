@@ -53,7 +53,10 @@ jobs:
         env:
           UPSTASH_REDIS_REST_URL: ${{ secrets.ODDS_UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.ODDS_UPSTASH_REDIS_REST_TOKEN }}
+          AWAY: ${{ inputs.away }}
+          HOME: ${{ inputs.home }}
+          SAMPLES: ${{ inputs.samples }}
         run: |
           node scripts/precompute-v7-odds.mjs \
-            --away "${{ inputs.away }}" --home "${{ inputs.home }}" \
-            --target "${{ inputs.samples }}" --site "https://avhl.org"
+            --away "$AWAY" --home "$HOME" \
+            --target "$SAMPLES" --site "https://avhl.org"
