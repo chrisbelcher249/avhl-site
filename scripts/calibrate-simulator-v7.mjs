@@ -136,6 +136,41 @@ for (let i = offset; i < offset + n; i++) {
   if (away === home) throw new Error("Same team fixture");
   games.push({data: {away: teamData[away], home: teamData[home]}, seed: 871000 + i * 37});
 }
+// Isolated 3-on-3 benchmark: force an opening overtime faceoff instead of
+// waiting for a regulation tie. Uses real bundled 40-team lines/ratings and
+// the exact five-minute sudden-death period engine on both versions.
+if (process.env.CALIBRATE_OT_ONLY === "1") {
+  function overtimeOnly(Simulator) {
+    let decided=0, shots=0, attempts=0, ppGoals=0, goals=0, penalties=0, eventCount=0;
+    for(const fixture of games) {
+      const sim=new Simulator(structuredClone(fixture.data),fixture.seed,{headless:true});
+      sim.resetStats();
+      const state=sim.createInitialState();
+      sim.simulatePeriod(state,4,300,true);
+      const h=sim.homeId,a=sim.awayId;
+      const g=state.score[h]+state.score[a];
+      if(g>1)throw Error("Sudden-death overtime did not stop after its first goal");
+      decided += g>0 ? 1:0;
+      goals+=g;
+      shots+=state.shots[h]+state.shots[a];
+      attempts+=state.attempts[h]+state.attempts[a];
+      ppGoals+=state.powerPlayGoals[h]+state.powerPlayGoals[a];
+      penalties+=sim.events.filter(e=>e.type==="penalty").length;
+      eventCount+=sim.events.length;
+    }
+    return {
+      games:games.length,decided,scoringPct:Number((100*decided/games.length).toFixed(2)),
+      shotsPerOvertime:Number((shots/games.length).toFixed(3)),
+      attemptsPerOvertime:Number((attempts/games.length).toFixed(3)),
+      penalties,ppGoals,goals,eventCount
+    };
+  }
+  const results=Object.fromEntries(Object.entries(versions).map(([label,Simulator])=>[label,overtimeOnly(Simulator)]));
+  const report={test:"AVHL V7 ISOLATED THREE-ON-THREE VALIDATION",games:games.length,offset,results};
+  console.log(JSON.stringify(report,null,2));
+  if(process.env.CALIBRATION_OUTPUT)fs.writeFileSync(process.env.CALIBRATION_OUTPUT,JSON.stringify(report,null,2)+"\n");
+  process.exit(0);
+}
 const summarize = (Simulator) => {
  const z = {games: 0, goals: 0, shots: 0, ppGoals: 0, ppOpp: 0, shGoals: 0, defenderGoals: 0, skaterGoals: 0, fShots: 0, dShots: 0, ot: 0, so: 0, shutouts: 0, eng: 0, pts90: 0, gp90: 0, pts95: 0, gp95: 0, shots90: 0, toi90: 0, goalies: 0, goalieGA: 0, goalsWithReplayedScorer:0, eventCount:0, shotsByStrength: {} };
  for (const fixture of games) {
