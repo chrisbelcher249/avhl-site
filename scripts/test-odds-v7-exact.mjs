@@ -75,25 +75,29 @@ assert.equal(fairMoneyline(0),"—");
 assert.equal(fairMoneyline(1),"—");
 assert.deepEqual(wilsonInterval(0,0),[0,1]);
 
-// Preview-only 12-game layout demonstration runs real V7 games and reports
-// the complete box scores, without bypassing the 1,000-game publishing rule.
-const demo=await new Promise((resolve,reject)=>{
-  resolveDemo=resolve;rejectDone=reject;
-  c.onmessage({data:{type:"previewDemo",gameId:230,away:"ARI",home:"ATL"}});
-});
-assert.equal(demo.completed,12);
-assert.equal(demo.results.length,12);
-assert.equal(demo.samples.length,12);
-const layoutPreview=summarizeV7Samples(demo.samples,"ARI","ATL");
-assert.equal(layoutPreview.count,12);
-assert.equal(layoutPreview.totals.length,7);
-assert.equal(layoutPreview.puckLines.length,2);
-assert(layoutPreview.players.length>=30);
-assert(layoutPreview.goalies.length>=2);
-assert.equal(canPublishV7Odds(layoutPreview.count),false,"12-game preview must never be published.");
-assert(demo.results.every(game=>Number.isInteger(game.awayScore)&&Number.isInteger(game.homeScore)));
-assert(deliveries.filter(m=>m.type==="demoProgress").length>=12);
-
+// Full 12-game design QA is intentionally opt-in, not part of every Vercel
+// deployment build. 12 spatial V7 games are expensive on serverless CI CPUs.
+assert.equal(canPublishV7Odds(12),false);
+if(process.env.AVHL_TEST_ODDS_DESIGN_PREVIEW==="1"){
+  // Preview-only 12-game layout demonstration runs real V7 games and reports
+  // the complete box scores, without bypassing the 1,000-game publishing rule.
+  const demo=await new Promise((resolve,reject)=>{
+    resolveDemo=resolve;rejectDone=reject;
+    c.onmessage({data:{type:"previewDemo",gameId:230,away:"ARI",home:"ATL"}});
+  });
+  assert.equal(demo.completed,12);
+  assert.equal(demo.results.length,12);
+  assert.equal(demo.samples.length,12);
+  const layoutPreview=summarizeV7Samples(demo.samples,"ARI","ATL");
+  assert.equal(layoutPreview.count,12);
+  assert.equal(layoutPreview.totals.length,7);
+  assert.equal(layoutPreview.puckLines.length,2);
+  assert(layoutPreview.players.length>=30);
+  assert(layoutPreview.goalies.length>=2);
+  assert.equal(canPublishV7Odds(layoutPreview.count),false,"12-game preview must never be published.");
+  assert(demo.results.every(game=>Number.isInteger(game.awayScore)&&Number.isInteger(game.homeScore)));
+  assert(deliveries.filter(m=>m.type==="demoProgress").length>=12);
+}
 
 // Public cache-only mode must deliver a 1,000-game summary without running any
 // V7 games on a visitor's device (the entire motive for 30-minute prewarming).
