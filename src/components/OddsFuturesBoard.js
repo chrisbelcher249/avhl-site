@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
-import { buildTeamModel, moneyline } from "@/lib/oddsModel";
-import { FUTURE_RUNS, simulateFutures } from "@/lib/futuresModel";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fairMoneyline } from "@/lib/v7OddsSamples";
+import { FUTURE_RUNS, simulateV7Futures } from "@/lib/futuresModel";
 
 function percentage(count) {
   return count / FUTURE_RUNS;
@@ -23,7 +23,7 @@ function OddsRow({ team, probability, rank }) {
         </div>
       </div>
       <span className="text-right text-sm font-black tabular-nums text-[#000B36]">{(probability * 100).toFixed(probability < 0.01 ? 2 : 1)}%</span>
-      <span className="hidden text-right text-sm font-black tabular-nums text-[#A90117] md:block">{moneyline(probability)}</span>
+      <span className="hidden text-right text-sm font-black tabular-nums text-[#A90117] md:block">{fairMoneyline(probability)}</span>
     </div>
   );
 }
@@ -62,79 +62,132 @@ function LeagueFuturesView({ teams, counts, title, eyebrow }) {
 }
 
 export default function OddsFuturesBoard({ mode, schedule, teams }) {
-  const [state, setState] = useState({ status: "loading", players: [], lineups: {}, error: "" });
+  const workerRef = useRef(null);
+  const [state, setState] = useState({ status: "idle", complete: 0, total: teams.length * (teams.length - 1) * 4, pairs: 0, target: 4, error: "", result: null, seasons: 0 });
+  const [requestedSamples, setRequestedSamples] = useState(4);
+  // Do not start 6,240+ CPU-heavy V7 games just because someone opens a futures tab.
+  const [paused, setPaused] = useState(true);
+  const teamBySlug = useMemo(() => Object.fromEntries(teams.map(t => [t.slug, t.abbreviation])), [teams]);
+  const remainingPairs = useMemo(() => [...new Set(schedule
+    .filter(g => g.awayScore == null && g.homeScore == null)
+    .map(g => `${teamBySlug[g.away]}:${teamBySlug[g.home]}`)
+    .filter(x => !x.includes("undefined")))], [schedule, teamBySlug]);
 
   useEffect(() => {
+    if (paused) return undefined;
     let cancelled = false;
-    async function load() {
-      try {
-        const response = await fetch(`/api/sim-rosters?t=${Date.now()}`, { cache: "no-store" });
-        const payload = await response.json();
-        if (!response.ok || !payload?.ok || !Array.isArray(payload.players)) throw new Error(payload?.error || "Live lineups could not be loaded.");
-        if (cancelled) return;
-        const byTeamName = Object.fromEntries(teams.map((team) => [team.name, team.abbreviation]));
-        const players = payload.players.map((player) => ({ ...player, __teamAbbreviation: byTeamName[player.currentTeam] || "" }));
-        setState({ status: "ready", players, lineups: payload.lineups || {}, error: "" });
-      } catch (error) {
-        if (!cancelled) setState({ status: "error", players: [], lineups: {}, error: error instanceof Error ? error.message : String(error) });
+    const worker = new Worker("/odds/v7-futures-worker.js");
+    workerRef.current = worker;
+    setState(current => ({ ...current, status: "loading", result: null, seasons: 0, error: "", target: requestedSamples }));
+    worker.onmessage = async (event) => {
+      const message = event.data || {};
+      if (cancelled) return;
+      if (message.type === "error") {
+        setState(current => ({ ...current, status: "error", error: message.error || "Unable to simulate exact V7 futures." }));
+        return;
       }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, [teams]);
+      if (message.type === "progress") {
+        setState(current => ({ ...current, status: "running", complete: message.complete, total: message.total, pairs: message.pairs, target: message.target }));
+        return;
+      }
+      if (message.type === "complete") {
+        setState(current => ({ ...current, status: "projecting", complete: message.complete, total: message.total, pairs: message.pairs, target: message.target }));
+        try {
+          const totals = { divisionWins: teams.map(() => 0), presidents: teams.map(() => 0), cups: teams.map(() => 0) };
+          const batch = 300;
+          for (let n = 0; n < FUTURE_RUNS; n += batch) {
+            if (cancelled) return;
+            const count = Math.min(batch, FUTURE_RUNS - n);
+            const segment = simulateV7Futures(schedule, teams, message.pools, count, `batch-${n}`);
+            for (const key of ["divisionWins", "presidents", "cups"])
+              for (let i = 0; i < teams.length; i++) totals[key][i] += segment[key][i];
+            setState(current => ({ ...current, seasons: n + count }));
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+          if (cancelled) return;
+          setState(current => ({
+            ...current, status: "ready",
+            result: { ...totals, remainingGames: schedule.filter(g => g.awayScore == null && g.homeScore == null).length },
+            seasons: FUTURE_RUNS
+          }));
+        } catch (error) {
+          if (!cancelled) setState(current => ({ ...current, status: "error", error: error instanceof Error ? error.message : String(error) }));
+        }
+      }
+    };
+    worker.onerror = () => {
+      if (!cancelled) setState(current => ({ ...current, status: "error", error: "V7 future-sampling worker failed." }));
+    };
+    worker.postMessage({
+      type: "start", teams: teams.map(t => t.abbreviation),
+      remainingPairs, samplesPerMatchup: requestedSamples
+    });
+    return () => { cancelled = true; worker.postMessage({ type: "cancel" }); worker.terminate(); if (workerRef.current === worker) workerRef.current = null; };
+  }, [teams, schedule, remainingPairs, requestedSamples, paused]);
 
-  const result = useMemo(() => {
-    if (state.status !== "ready") return null;
-    try {
-      const models = teams.map((team) => buildTeamModel(team.abbreviation, state.players, state.lineups[team.abbreviation]));
-      return { ...simulateFutures(schedule, teams, models), error: "" };
-    } catch (error) {
-      return { error: error instanceof Error ? error.message : String(error) };
-    }
-  }, [schedule, state, teams]);
-
-  if (state.status === "loading") {
-    return (
-      <div className="rounded-3xl border border-[#000B36]/10 bg-white p-10 text-center shadow-sm">
-        <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-[#18BDFC]" />
-        <p className="mt-4 font-black text-[#000B36]">Running season futures…</p>
-        <p className="mt-1 text-sm text-slate-500">Loading the same live rosters and active lineups used by the AVHL simulator.</p>
-      </div>
-    );
-  }
-  if (state.status === "error" || result?.error) {
-    return (
-      <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-900">
-        <p className="font-black">Futures temporarily unavailable</p>
-        <p className="mt-1 text-sm">{state.error || result?.error}</p>
-      </div>
-    );
-  }
-
+  const progress = state.total ? Math.min(100, 100 * state.complete / state.total) : 0;
+  const result = state.result;
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm md:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#A90117]">Full-season Monte Carlo</p>
-            <h2 className="mt-1 text-2xl font-black text-[#000B36]">{FUTURE_RUNS.toLocaleString()} simulated seasons</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Completed results are locked. Every remaining game is simulated from current live rosters and active lineups, then the official AVHL tiebreakers and playoff seeding rules are applied.
-            </p>
-          </div>
-          <div className="rounded-2xl bg-[#F3F7FB] px-4 py-3 text-right">
-            <p className="text-2xl font-black tabular-nums text-[#000B36]">{result.remainingGames}</p>
-            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#000B36]/35">Games left to model</p>
-          </div>
-        </div>
-        <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
-          Futures assumption: EA-played games and AVHL simulator games are treated as equivalent draws from the same team-strength distribution. These are fair model odds, not sportsbook lines.
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#A90117]">AVHL V7 · Exact gameplay sample pools</p>
+        <h2 className="mt-1 text-2xl font-black text-[#000B36]">Season Futures</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          The old Poisson scoring model is not used here. We first simulate actual V7 games for every ordered team matchup
+          using current owner lineups, then bootstrap {FUTURE_RUNS.toLocaleString()} season and playoff scenarios from those observed results.
+          Completed games remain fixed. This initial full-league calculation is computationally expensive; saved samples resume when you return.
+        </p>
+        <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
+          Futures require substantial offline precomputation before public release. This experimental preview uses only {state.target} actual V7 games per matchup. Repeated draws from a small sample do not
+          establish precise long-shot or championship probabilities. The estimates should be refined before public release.
         </p>
       </section>
-
-      {mode === "divisions" ? <DivisionView teams={teams} counts={result.divisionWins} /> : null}
-      {mode === "presidents" ? <LeagueFuturesView teams={teams} counts={result.presidents} eyebrow="Best regular-season record" title="Presidents' Trophy Odds" /> : null}
-      {mode === "cup" ? <LeagueFuturesView teams={teams} counts={result.cups} eyebrow="League championship" title="Cup Odds" /> : null}
+      <section className="rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm md:p-6" aria-live="polite">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-slate-500">Calculation progress</p>
+            <p className="mt-1 text-lg font-black tabular-nums text-[#000B36]">
+              {state.status === "projecting" || state.status === "ready" ? `${state.seasons.toLocaleString()} / ${FUTURE_RUNS.toLocaleString()} future seasons` :
+                `${state.complete.toLocaleString()} / ${state.total.toLocaleString()} exact V7 games`}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {state.status === "ready" ? "Empirical V7 futures sample is ready." :
+                state.status === "projecting" ? "Applying official standings, seeding and playoff rules…" :
+                paused ? "Calculation not running. Saved V7 samples will be reused when started." :
+                "This experimental calculation is costly. Start it explicitly and return later to resume saved samples."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {state.status === "ready" && requestedSamples < 32 ? (
+              <button type="button" onClick={() => setRequestedSamples(v => Math.min(v * 2, 32))}
+                className="rounded-xl bg-[#000B36] px-4 py-2 text-xs font-black text-white">Refine all matchup pools</button>
+            ) : null}
+            {state.status !== "ready" ? <button type="button" onClick={() => setPaused(value => !value)}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-[#000B36]">
+              {paused ? (state.pairs ? "Resume calculation" : "Start V7 calculation") : "Pause"}
+            </button> : null}
+          </div>
+        </div>
+        <div role="progressbar" aria-label="Futures calculation progress" aria-valuenow={state.status === "projecting" || state.status === "ready" ? state.seasons : state.complete}
+          aria-valuemin={0} aria-valuemax={state.status === "projecting" || state.status === "ready" ? FUTURE_RUNS : state.total}
+          className="mt-4 h-3 overflow-hidden rounded-full bg-slate-200">
+          <div className="h-full rounded-full bg-[#18BDFC] transition-[width] duration-300"
+            style={{ width: `${state.status === "projecting" || state.status === "ready" ? (100 * state.seasons / FUTURE_RUNS) : progress}%` }} />
+        </div>
+        <p className="mt-2 text-xs tabular-nums text-slate-500">{state.pairs} / {teams.length * (teams.length - 1)} matchup orientations sampled · {remainingPairs.length} remaining-season matchup orientations prioritized</p>
+        {state.status === "error" ? <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800">{state.error}</p> : null}
+      </section>
+      {result ? <>
+        <section className="rounded-2xl border border-[#000B36]/10 bg-white p-4 text-sm text-slate-600">
+          {result.remainingGames} schedule games remain. Model odds are fair empirical frequencies, not sportsbook lines.
+          With limited V7 samples per matchup, the futures should be treated as experimental.
+        </section>
+        {mode === "divisions" ? <DivisionView teams={teams} counts={result.divisionWins} /> : null}
+        {mode === "presidents" ? <LeagueFuturesView teams={teams} counts={result.presidents} eyebrow="Best regular-season record" title="Presidents' Trophy Odds" /> : null}
+        {mode === "cup" ? <LeagueFuturesView teams={teams} counts={result.cups} eyebrow="League championship" title="Cup Odds" /> : null}
+      </> : <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm leading-6 text-slate-600">
+        Season percentages are withheld until all required ordered matchups have actual V7 results. No old-model estimates or invented probabilities are substituted.
+      </section>}
     </div>
   );
 }

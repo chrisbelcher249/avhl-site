@@ -70,7 +70,7 @@ export default async function OddsPage() {
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scheduleError}</div>
         ) : null}
         {games.length ? (
-          <OddsBoard games={games} dates={dates} teamDirectory={teamDirectory} initialDate={dates[0]} />
+          <OddsBoard games={games} dates={dates} teamDirectory={teamDirectory} initialDate={dates[0]} previewOnly={process.env.VERCEL_ENV === "preview" || process.env.NODE_ENV !== "production"} />
         ) : (
           <div className="rounded-3xl border border-[#000B36]/10 bg-white p-8 text-center shadow-sm">
             <p className="text-xl font-black">No upcoming games are available to price.</p>

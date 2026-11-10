@@ -15,7 +15,7 @@ const navItems = [
   ["Transactions", "/transactions"],
   ["Draft", "/draft"],
   ["Statistics", "/statistics"],
-  ["Awards", "/awards"],
+  ["Odds", "/odds"],
   ["Rivals", "/rivals"],
   ["League Info", "/info"],
 ];

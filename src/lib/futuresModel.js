@@ -1,4 +1,23 @@
-import { hashString, makeRandom, simulateModelGame } from "./oddsModel.js";
+// RNG is used only to resample cached results of real V7 games, never to
+// manufacture scores or player statistics.
+function hashString(value) {
+  let hash = 2166136261;
+  for (const character of String(value)) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+function makeRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    let x = (state += 0x6d2b79f5);
+    x = Math.imul(x ^ (x >>> 15), x | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 
 export const FUTURE_RUNS = 3000;
 
@@ -58,32 +77,32 @@ function playoffSeeds(conference, teams, records) {
   return [...winners, ...seconds, ...thirds, ...wildCards];
 }
 
-function seriesWinner(a, b, bestOf, models, random) {
+function seriesWinner(a, b, bestOf, models, random, drawGame) {
   const needed = Math.floor(bestOf / 2) + 1;
   let aWins = 0;
   let bWins = 0;
   while (aWins < needed && bWins < needed) {
-    const result = simulateModelGame(models[a], models[b], random);
+    const result = drawGame(models[a], models[b], random);
     if (result.awayScore > result.homeScore) aWins += 1;
     else bWins += 1;
   }
   return aWins > bWins ? a : b;
 }
 
-function conferenceChampion(seeds, models, random) {
+function conferenceChampion(seeds, models, random, drawGame) {
   if (seeds.length < 10) return null;
-  const q89 = seriesWinner(seeds[7], seeds[8], 5, models, random);
-  const q710 = seriesWinner(seeds[6], seeds[9], 5, models, random);
-  const r1a = seriesWinner(seeds[0], q89, 7, models, random);
-  const r1b = seriesWinner(seeds[3], seeds[4], 7, models, random);
-  const r1c = seriesWinner(seeds[1], q710, 7, models, random);
-  const r1d = seriesWinner(seeds[2], seeds[5], 7, models, random);
-  const r2a = seriesWinner(r1a, r1b, 7, models, random);
-  const r2b = seriesWinner(r1c, r1d, 7, models, random);
-  return seriesWinner(r2a, r2b, 7, models, random);
+  const q89 = seriesWinner(seeds[7], seeds[8], 5, models, random, drawGame);
+  const q710 = seriesWinner(seeds[6], seeds[9], 5, models, random, drawGame);
+  const r1a = seriesWinner(seeds[0], q89, 7, models, random, drawGame);
+  const r1b = seriesWinner(seeds[3], seeds[4], 7, models, random, drawGame);
+  const r1c = seriesWinner(seeds[1], q710, 7, models, random, drawGame);
+  const r1d = seriesWinner(seeds[2], seeds[5], 7, models, random, drawGame);
+  const r2a = seriesWinner(r1a, r1b, 7, models, random, drawGame);
+  const r2b = seriesWinner(r1c, r1d, 7, models, random, drawGame);
+  return seriesWinner(r2a, r2b, 7, models, random, drawGame);
 }
 
-export function simulateFutures(schedule, teams, models, runs = FUTURE_RUNS) {
+function simulateFutures(schedule, teams, models, runs = FUTURE_RUNS, drawGame, seedSuffix = "") {
   const teamIndex = Object.fromEntries(teams.map((team, index) => [team.slug, index]));
   const base = teams.map(() => ({ gp: 0, wins: 0, losses: 0, otl: 0, pts: 0, rw: 0, gf: 0, ga: 0 }));
   const remaining = [];
@@ -104,7 +123,7 @@ export function simulateFutures(schedule, teams, models, runs = FUTURE_RUNS) {
   const divisionWins = teams.map(() => 0);
   const presidents = teams.map(() => 0);
   const cups = teams.map(() => 0);
-  const modelFingerprint = models.map((model) => `${model.abbreviation}:${model.lineupRevision}:${model.attack.toFixed(2)}:${model.defending.toFixed(2)}:${model.goalie.toFixed(2)}`).join("|");
+  const modelFingerprint = `V7-EXACT-SAMPLES:${seedSuffix}`;
   const random = makeRandom(hashString(`AVHL-FUTURES:${completedFingerprint.join("|")}:${modelFingerprint}`));
   const divisionNames = [...new Set(teams.map((team) => team.division))];
   const divisionIndexes = Object.fromEntries(divisionNames.map((division) => [division, teams.map((team, index) => ({ team, index })).filter(({ team }) => team.division === division).map(({ index }) => index)]));
@@ -112,7 +131,7 @@ export function simulateFutures(schedule, teams, models, runs = FUTURE_RUNS) {
   for (let run = 0; run < runs; run += 1) {
     const records = base.map((record) => ({ ...record }));
     for (const game of remaining) {
-      const result = simulateModelGame(models[game.away], models[game.home], random);
+      const result = drawGame(models[game.away], models[game.home], random);
       applyGame(records[game.away], records[game.home], result.awayScore, result.homeScore, result.overtime);
     }
 
@@ -126,13 +145,34 @@ export function simulateFutures(schedule, teams, models, runs = FUTURE_RUNS) {
 
     const westSeeds = playoffSeeds("Western", teams, records);
     const eastSeeds = playoffSeeds("Eastern", teams, records);
-    const westChampion = conferenceChampion(westSeeds, models, random);
-    const eastChampion = conferenceChampion(eastSeeds, models, random);
+    const westChampion = conferenceChampion(westSeeds, models, random, drawGame);
+    const eastChampion = conferenceChampion(eastSeeds, models, random, drawGame);
     if (westChampion != null && eastChampion != null) {
-      const champion = seriesWinner(westChampion, eastChampion, 7, models, random);
+      const champion = seriesWinner(westChampion, eastChampion, 7, models, random, drawGame);
       cups[champion] += 1;
     }
   }
 
   return { divisionWins, presidents, cups, remainingGames: remaining.length, runs };
+}
+
+
+// The only supported V7 futures distribution draws observed outcomes from
+// actual V7 simulations of the exact ordered matchup and current lineups.
+// It fails closed when any pair is unsampled; no legacy Poisson fallback.
+export function simulateV7Futures(schedule, teams, pools, runs = FUTURE_RUNS, seedSuffix = "") {
+  const missing = [];
+  for (const away of teams) for (const home of teams) {
+    if (away.abbreviation === home.abbreviation) continue;
+    const key = `${away.abbreviation}:${home.abbreviation}`;
+    if (!Array.isArray(pools[key]) || !pools[key].length) missing.push(key);
+  }
+  if (missing.length) throw new Error(`Exact V7 futures need ${missing.length} additional matchup sample pools.`);
+  const models = teams.map(team => ({ abbreviation: team.abbreviation }));
+  const sampleGame = (away, home, random) => {
+    const row = pools[`${away.abbreviation}:${home.abbreviation}`];
+    const sample = row[Math.min(row.length - 1, Math.floor(random() * row.length))];
+    return {awayScore: sample.a, homeScore: sample.h, overtime: sample.f !== "REG"};
+  };
+  return simulateFutures(schedule, teams, models, runs, sampleGame, seedSuffix);
 }
