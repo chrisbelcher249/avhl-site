@@ -44,11 +44,26 @@ if(fixture){
   lineups:Object.fromEntries(teams.map(t=>[t.abbreviation,recordFromProjected(t.abbreviation,
     buildProjectedLineup(players.filter(p=>p.currentTeam===t.name)))]))};
 }else{
- const response=await fetch(`${site}/api/sim-rosters`,{cache:"no-store"});
- if(!response.ok)throw Error(`Official roster request failed: ${response.status}`);
- roster=await response.json();
- if(!roster.ok||roster.source!=="live"||!Array.isArray(roster.players)||!roster.lineups)
-   throw Error("Live AVHL data unavailable; refusing to fall back to demo players.");
+ let lastError;
+ for(let attempt=1;attempt<=3;attempt++){
+   try{
+     const response=await fetch(`${site}/api/sim-rosters`,{
+       cache:"no-store",signal:AbortSignal.timeout(45000)
+     });
+     if(!response.ok)throw Error(`Official roster request failed: ${response.status}`);
+     const candidate=await response.json();
+     if(!candidate?.ok||candidate.source!=="live"||!Array.isArray(candidate.players)||!candidate.lineups)
+       throw Error("Official live lineups are incomplete.");
+     roster=candidate;break;
+   }catch(error){
+     lastError=error;
+     if(attempt<3){
+       console.warn(`Live V7 roster read attempt ${attempt} failed; retrying.`);
+       await new Promise(resolve=>setTimeout(resolve,15000*attempt));
+     }
+   }
+ }
+ if(!roster)throw lastError;
 }
 const ctx={console,Date,Math,structuredClone,fetch:async u=>{
  if(String(u).startsWith("/api/sim-rosters"))return {ok:true,status:200,json:async()=>roster};
