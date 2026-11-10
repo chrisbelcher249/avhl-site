@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "description": "Only rights-reviewed Creative Commons player photos. These are lightweight external thumbnails, not stored copies.",
+  "players": {
+    "Connor McDavid": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Connor_McDavid_2-FEB-2022.jpg?width=128",
+      "author": "All-Pro Reels",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Connor_McDavid_2-FEB-2022.jpg",
+      "note": "Displayed as a cropped thumbnail."
+    },
+    "Logan Thompson": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Logan_Thompson-September_2024.jpg?width=128",
+      "author": "The Kip",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:Logan_Thompson-September_2024.jpg",
+      "note": "Displayed as a cropped thumbnail."
+    },
+    "Auston Matthews": {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/2022-02-28_Auston_Matthews_(cropped).jpeg?width=128",
+      "author": "All-Pro Reels / Brian Murphy",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "source": "https://commons.wikimedia.org/wiki/File:2022-02-28_Auston_Matthews_(cropped).jpeg",
+      "note": "Source photo cropped; displayed as a square thumbnail."
+    }
+  }
+}
