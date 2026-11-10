@@ -20,6 +20,7 @@ const deliveries=[];
 let resolveDone;
 let rejectDone;
 let collected=[];
+let sharedReady=null;
 const c={
   console,Date,Math,structuredClone,setTimeout,clearTimeout,
   postMessage:original=>{
@@ -35,6 +36,7 @@ const c={
   fetch:async uri=>{
     if(String(uri).startsWith("/api/sim-rosters"))return {ok:true,status:200,json:async()=>payload};
     if(uri==="/sim/simulator.js")return {ok:true,text:async()=>fs.readFileSync("public/sim/simulator.js","utf8")};
+    if(String(uri).startsWith("/api/odds/v7-cache"))return {ok:true,json:async()=>sharedReady||{ok:true,ready:false,count:0}};
     throw new Error("Unrecognized endpoint: "+uri);
   }
 };
@@ -71,6 +73,17 @@ assert.equal(fairMoneyline(0),"—");
 assert.equal(fairMoneyline(1),"—");
 assert.deepEqual(wilsonInterval(0,0),[0,1]);
 
+// Public cache-only mode must deliver a 1,000-game summary without running any
+// V7 games on a visitor's device (the entire motive for 30-minute prewarming).
+sharedReady={ok:true,ready:true,count:1000,summary:{...result,count:1000}};
+const cachedOnly=await new Promise((resolve,reject)=>{
+  collected=[];resolveDone=resolve;rejectDone=reject;
+  c.onmessage({data:{type:"start",gameId:125,away:"ARI",home:"ATL",target:1000,mode:"readOnly"}});
+});
+assert.equal(cachedOnly.summary.count,1000);
+assert.equal(cachedOnly.samples.length,0,"Public cache-only request must not simulate games locally");
+sharedReady=null;
+
 // Invalid owner data is not silently substituted with a projected lineup.
 payload.lineups.ARI={...lineups.ARI,forwards:lineups.ARI.forwards.slice(1)};
 const rejects=[];
@@ -79,4 +92,4 @@ resolveDone=()=>{};
 c.onmessage({data:{type:"start",gameId:124,away:"ARI",home:"ATL",target:1}});
 await new Promise(resolve=>setTimeout(resolve,100));
 assert(rejects.length>0,"invalid lineup must prevent odds calculation");
-console.log("Exact V7 odds worker: PASS (2 real full games, props, deterministic seeds, progress, bad lineup fail-closed).");
+console.log("Exact V7 odds worker: PASS (headless V7 games, zero-CPU read-only summary, deterministic seeds, 1k gate, lineup fail-closed).");
