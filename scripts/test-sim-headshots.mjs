@@ -16,6 +16,23 @@ const photos = window.AVHL_HEADSHOTS;
 
 assert.equal(manifest.version, 1);
 assert.equal(Object.keys(manifest.players).length, 3);
+
+const roster = JSON.parse(fs.readFileSync("data/headshot-roster-index.json", "utf8"));
+assert.equal(roster.count, 1908, "portrait map must use the canonical AVHL roster");
+const canonical = new Map(roster.players.map(p => [p.id, p]));
+assert.equal(canonical.size, roster.count, "AVHL IDs must be unique");
+for (const [id, entry] of Object.entries(manifest.playerIds || {})) {
+  const player = canonical.get(id);
+  assert.ok(player, `unknown photo player ID ${id}`);
+  assert.equal(entry.name, player.name, `wrong name for photo player ID ${id}`);
+  assert.equal(entry.birthdate, player.birth, `wrong birthdate for photo player ID ${id}`);
+  assert.match(entry.license, /^CC (?:BY(?:-SA)?|0)(?: |$)/, `unsupported license for ${id}`);
+  assert.ok(entry.author && entry.source && entry.licenseUrl, `missing photographer credit for ${id}`);
+}
+const covered = roster.players.filter(p => manifest.playerIds?.[p.id] || manifest.players[p.name]);
+assert.equal(new Set(covered.map(p => p.id)).size, covered.length);
+assert.ok(covered.length <= roster.count);
+console.log(`AVHL headshot coverage: ${covered.length}/${roster.count} player IDs (${(100 * covered.length / roster.count).toFixed(1)}%).`);
 assert.equal(photos.ingest(manifest), 3 + Object.keys(manifest.playerIds || {}).length, "all licensed photos should be accepted");
 assert.ok(photos.lookup("LOGAN  THOMPSON"));
 assert.ok(photos.lookup("Connor McDavid"));
