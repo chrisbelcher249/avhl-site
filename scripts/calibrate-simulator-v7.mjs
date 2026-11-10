@@ -172,7 +172,7 @@ if (process.env.CALIBRATE_OT_ONLY === "1") {
   process.exit(0);
 }
 const summarize = (Simulator) => {
- const z = {games: 0, goals: 0, shots: 0, ppGoals: 0, ppOpp: 0, shGoals: 0, defenderGoals: 0, skaterGoals: 0, fShots: 0, dShots: 0, ot: 0, so: 0, shutouts: 0, eng: 0, pts90: 0, gp90: 0, pts95: 0, gp95: 0, shots90: 0, toi90: 0, goalies: 0, goalieGA: 0, goalsWithReplayedScorer:0, eventCount:0, shotsByStrength: {} };
+ const z = {games: 0, goals: 0, shots: 0, ppGoals: 0, ppOpp: 0, shGoals: 0, defenderGoals: 0, skaterGoals: 0, fShots: 0, dShots: 0, ot: 0, so: 0, shutouts: 0, eng: 0, pts90: 0, gp90: 0, pts95: 0, gp95: 0, shots90: 0, toi90: 0, goalies: 0, goalieGA: 0, goalsWithReplayedScorer:0, eventCount:0, shotsByStrength: {}, goalieSamples: [] };
  for (const fixture of games) {
    // Retain one complete replay; headless mode uses identical hockey mechanics
    // but omits expensive presentation snapshots for distributional testing.
@@ -192,6 +192,16 @@ const summarize = (Simulator) => {
    z.shGoals += s.shorthandedGoals[h] + s.shorthandedGoals[a];
    z.eng += s.goalies[h].emptyNetGoals + s.goalies[a].emptyNetGoals;
    z.eventCount += game.events.length;
+   for (const teamId of [h, a]) {
+     for (const goalie of s.goalieRows[teamId] || []) {
+       if (goalie.shotsAgainst > 0) z.goalieSamples.push({
+         id: String(goalie.avhlId || goalie.id), name: goalie.name,
+         overall: Number(goalie.overall),
+         shots: Number(goalie.shotsAgainst), saves: Number(goalie.saves),
+         goals: Number(goalie.goalsAgainst), toi: Number(goalie.toi)
+       });
+     }
+   }
    for (const [strength, numbers] of Object.entries(sim.__shotByManpower || {})) {
      const v = z.shotsByStrength[strength] ||= {attempts:0,shots:0,goals:0};
      v.attempts += numbers.attempts;
