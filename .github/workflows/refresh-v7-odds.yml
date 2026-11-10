@@ -4,9 +4,18 @@ on:
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "public/sim/simulator.js"
+      - "public/odds/v7-sample-extractor.js"
+      - "src/lib/v7OddsSamples.js"
+      - "scripts/precompute-v7-odds.mjs"
+      - ".github/workflows/refresh-v7-odds.yml"
 
 permissions:
   contents: read
+  id-token: write
 
 # Prevent overlapping refreshes writing the same matchup's Redis pool.
 concurrency:
@@ -27,15 +36,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
-      - name: Check shared V7 odds cache is configured
-        env:
-          UPSTASH_REDIS_REST_URL: ${{ secrets.ODDS_UPSTASH_REDIS_REST_URL }}
-          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.ODDS_UPSTASH_REDIS_REST_TOKEN }}
-        run: |
-          if [ -z "$UPSTASH_REDIS_REST_URL" ] || [ -z "$UPSTASH_REDIS_REST_TOKEN" ]; then
-            echo "::error::Configure ODDS_UPSTASH_REDIS_REST_URL and ODDS_UPSTASH_REDIS_REST_TOKEN."
-            exit 1
-          fi
       - name: Select upcoming live schedule matchups
         id: fixtures
         env:
@@ -61,11 +61,9 @@ jobs:
           node-version: "22"
       - name: Refresh only when exact V7 lineup/engine samples are missing
         env:
-          UPSTASH_REDIS_REST_URL: ${{ secrets.ODDS_UPSTASH_REDIS_REST_URL }}
-          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.ODDS_UPSTASH_REDIS_REST_TOKEN }}
           AWAY: ${{ matrix.away }}
           HOME: ${{ matrix.home }}
         run: |
           node scripts/precompute-v7-odds.mjs \
             --away "$AWAY" --home "$HOME" \
-            --target 1000 --site "https://avhl.org"
+            --target 1000 --site "https://avhl.org" --publish-oidc
