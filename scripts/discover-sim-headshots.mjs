@@ -31,21 +31,35 @@ for(const p of selected) {
   byName.set(key,arr);
 }
 
-async function getJSON(base, params, retries=3) {
+let previousApiRequest = 0;
+async function getJSON(base, params, retries=8) {
   const url = base+"?"+new URLSearchParams({...params, format:"json", formatversion:"2"}).toString();
   for(let retry=0;retry<=retries;retry++){
+    const delay=Math.max(0, previousApiRequest+1800-Date.now());
+    if(delay)await pause(delay);
+    previousApiRequest=Date.now();
+    let cooldown=null;
     try{
       const r=await fetch(url,{
         headers:{"User-Agent":"AVHLHeadshots/0.2 (github.com/chrisbelcher249/avhl-site; CC-attributed player thumbnails)","Accept":"application/json"},
-        signal:AbortSignal.timeout(25000)
+        signal:AbortSignal.timeout(30000)
       });
-      if(!r.ok)throw new Error("HTTP "+r.status+" for "+base);
+      if(!r.ok){
+        const err=new Error("HTTP "+r.status+" for "+base);
+        err.status=r.status;
+        cooldown=r.headers.get("retry-after");
+        throw err;
+      }
       const data=await r.json();
       if(data.error)throw new Error("Wiki API error "+JSON.stringify(data.error).slice(0,180));
       return data;
     }catch(err){
       if(retry===retries)throw err;
-      await pause(800*Math.pow(2,retry));
+      const blocked=err.status===429||err.status===503;
+      const suggested=Number(cooldown);
+      const backoff=blocked ? Math.max(25000,Number.isFinite(suggested)&&suggested>0?suggested*1000:0,12000*(retry+1)) : Math.min(25000,1000*Math.pow(2,retry));
+      console.log("Commons/Wikidata request paused after "+err.message+"; retry "+(retry+1)+" in "+Math.ceil(backoff/1000)+"s.");
+      await pause(Math.min(120000,backoff));
     }
   }
 }
@@ -83,7 +97,7 @@ for (const suffix of suffixes) {
       candidates.set(nameKey,{item,image,matched:matching});
       matchNames++;
     }
-    await pause(130);
+    await pause(300);
   }
 }
 const titlesToCheck=[...new Set([...candidates.values()].map(x=>"File:"+x.image))];
@@ -98,7 +112,7 @@ for(const titles of chunks(titlesToCheck,35)){
     if(!info||!page.title)continue;
     infoByFile.set(page.title.replace(/^File:/i,"").replace(/_/g, " ").normalize("NFC"),info);
   }
-  await pause(130);
+  await pause(300);
 }
 const strip = str => String(str||"").replace(/<[^>]*>/g," ")
   .replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n)))
