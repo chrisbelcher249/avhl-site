@@ -821,13 +821,13 @@ class AVHLGameSimulator {
   possessionTactics(state, teamId) {
     const situation = this.teamSituation(state, teamId);
     if (situation === "PP") return {
-      shoot: 0.37, pass: 0.70, hit: 0.75, takeaway: 0.82, penalty: 0.855, cycle: 0.982
+      shoot: 0.37, pass: 0.70, hit: 0.75, takeaway: 0.82, penalty: 0.835, cycle: 0.982
     };
     if (situation === "PK") return {
-      shoot: 0.09, pass: 0.42, hit: 0.60, takeaway: 0.77, penalty: 0.855, cycle: 0.94
+      shoot: 0.09, pass: 0.42, hit: 0.60, takeaway: 0.77, penalty: 0.785, cycle: 0.94
     };
     if (state.period === 4) return {
-      shoot: 0.35, pass: 0.68, hit: 0.73, takeaway: 0.82, penalty: 0.855, cycle: 0.98
+      shoot: 0.35, pass: 0.68, hit: 0.73, takeaway: 0.82, penalty: 0.835, cycle: 0.98
     };
     return {
       shoot: 0.305, pass: 0.575, hit: 0.76, takeaway: 0.84, penalty: 0.855, cycle: 0.96
