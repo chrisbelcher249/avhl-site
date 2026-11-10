@@ -4,6 +4,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { execFileSync } from "node:child_process";
 import { players } from "../data/players.js";
+import { teams } from "../data/teams.js";
 
 function tokens(player) {
   return String(player.position || '').toUpperCase().split(/[\/,\s-]+/).filter(Boolean);
@@ -88,7 +89,7 @@ for (const p of players) {
   else if (p.role === "Skater") n.F++;
   counts.set(name, n);
 }
-const names = [...counts].filter(([, n]) => n.F >= 12 && n.D >= 6 && n.G >= 2).map(([name]) => name).sort();
+const names = teams.map(t => t.name).filter(name => {const n = counts.get(name);return n && n.F >= 12 && n.D >= 6 && n.G >= 2;}).sort();
 if (names.length < 12) throw new Error("Not enough fully staffed bundled rosters: " + names.length);
 function simulatorFrom(code) {
   const context = {window: {}, console, structuredClone, Math, Date};
@@ -113,7 +114,9 @@ for (let i = 0; i < n; i++) {
 const summarize = (Simulator) => {
  const z = {games: 0, goals: 0, shots: 0, ppGoals: 0, ppOpp: 0, shGoals: 0, defenderGoals: 0, skaterGoals: 0, fShots: 0, dShots: 0, ot: 0, so: 0, shutouts: 0, eng: 0, pts90: 0, gp90: 0, pts95: 0, gp95: 0, shots90: 0, toi90: 0, goalies: 0, goalieGA: 0, goalsWithReplayedScorer:0, eventCount:0 };
  for (const fixture of games) {
-   const sim = new Simulator(structuredClone(fixture.data), fixture.seed);
+   // Retain one complete replay; headless mode uses identical hockey mechanics
+   // but omits expensive presentation snapshots for distributional testing.
+   const sim = new Simulator(structuredClone(fixture.data), fixture.seed, {headless: z.games > 0});
    const game = sim.simulateGame();
    const s = game.finalSummary;
    const h = game.homeId, a = game.awayId;
