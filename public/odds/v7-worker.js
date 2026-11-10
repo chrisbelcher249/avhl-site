@@ -99,7 +99,23 @@ async function start(message){
   if(request!==activeRequest)return;
   const matchup=self.AVHL_CREATE_MATCHUP_DATA(home,away);
   const key=`v7:${SCHEMA}:${engine}:${home}:${away}:${fnv(JSON.stringify(matchup))}`;
-  const samples=await readCache(key);
+  let samples=await readCache(key);
+  if(request!==activeRequest)return;
+  // Read the shared precomputed pool before spending CPU on this device.
+  // Never use a pool from a different simulator build or lineup fingerprint.
+  if(samples.length<1000){
+    try{
+      const response=await fetch(`/api/odds/v7-cache?key=${encodeURIComponent(key)}`,{cache:"no-store"});
+      if(response.ok){
+        const shared=await response.json();
+        if(shared?.ok && shared.ready && Array.isArray(shared.samples) &&
+            shared.samples.length>=1000 && shared.samples.length>samples.length){
+          samples=shared.samples;
+          await writeCache(key,samples);
+        }
+      }
+    }catch{/* A cold/unavailable shared cache must not block exact V7 sampling. */}
+  }
   if(request!==activeRequest)return;
   target=Math.max(target,samples.length);
   // Restore persisted work once. Subsequent messages report only NEW samples.
