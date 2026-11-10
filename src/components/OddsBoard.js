@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { INITIAL_V7_SAMPLES, REFINED_V7_SAMPLES, MAX_V7_SAMPLES, fairMoneyline, summarizeV7Samples, v7SampleCaveat } from "@/lib/v7OddsSamples";
+import { INITIAL_V7_SAMPLES, REFINED_V7_SAMPLES, MAX_V7_SAMPLES, canPublishV7Odds, fairMoneyline, summarizeV7Samples, v7SampleCaveat } from "@/lib/v7OddsSamples";
 
 function formatDate(date) {
   const [year, month, day] = String(date).split("-").map(Number);
@@ -104,7 +104,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
   },[selected?.id,away?.abbreviation,home?.abbreviation]);
 
   const odds=useMemo(()=>{
-    if(!selected||!away||!home||job.completed<INITIAL_V7_SAMPLES)return null;
+    if(!selected||!away||!home||!canPublishV7Odds(job.completed))return null;
     return summarizeV7Samples(job.samples,away.abbreviation,home.abbreviation);
   },[job.samples,job.completed,selected?.id,away?.abbreviation,home?.abbreviation]);
   const progress=Math.min(100,job.target?Math.round(100*job.completed/job.target):0);
