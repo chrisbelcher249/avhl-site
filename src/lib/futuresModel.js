@@ -72,15 +72,15 @@ function seriesWinner(a, b, bestOf, models, random, drawGame = simulateModelGame
 
 function conferenceChampion(seeds, models, random, drawGame = simulateModelGame) {
   if (seeds.length < 10) return null;
-  const q89 = seriesWinner(seeds[7], seeds[8], 5, models, random);
-  const q710 = seriesWinner(seeds[6], seeds[9], 5, models, random);
-  const r1a = seriesWinner(seeds[0], q89, 7, models, random);
-  const r1b = seriesWinner(seeds[3], seeds[4], 7, models, random);
-  const r1c = seriesWinner(seeds[1], q710, 7, models, random);
-  const r1d = seriesWinner(seeds[2], seeds[5], 7, models, random);
-  const r2a = seriesWinner(r1a, r1b, 7, models, random);
-  const r2b = seriesWinner(r1c, r1d, 7, models, random);
-  return seriesWinner(r2a, r2b, 7, models, random);
+  const q89 = seriesWinner(seeds[7], seeds[8], 5, models, random, drawGame);
+  const q710 = seriesWinner(seeds[6], seeds[9], 5, models, random, drawGame);
+  const r1a = seriesWinner(seeds[0], q89, 7, models, random, drawGame);
+  const r1b = seriesWinner(seeds[3], seeds[4], 7, models, random, drawGame);
+  const r1c = seriesWinner(seeds[1], q710, 7, models, random, drawGame);
+  const r1d = seriesWinner(seeds[2], seeds[5], 7, models, random, drawGame);
+  const r2a = seriesWinner(r1a, r1b, 7, models, random, drawGame);
+  const r2b = seriesWinner(r1c, r1d, 7, models, random, drawGame);
+  return seriesWinner(r2a, r2b, 7, models, random, drawGame);
 }
 
 export function simulateFutures(schedule, teams, models, runs = FUTURE_RUNS, drawGame = simulateModelGame, seedSuffix = "") {
