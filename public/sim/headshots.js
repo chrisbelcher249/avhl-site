@@ -9,6 +9,7 @@
   "use strict";
 
   const images = new Map();
+  const imagesById = new Map();
   let request = null;
 
   function normalizeName(name) {
@@ -35,32 +36,45 @@
     }
   }
 
+  function verifiedRecord(name, record) {
+    const url = validatedUrl(record?.url, { image: true });
+    const source = validatedUrl(record?.source);
+    const licenseUrl = validatedUrl(record?.licenseUrl);
+    const author = String(record?.author || "").trim();
+    const license = String(record?.license || "").trim();
+    if (!url || !source || !licenseUrl || !author || !license) return null;
+    return { name, url, source, licenseUrl, author, license, note: String(record.note || "") };
+  }
+
   function ingest(manifest) {
     images.clear();
+    imagesById.clear();
     if (manifest?.version !== 1 || !manifest.players || typeof manifest.players !== "object" || Array.isArray(manifest.players)) return 0;
     for (const [name, record] of Object.entries(manifest.players)) {
       const key = normalizeName(name);
-      const url = validatedUrl(record?.url, { image: true });
-      const source = validatedUrl(record?.source);
-      const licenseUrl = validatedUrl(record?.licenseUrl);
-      const author = String(record?.author || "").trim();
-      const license = String(record?.license || "").trim();
-      if (!key || !url || !source || !licenseUrl || !author || !license) continue;
-      images.set(key, { name, url, source, licenseUrl, author, license, note: String(record.note || "") });
+      const verified = verifiedRecord(name, record);
+      if (key && verified) images.set(key, verified);
     }
-    return images.size;
+    for (const [id, record] of Object.entries(manifest.playerIds || {})) {
+      if (!/^\d{4}$/.test(id)) continue;
+      const verified = verifiedRecord(String(record.name || ""), record);
+      if (verified) imagesById.set(id, verified);
+    }
+    return images.size + imagesById.size;
   }
 
-  function lookup(name) {
+  function lookup(name, avhlId = null) {
+    const id = String(avhlId == null ? "" : avhlId).padStart(4, "0");
+    if (imagesById.has(id)) return imagesById.get(id);
     return images.get(normalizeName(name)) || null;
   }
 
   function hydrate(scope = document) {
-    if (!scope?.querySelectorAll || images.size === 0) return;
+    if (!scope?.querySelectorAll || images.size + imagesById.size === 0) return;
     const candidates = scope.querySelectorAll("[data-avhl-photo-name]");
     for (const target of candidates) {
       if (target.dataset.avhlPhotoLoaded === "1" || target.dataset.avhlPhotoLoaded === "error") continue;
-      const entry = lookup(target.dataset.avhlPhotoName);
+      const entry = lookup(target.dataset.avhlPhotoName, target.dataset.avhlPhotoId);
       if (!entry) continue;
       target.dataset.avhlPhotoLoaded = "1";
       const img = document.createElement("img");
@@ -87,9 +101,14 @@
     const details = document.getElementById("sim-photo-credits");
     const list = document.getElementById("sim-photo-credits-list");
     if (!details || !list) return;
-    list.replaceChildren();
-    details.hidden = images.size === 0;
-    for (const entry of images.values()) {
+    details.hidden = images.size + imagesById.size === 0;
+    const render = () => {
+      if (!details.open) return;
+      list.replaceChildren();
+      const credited = new Set();
+      for (const entry of [...images.values(), ...imagesById.values()]) {
+        if (credited.has(entry.url)) continue;
+        credited.add(entry.url);
       const li = document.createElement("li");
       li.append(document.createTextNode(entry.name + " — " + entry.author + ", "));
       const source = document.createElement("a");
@@ -104,8 +123,14 @@
       license.textContent = entry.license;
       li.append(source, document.createTextNode(" · "), license);
       if (entry.note) li.append(document.createTextNode(" · " + entry.note));
-      list.append(li);
+        list.append(li);
+      }
+    };
+    if (!details.dataset.avhlPhotoCreditsBound) {
+      details.addEventListener("toggle", render);
+      details.dataset.avhlPhotoCreditsBound = "1";
     }
+    render();
   }
 
   async function load() {
