@@ -5529,18 +5529,41 @@ class AVHLGameSimulator {
     );
     this.simulateFaceoff(state, { x: 100, y: 42.5 }, "period start");
 
-    let safetyCounter = 0;
-    while (state.clock > 0 && safetyCounter < 1200) {
-      safetyCounter += 1;
+    // V7: no hard event-count timeout may silently fast-forward the clock.
+    // Long stoppage/faceoff sequences can legitimately require >1,200 actions.
+    // Only actual clock movement can complete regulation or non-scoring OT.
+    let periodSteps = 0;
+    let stagnantSteps = 0;
+    const maximumSteps = Math.max(10000, Math.ceil(lengthSeconds * 12));
+    while (state.clock > 0.0001) {
+      const clockBefore = state.clock;
       const scoreBefore = { ...state.score };
       this.simulatePossessionStep(state);
+      periodSteps += 1;
       if (overtime && (state.score[this.homeId] !== scoreBefore[this.homeId] || state.score[this.awayId] !== scoreBefore[this.awayId])) {
         state.clock = 0;
         return true;
       }
+      // Repeated zero-time stoppages should never exhaust the old 1,200
+      // action budget. Keep simulation moving in small, physically tracked
+      // increments rather than deleting all unplayed minutes.
+      if (state.clock >= clockBefore - 0.000001) {
+        stagnantSteps += 1;
+        if (stagnantSteps >= 24) {
+          this.advanceClock(state, Math.min(0.25, state.clock), "play");
+          stagnantSteps = 0;
+        }
+      } else {
+        stagnantSteps = 0;
+      }
+      if (periodSteps > maximumSteps && state.clock > 0.0001) {
+        // Never publish an invalid final score or replay with missing minutes.
+        throw new Error(
+          `Simulation could not finish ${this.periodLabel(period)} period: ${this.formatClock(state.clock)} remaining after ${periodSteps} steps.`
+        );
+      }
     }
 
-    if (state.clock > 0) this.advanceClock(state, state.clock, "play");
     state.clock = 0;
     this.addEvent(state, "period-end", `${this.periodLabel(period)} period ends.`);
     return false;
