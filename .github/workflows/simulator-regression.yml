@@ -42,7 +42,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: node scripts/calibrate-simulator-v7.mjs 160
+      - run: node scripts/calibrate-simulator-v7.mjs 320 192
         env:
           CALIBRATE_OT_ONLY: "1"
 
@@ -53,7 +53,7 @@ jobs:
       fail-fast: false
       max-parallel: 8
       matrix:
-        offset: [0, 24, 48, 72, 96, 120, 144, 168]
+        offset: [192, 232, 272, 312, 352, 392, 432, 472]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,7 +62,7 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
-      - run: node scripts/calibrate-simulator-v7.mjs 24 ${{ matrix.offset }}
+      - run: node scripts/calibrate-simulator-v7.mjs 40 ${{ matrix.offset }}
         env:
           CALIBRATION_OUTPUT: result-${{ matrix.offset }}.json
       - uses: actions/upload-artifact@v4
@@ -85,9 +85,9 @@ jobs:
       - run: node scripts/aggregate-simulator-v7.mjs calibration-results
         env:
           CALIBRATION_EXPECT_SHARDS: "8"
-          CALIBRATION_SUMMARY: sim-v7-calibration-summary.json
+          CALIBRATION_SUMMARY: sim-v7-final-calibration-summary.json
       - uses: actions/upload-artifact@v4
         with:
-          name: sim-v7-192-game-summary
-          path: sim-v7-calibration-summary.json
+          name: sim-v7-final-320-game-summary
+          path: sim-v7-final-calibration-summary.json
           retention-days: 14
