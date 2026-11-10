@@ -2976,7 +2976,12 @@ class AVHLGameSimulator {
       carrier.passing * 0.32 + carrier.puckControl * 0.24 + carrier.poise * 0.16 +
       carrier.defensiveAwareness * 0.12 + carrier.agility * 0.08 + carrier.acceleration * 0.08;
     const success = this.random.chance(
-      this.clamp(0.71 + (breakoutSkill - 82) * 0.011 - pressure * 0.21 - carrier.fatigue * 0.05, 0.4, 0.92)
+      this.clamp(
+        0.71 + (breakoutSkill - 82) * 0.011 - pressure * 0.21 - carrier.fatigue * 0.05 +
+        (this.teamSituation(state, teamId) === "PP" ? 0.055 : 0),
+        0.4,
+        0.94
+      )
     );
 
     if (success) {
@@ -5367,10 +5372,15 @@ class AVHLGameSimulator {
     }
 
     if (zone === "NZ") {
-      // Shorthanded skaters usually dump the puck and pursue a change rather
-      // than attempt repeated controlled entries while down a skater.
-      if (situation === "PK" && roll < 0.56) {
+      // Most shorthanded entries are dumps, but a quick skilled counterattack
+      // is still possible. On the PP, control the blue line instead of
+      // voluntarily giving up possession on repeated dump-ins.
+      if (situation === "PK" && roll < 0.12) {
+        this.simulateZoneEntry(state, teamId, false);
+      } else if (situation === "PK" && roll < 0.56) {
         this.simulateZoneEntry(state, teamId, true);
+      } else if (situation === "PP" && roll < 0.55) {
+        this.simulateZoneEntry(state, teamId, false);
       } else if (roll < 0.36) {
         this.simulateZoneEntry(state, teamId, false);
       } else if (roll < 0.515) {
@@ -5434,8 +5444,12 @@ class AVHLGameSimulator {
       return;
     }
 
-    if (situation === "PK" && roll < 0.60) {
+    if (situation === "PK" && roll < 0.12) {
+      this.simulateBreakout(state, teamId);
+    } else if (situation === "PK" && roll < 0.60) {
       this.simulateClear(state, teamId);
+    } else if (situation === "PP" && roll < 0.65) {
+      this.simulateBreakout(state, teamId);
     } else if (roll < 0.4) {
       this.simulateBreakout(state, teamId);
     } else if (roll < 0.6) {
