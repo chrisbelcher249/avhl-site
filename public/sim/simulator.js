@@ -3358,8 +3358,19 @@ class AVHLGameSimulator {
     // Center the goalie-skill modifier on the tested league's starter level.
     // Preserve differentiation without inadvertently suppressing league scoring
     // and inflating shutouts through an overly strong blanket goalie bonus.
+    // V7 trial: higher-rated starters gain a small *nonlinear* advantage,
+    // analogous to elite skater creation, without modifying any player rating.
+    // The capped curve leaves mid-tier results almost unchanged and makes
+    // 90+ overall shot-stoppers increasingly difficult to beat.
+    const eliteGoalieEdge = this.clamp(
+      0.0016 * Math.expm1((goalie.overall - 85) * 0.18) - 0.0003,
+      -0.003,
+      0.0075
+    );
     const goalieTalentEdge = this.clamp(
-      (goalie.overall - 87) * 0.00145 + (targetRating - 87) * 0.00045,
+      (goalie.overall - 87) * 0.00145 +
+      (targetRating - 87) * 0.00045 +
+      eliteGoalieEdge,
       -0.024,
       0.024
     );
