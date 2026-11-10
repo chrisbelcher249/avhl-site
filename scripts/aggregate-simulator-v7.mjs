@@ -46,9 +46,18 @@ function merge(label) {
     for(const g of xs){const x=g[xKey]-xm,y=g[yKey]-ym;top+=x*y;xx+=x*x;yy+=y*y;}
     return xx*yy ? Number((top/Math.sqrt(xx*yy)).toFixed(4)):null;
   };
+  const watchedGoalie=counted.find(g=>g.name==="Logan Thompson");
   const goalieSummary={
     eligibleGoalies:counted.length,
     correlationOverallSavePct:pearson(counted,"overall","savePct"),
+    loganThompson: watchedGoalie ? {
+      overall:watchedGoalie.overall,
+      appearances:watchedGoalie.appearances,
+      shots:watchedGoalie.shots,
+      saves:watchedGoalie.saves,
+      savePct:Number(watchedGoalie.savePct.toFixed(4)),
+      goalsAgainst:watchedGoalie.goals
+    } : null,
     highRated:counted.filter(g=>g.overall>=88).length,
     highRatedSavePct: (()=>{const arr=counted.filter(g=>g.overall>=88);return arr.length?Number((arr.reduce((s,g)=>s+g.saves,0)/arr.reduce((s,g)=>s+g.shots,0)).toFixed(4)):null;})(),
     lowRated:counted.filter(g=>g.overall<83).length,
