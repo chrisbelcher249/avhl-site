@@ -1,8 +1,8 @@
 // Odds are measured from complete, unmodified V7 game simulations.
 // No independent score-generation or player-performance model is used here.
-export const INITIAL_V7_SAMPLES = 12;
-export const REFINED_V7_SAMPLES = 48;
-export const MAX_V7_SAMPLES = 512;
+export const INITIAL_V7_SAMPLES = 1000;
+export const REFINED_V7_SAMPLES = 2000;
+export const MAX_V7_SAMPLES = 5000;
 
 const divide = (value, total) => total ? value / total : 0;
 const pct = (value, total) => divide(value, total);
@@ -103,8 +103,8 @@ export function summarizeV7Samples(samples, away, home) {
 }
 
 export function v7SampleCaveat(n) {
-  if (n<INITIAL_V7_SAMPLES) return "Building an initial sample — probabilities are not ready.";
-  if (n<REFINED_V7_SAMPLES) return "Early estimate. Sampling uncertainty remains substantial.";
-  if (n<192) return "Based on actual V7 games; uncommon player outcomes still have high uncertainty.";
+  if (n<INITIAL_V7_SAMPLES) return "Building the minimum 1,000 complete V7 games. Odds remain hidden until then.";
+  if (n<REFINED_V7_SAMPLES) return "Minimum 1,000-game sample reached. Uncommon player outcomes still have high sampling uncertainty.";
+  if (n<MAX_V7_SAMPLES) return "Based on complete V7 games; sampling intervals remain especially wide for rare events.";
   return "Based on actual V7 games. These are model estimates, not guaranteed outcomes.";
 }
