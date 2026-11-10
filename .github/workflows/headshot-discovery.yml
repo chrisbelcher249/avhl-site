@@ -1,0 +1,42 @@
+name: Discover licensed AVHL player portraits
+
+on:
+  push:
+    branches: [sim-headshots-cc-portraits]
+    paths:
+      - 'scripts/discover-sim-headshots.mjs'
+      - 'data/headshot-roster-index.json'
+      - '.github/workflows/headshot-discovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check scripts and headshot compatibility
+        run: |
+          node --check scripts/discover-sim-headshots.mjs
+          node --check public/sim/headshots.js
+          node scripts/test-sim-headshots.mjs
+      - name: Discover copyright-cleared photos
+        env:
+          HEADSHOT_LIMIT: "80"
+          HEADSHOT_REPORT: headshot-discovery-report.json
+        run: node scripts/discover-sim-headshots.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: licensed-headshots-smoke-report
+          path: |
+            headshot-discovery-report.json
+            public/sim/headshots.json
+          retention-days: 14
