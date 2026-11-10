@@ -14,7 +14,7 @@
     "test:replays": "node scripts/test-replay-storage.mjs",
     "test:sns-replays": "node scripts/test-sns-replay-links.mjs",
     "test:puck-possession": "node scripts/test-puck-possession.mjs",
-    "prebuild": "npm run test:puck-possession && npm run test:ot-shootout-standings && npm run test:goalie-shutouts && npm run test:goalie-starts && npm run test:goalie-decisions && npm run test:team-stats-sorting && npm run test:schedule-archives && npm run test:upcoming-game-venue && npm run test:cap-accounting && npm run test:transactions && npm run test:odds-v7-exact && npm run test:odds-v7-futures && npm run test:odds-v7-cache && npm run test:odds-v7-refresh",
+    "prebuild": "npm run test:puck-possession && npm run test:ot-shootout-standings && npm run test:goalie-shutouts && npm run test:goalie-starts && npm run test:goalie-decisions && npm run test:team-stats-sorting && npm run test:schedule-archives && npm run test:upcoming-game-venue && npm run test:cap-accounting && npm run test:transactions && npm run test:odds-v7-exact && npm run test:odds-v7-futures && npm run test:odds-v7-cache && npm run test:odds-v7-refresh && npm run test:odds-v7-markets",
     "test:ot-shootout-standings": "node scripts/test-ot-shootout-standings.mjs",
     "test:goalie-shutouts": "node scripts/test-goalie-shutouts.mjs",
     "test:goalie-starts": "node scripts/test-goalie-starts.mjs",
@@ -27,7 +27,8 @@
     "test:odds-v7-exact": "node scripts/test-odds-v7-exact.mjs",
     "test:odds-v7-futures": "node scripts/test-odds-v7-futures.mjs",
     "test:odds-v7-cache": "node scripts/test-odds-v7-shared-cache.mjs",
-    "test:odds-v7-refresh": "node scripts/test-odds-v7-refresh.mjs"
+    "test:odds-v7-refresh": "node scripts/test-odds-v7-refresh.mjs",
+    "test:odds-v7-markets": "node scripts/test-odds-v7-markets.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
