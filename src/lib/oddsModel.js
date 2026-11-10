@@ -167,8 +167,9 @@ export function buildTeamModel(abbreviation, roster, lineup) {
   const discipline = weightedAverage([...forwards, ...defense], (row) => rating(row.player, "Discipline"));
   const pace = weightedAverage([...forwards, ...defense], (row) => (rating(row.player, "Speed") + rating(row.player, "Acceleration") + rating(row.player, "Agility")) / 3);
 
-  const attack = forwardOffense * 0.64 + defenseOffense * 0.16 + ((pp1 * 0.62 + pp2 * 0.38)) * 0.16 + faceoffs * 0.04;
-  const defending = forwardDefense * 0.24 + defenseDefense * 0.50 + ((pk1 * 0.62 + pk2 * 0.38)) * 0.18 + discipline * 0.08;
+  // V7 rotates owner PP units PP1/PP1/PP2 and PK units PK1/PK2.
+  const attack = forwardOffense * 0.64 + defenseOffense * 0.16 + (pp1 * (2 / 3) + pp2 * (1 / 3)) * 0.16 + faceoffs * 0.04;
+  const defending = forwardDefense * 0.24 + defenseDefense * 0.50 + ((pk1 + pk2) / 2) * 0.18 + discipline * 0.08;
   const goalie = goalieStrength(starter);
   const overall = attack * 0.42 + defending * 0.30 + goalie * 0.28;
   // V7 gives elite creators more puck touches, and finishing ability alters
