@@ -7,12 +7,17 @@ on:
       - "scripts/**"
       - "package.json"
   workflow_dispatch:
+concurrency:
+  group: sim-regression-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   simulator-check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -20,4 +25,69 @@ jobs:
       - run: npm run test:puck-possession
       - run: npm run test:goalie-shutouts
       - run: npm run test:ot-shootout-standings
+      - run: npm run test:lineups
+      - run: npm run test:sim-lineups
+      - run: npm run test:replays
+      - run: node scripts/test-sim-period-integrity.mjs
       - run: npm run test:sim -- 1
+      - run: node scripts/calibrate-simulator-v7.mjs 8
+
+  overtime-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node scripts/calibrate-simulator-v7.mjs 320 192
+        env:
+          CALIBRATE_OT_ONLY: "1"
+
+  distribution-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        offset: [192, 232, 272, 312, 352, 392, 432, 472]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: node scripts/calibrate-simulator-v7.mjs 40 ${{ matrix.offset }}
+        env:
+          CALIBRATION_OUTPUT: result-${{ matrix.offset }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-v7-shard-${{ matrix.offset }}
+          path: result-${{ matrix.offset }}.json
+          retention-days: 14
+
+  distribution-summary:
+    needs: distribution-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sim-v7-shard-*
+          merge-multiple: true
+          path: calibration-results
+      - run: node scripts/aggregate-simulator-v7.mjs calibration-results
+        env:
+          CALIBRATION_EXPECT_SHARDS: "8"
+          CALIBRATION_SUMMARY: sim-v7-final-calibration-summary.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-v7-final-320-game-summary
+          path: sim-v7-final-calibration-summary.json
+          retention-days: 14

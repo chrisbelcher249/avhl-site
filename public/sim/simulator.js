@@ -398,6 +398,29 @@ class AVHLGameSimulator {
     };
   }
 
+  // V7: elite ability should not be a nearly-linear lottery ticket.
+  // Exceptional hands/vision/puck skill earn a bigger share of *real* touches
+  // and completed passing plays, without creating goals or assists out of thin air.
+  eliteCreationFactor(player) {
+    const score =
+      player.offensiveAwareness * 0.29 +
+      player.passing * 0.27 +
+      player.puckControl * 0.20 +
+      player.deking * 0.12 +
+      player.overall * 0.12;
+    return this.clamp(Math.exp((score - 84) * 0.087), 0.52, 3.55);
+  }
+
+  eliteFinishAdjustment(player) {
+    const score =
+      player.wristShotAccuracy * 0.32 +
+      player.slapShotAccuracy * 0.16 +
+      player.offensiveAwareness * 0.24 +
+      player.handEye * 0.16 +
+      player.overall * 0.12;
+    return this.clamp(0.016 * (Math.exp((score - 86) * 0.074) - 1), -0.009, 0.026);
+  }
+
   powerPlayScore(player) {
     return (
       player.offensiveAwareness * 1.25 +
@@ -792,6 +815,25 @@ class AVHLGameSimulator {
     return state.period === 4 ? "OT" : "EV";
   }
 
+  // V7: play selection is tactical. A penalty kill prioritizes safe clears
+  // and puck management; the power play uses its extra passing/shooting lanes.
+  // OT has more space and favors skill possessions instead of five-on-five hits.
+  possessionTactics(state, teamId) {
+    const situation = this.teamSituation(state, teamId);
+    if (situation === "PP") return {
+      shoot: 0.47, pass: 0.75, hit: 0.79, takeaway: 0.841, penalty: 0.856, cycle: 0.985
+    };
+    if (situation === "PK") return {
+      shoot: 0.115, pass: 0.44, hit: 0.61, takeaway: 0.77, penalty: 0.785, cycle: 0.94
+    };
+    if (state.period === 4) return {
+      shoot: 0.50, pass: 0.78, hit: 0.81, takeaway: 0.865, penalty: 0.88, cycle: 0.985
+    };
+    return {
+      shoot: 0.325, pass: 0.59, hit: 0.76, takeaway: 0.84, penalty: 0.855, cycle: 0.96
+    };
+  }
+
   goalieOnIce(state, teamId) {
     return !state.goaliePulled?.[teamId];
   }
@@ -800,7 +842,7 @@ class AVHLGameSimulator {
     if (state.period !== 3 || state.clock <= 0) return null;
     const deficit = state.score[this.opponent(teamId)] - state.score[teamId];
     if (deficit < 1 || deficit > 3) return null;
-    const base = { 1: 120, 2: 180, 3: 240 }[deficit];
+    const base = { 1: 120, 2: 160, 3: 180 }[deficit];
     return base + (this.teamSituation(state, teamId) === "PP" ? 30 : 0);
   }
 
@@ -1089,9 +1131,11 @@ class AVHLGameSimulator {
       desired = team.overtimeUnits[state.otRotationIndex[teamId] % team.overtimeUnits.length] ?? [];
     } else if (situation === "PP") {
       if (forceRotate) state.specialRotationIndex[teamId] += 1;
-      desired = state.specialRotationIndex[teamId] % 2 === 0
-        ? team.specialTeams.pp1
-        : team.specialTeams.pp2;
+      // Most NHL power-play time belongs to the first unit. Preserve
+      // every owner's PP assignments and rotate PP1 / PP1 / PP2.
+      desired = state.specialRotationIndex[teamId] % 3 === 2
+        ? team.specialTeams.pp2
+        : team.specialTeams.pp1;
     } else if (situation === "PK") {
       if (forceRotate) state.specialRotationIndex[teamId] += 1;
       desired = state.specialRotationIndex[teamId] % 2 === 0
@@ -2230,7 +2274,8 @@ class AVHLGameSimulator {
       for (const id of state.onIce[teamId]) {
         const player = team.playerById[id];
         if (!player || !state.positions[id]) continue;
-        const time = this.estimatePuckRecoveryTime(state, player, location) + this.random.range(0, 0.11);
+        const manpowerRecovery = this.teamSituation(state, teamId) === "PP" ? 0.958 : 1;
+        const time = this.estimatePuckRecoveryTime(state, player, location) * manpowerRecovery + this.random.range(0, 0.11);
         candidates.push({ teamId, player, time });
       }
     }
@@ -2491,14 +2536,20 @@ class AVHLGameSimulator {
         const separation = position && passerPosition
           ? this.clamp(Math.hypot(position.x - passerPosition.x, position.y - passerPosition.y), 4, 45)
           : 18;
-        return (
+        const base =
           player.offensiveAwareness * 0.42 +
           player.puckControl * 0.25 +
           player.speed * 0.14 +
           player.handEye * (purpose === "one-timer" ? 0.18 : 0.06) +
           player.poise * 0.07 +
-          separation * 0.8
-        );
+          separation * 0.8;
+        // Passing lanes prefer genuinely skilled creators. The final pass into
+        // shooting position prefers a forward while still permitting a strong
+        // defenseman to step up, preserving the physical player coordinates.
+        const finalPassBias = purpose === "one-timer"
+          ? (player.position.includes("D") ? 0.68 : 1.28)
+          : 1;
+        return base * this.eliteCreationFactor(player) * finalPassBias;
       },
       (player) => {
         if (player.id === passer.id) return false;
@@ -2591,6 +2642,8 @@ class AVHLGameSimulator {
       passer.poise * 0.15 +
       passer.offensiveAwareness * 0.11;
     const lanePenalty = laneDefender ? this.clamp((7 - laneDefender.lane.distance) * 0.018, 0, 0.10) : 0;
+    const situation = this.teamSituation(state, teamId);
+    const manpowerPassing = situation === "PP" ? 0.069 : situation === "PK" ? -0.035 : state.period === 4 ? 0.042 : 0;
     const successProbability = this.clamp(
       0.75 +
       (["cycle", "one-timer"].includes(purpose) ? 0.075 : 0) +
@@ -2598,9 +2651,10 @@ class AVHLGameSimulator {
       pressure * 0.17 -
       (defenderSkill - 82) * 0.0032 -
       passer.fatigue * 0.045 -
-      lanePenalty,
-      0.46,
-      0.95
+      lanePenalty +
+      manpowerPassing,
+      0.42,
+      0.965
     );
 
     const distance = Math.hypot(to.x - from.x, to.y - from.y);
@@ -2854,17 +2908,21 @@ class AVHLGameSimulator {
       defender.speed * 0.14 + defender.acceleration * 0.10 + defender.agility * 0.10 +
       defender.stickChecking * 0.24 + defender.defensiveAwareness * 0.25 +
       defender.bodyChecking * 0.11 + defender.balance * 0.06;
+    const situation = this.teamSituation(state, teamId);
+    const strengthAdjustment = situation === "PP" ? 0.07 : situation === "PK" ? -0.10 : state.period === 4 ? 0.045 : 0;
+    const eliteEntryAdjustment = this.clamp((this.eliteCreationFactor(carrier) - 1) * 0.018, -0.014, 0.045);
     const entryProbability = this.clamp(
-      0.58 + (carrierEntrySkill - defenderEntrySkill) * 0.012 - carrier.fatigue * 0.055 + defender.fatigue * 0.035,
-      0.32,
-      0.84
+      0.58 + (carrierEntrySkill - defenderEntrySkill) * 0.012 - carrier.fatigue * 0.055 + defender.fatigue * 0.035 +
+        strengthAdjustment + eliteEntryAdjustment,
+      0.25,
+      0.91
     );
 
     if (this.random.chance(entryProbability)) {
       const movement = this.movePuckTowardZone(state, teamId, "OZ", carrier);
       if (movement.stopped || state.nextFaceoff) return true;
       const breakaway = this.isBreakawayState(state, teamId, carrier.id);
-      state.lastContext = breakaway ? "breakaway" : this.random.chance(0.3) ? "rush" : "entry";
+      state.lastContext = breakaway ? "breakaway" : this.random.chance(state.period === 4 ? 0.56 : 0.3) ? "rush" : "entry";
       this.addEvent(
         state,
         "entry",
@@ -2918,7 +2976,12 @@ class AVHLGameSimulator {
       carrier.passing * 0.32 + carrier.puckControl * 0.24 + carrier.poise * 0.16 +
       carrier.defensiveAwareness * 0.12 + carrier.agility * 0.08 + carrier.acceleration * 0.08;
     const success = this.random.chance(
-      this.clamp(0.71 + (breakoutSkill - 82) * 0.011 - pressure * 0.21 - carrier.fatigue * 0.05, 0.4, 0.92)
+      this.clamp(
+        0.71 + (breakoutSkill - 82) * 0.011 - pressure * 0.21 - carrier.fatigue * 0.05 +
+        (this.teamSituation(state, teamId) === "PP" ? 0.055 : 0),
+        0.4,
+        0.94
+      )
     );
 
     if (success) {
@@ -3277,14 +3340,45 @@ class AVHLGameSimulator {
     }
 
     const openness = shot.openness[shot.actualTarget] ?? 0.4;
-    const specialTeams = this.teamSituation(state, shooter.teamId) === "PP" ? 0.014 : 0;
+    const situation = this.teamSituation(state, shooter.teamId);
+    const specialTeams = situation === "PP" ? 0.034 : situation === "PK" ? -0.009 : state.period === 4 ? 0.021 : 0;
     const pressurePenalty = shot.pressure * 0.018;
     const screenBonus = shot.screened ? 0.022 : 0;
     const fatigueAdjustment = (goalie.fatigue - shooter.fatigue) * 0.016;
     const base = this.baseGoalProbability(shot.region, shot.context, shot.technique);
+    // D shots are usually released through more traffic and from farther
+    // out. A spatial high-danger chance remains dangerous for any position.
+    const defenseShotAdjustment = shooter.position.includes("D")
+      ? (shot.region === "point" ? -0.018 : shot.region === "high slot" ? -0.024 : -0.027)
+      : 0.004;
+    const eliteFinish = this.eliteFinishAdjustment(shooter);
+    // V7: individual glove/stick target abilities and goalie overall are
+    // meaningful even against the league's stronger shot creation. This
+    // changes genuine save probabilities, not scoring credits or wins.
+    // Center the goalie-skill modifier on the tested league's starter level.
+    // Preserve differentiation without inadvertently suppressing league scoring
+    // and inflating shutouts through an overly strong blanket goalie bonus.
+    // V7 trial: higher-rated starters gain a small *nonlinear* advantage,
+    // analogous to elite skater creation, without modifying any player rating.
+    // The capped curve leaves mid-tier results almost unchanged and makes
+    // 90+ overall shot-stoppers increasingly difficult to beat.
+    const eliteGoalieEdge = this.clamp(
+      0.0016 * Math.expm1((goalie.overall - 85) * 0.18) - 0.0003,
+      -0.003,
+      0.0075
+    );
+    const goalieTalentEdge = this.clamp(
+      (goalie.overall - 87) * 0.00145 +
+      (targetRating - 87) * 0.00045 +
+      eliteGoalieEdge,
+      -0.024,
+      0.024
+    );
     return this.clamp(
       base +
-      (shooterSkill - goalieSkill) * 0.0022 +
+      (shooterSkill - goalieSkill) * 0.0022 -
+      goalieTalentEdge +
+      defenseShotAdjustment + eliteFinish +
       (openness - 0.4) * 0.055 +
       specialTeams +
       screenBonus +
@@ -4539,7 +4633,7 @@ class AVHLGameSimulator {
     const accuracy = this.shotAccuracyRating(shooter, technique);
     const onNetProbability = this.clamp(
       0.72 +
-      (emptyNet ? 0.10 : 0) +
+      (emptyNet ? -0.055 : 0) +
       (accuracy - 80) * 0.008 +
       (shooter.poise - 80) * 0.003 -
       pressure * 0.11 -
@@ -5222,21 +5316,22 @@ class AVHLGameSimulator {
     state.zone = zone;
     this.maybeChangeLines(state, zone !== "OZ" && this.random.chance(0.35));
     const roll = this.random.next();
+    const tactics = this.possessionTactics(state, teamId);
+    const situation = this.teamSituation(state, teamId);
 
     if (zone === "OZ") {
-      const penaltyCutoff = state.activePenalties.length < 3 ? 0.835 : 0.828;
-      if (roll < 0.27) {
+      if (roll < tactics.shoot) {
         // Every primary scoring chance gets an explicit 6/16/78 assist
         // setup, built from actual completed passes so the scorer/assist
         // credits and the replay are the same play rather than separate rolls.
         const scoringSetup = this.prepareScoringChance(state, teamId, state.lastContext);
         if (!scoringSetup) return;
         this.simulateShot(state, teamId, scoringSetup);
-      } else if (roll < 0.54) {
+      } else if (roll < tactics.pass) {
         this.simulatePass(state, teamId, "cycle");
-      } else if (roll < 0.75) {
+      } else if (roll < tactics.hit) {
         this.simulateHit(state, opponentId);
-      } else if (roll < 0.84) {
+      } else if (roll < tactics.takeaway) {
         const carrier = this.teams[teamId].playerById[state.puckCarrierId];
         const takeaway = carrier ? this.chooseTakeawayPlayer(state, opponentId, carrier.id, 9.5) : null;
         if (takeaway) {
@@ -5265,9 +5360,9 @@ class AVHLGameSimulator {
         } else {
           this.addEvent(state, "possession", `${carrier.name} keeps possession under pressure.`, { teamId, playerId: carrier.id, location: { ...state.puck } });
         }
-      } else if (roll < Math.max(penaltyCutoff, 0.855)) {
+      } else if (roll < tactics.penalty) {
         this.callPenalty(state, this.random.chance(0.72) ? opponentId : teamId, this.random.chance(0.65) ? "stick" : "net", state.puck);
-      } else if (roll < 0.960) {
+      } else if (roll < tactics.cycle) {
         const carrier = this.teams[teamId].playerById[state.puckCarrierId];
         const current = state.positions[carrier.id] ?? state.puck;
         const direction = this.attackDirection(teamId, state.period);
@@ -5300,7 +5395,19 @@ class AVHLGameSimulator {
     }
 
     if (zone === "NZ") {
-      if (roll < 0.36) {
+      // 3v3 skaters prioritize controlled entries. Penalty killers favor
+      // clearing dumps while the man advantage favors controlled entry.
+      if (situation === "OT" && roll < 0.62) {
+        this.simulateZoneEntry(state, teamId, false);
+      } else if (situation === "OT" && roll < 0.67) {
+        this.simulatePass(state, teamId, "entry");
+      } else if (situation === "PK" && roll < 0.12) {
+        this.simulateZoneEntry(state, teamId, false);
+      } else if (situation === "PK" && roll < 0.56) {
+        this.simulateZoneEntry(state, teamId, true);
+      } else if (situation === "PP" && roll < 0.62) {
+        this.simulateZoneEntry(state, teamId, false);
+      } else if (roll < 0.36) {
         this.simulateZoneEntry(state, teamId, false);
       } else if (roll < 0.515) {
         this.simulateZoneEntry(state, teamId, true);
@@ -5363,7 +5470,15 @@ class AVHLGameSimulator {
       return;
     }
 
-    if (roll < 0.4) {
+    if (situation === "OT" && roll < 0.64) {
+      this.simulateBreakout(state, teamId);
+    } else if (situation === "PK" && roll < 0.12) {
+      this.simulateBreakout(state, teamId);
+    } else if (situation === "PK" && roll < 0.60) {
+      this.simulateClear(state, teamId);
+    } else if (situation === "PP" && roll < 0.69) {
+      this.simulateBreakout(state, teamId);
+    } else if (roll < 0.4) {
       this.simulateBreakout(state, teamId);
     } else if (roll < 0.6) {
       this.simulatePass(state, teamId, "breakout");
@@ -5437,18 +5552,41 @@ class AVHLGameSimulator {
     );
     this.simulateFaceoff(state, { x: 100, y: 42.5 }, "period start");
 
-    let safetyCounter = 0;
-    while (state.clock > 0 && safetyCounter < 1200) {
-      safetyCounter += 1;
+    // V7: no hard event-count timeout may silently fast-forward the clock.
+    // Long stoppage/faceoff sequences can legitimately require >1,200 actions.
+    // Only actual clock movement can complete regulation or non-scoring OT.
+    let periodSteps = 0;
+    let stagnantSteps = 0;
+    const maximumSteps = Math.max(10000, Math.ceil(lengthSeconds * 12));
+    while (state.clock > 0.0001) {
+      const clockBefore = state.clock;
       const scoreBefore = { ...state.score };
       this.simulatePossessionStep(state);
+      periodSteps += 1;
       if (overtime && (state.score[this.homeId] !== scoreBefore[this.homeId] || state.score[this.awayId] !== scoreBefore[this.awayId])) {
         state.clock = 0;
         return true;
       }
+      // Repeated zero-time stoppages should never exhaust the old 1,200
+      // action budget. Keep simulation moving in small, physically tracked
+      // increments rather than deleting all unplayed minutes.
+      if (state.clock >= clockBefore - 0.000001) {
+        stagnantSteps += 1;
+        if (stagnantSteps >= 24) {
+          this.advanceClock(state, Math.min(0.25, state.clock), "play");
+          stagnantSteps = 0;
+        }
+      } else {
+        stagnantSteps = 0;
+      }
+      if (periodSteps > maximumSteps && state.clock > 0.0001) {
+        // Never publish an invalid final score or replay with missing minutes.
+        throw new Error(
+          `Simulation could not finish ${this.periodLabel(period)} period: ${this.formatClock(state.clock)} remaining after ${periodSteps} steps.`
+        );
+      }
     }
 
-    if (state.clock > 0) this.advanceClock(state, state.clock, "play");
     state.clock = 0;
     this.addEvent(state, "period-end", `${this.periodLabel(period)} period ends.`);
     return false;
@@ -5668,7 +5806,7 @@ class AVHLGameSimulator {
         [this.awayId]: aggregateGoalieStats(this.awayId)
       },
       ratingModel: {
-        version: "V6.7.1",
+        version: "V7.0.0",
         syntheticRatings: false,
         skaterRatingsUsed: 26,
         goalieRatingsUsed: 20,
