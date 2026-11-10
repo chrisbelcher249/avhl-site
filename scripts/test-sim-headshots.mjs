@@ -26,7 +26,7 @@ for (const [id, entry] of Object.entries(manifest.playerIds || {})) {
   assert.ok(player, `unknown photo player ID ${id}`);
   assert.equal(entry.name, player.name, `wrong name for photo player ID ${id}`);
   assert.equal(entry.birthdate, player.birth, `wrong birthdate for photo player ID ${id}`);
-  assert.match(entry.license, /^CC (?:BY(?:-SA)?|0)(?: |$)/, `unsupported license for ${id}`);
+  assert.match(entry.license, /^(?:CC BY(?:-SA)?(?:\\s|$)|CC0(?:\\s|$))/i, `unsupported license for ${id}`);
   assert.ok(entry.author && entry.source && entry.licenseUrl, `missing photographer credit for ${id}`);
 }
 const covered = roster.players.filter(p => manifest.playerIds?.[p.id] || manifest.players[p.name]);
