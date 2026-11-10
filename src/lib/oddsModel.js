@@ -1,5 +1,18 @@
 export const MODEL_RUNS = 25000;
-export const LEAGUE_BASE_GOALS = 3.05;
+// Calibrated from the 512-game official V7 paired-seed validation:
+ // 3.031 actual goals per team/game, including OT but excluding shootout credits.
+ // A regulation Poisson mean of 2.95 plus one tiebreaking goal for tied games
+ // produces approximately the same full-game total. Recheck with owner lineups.
+export const LEAGUE_BASE_GOALS = 2.95;
+export const ODDS_GAMEPLAY_VERSION = "V7";
+// These are the full 40-team projected-lineup means as of the V7 release.
+// Refit when the official rating distribution materially changes.
+const V7_REFERENCE = Object.freeze({
+  attack: 83.136, defending: 84.663, goalie: 86.402, pace: 85.140,
+  goalieOverall: 86.4, eliteCreation: 1.0, eliteFinishing: 0.0,
+});
+const V7_SHOOTOUT_GIVEN_TIE = 0.553; // 55.26% in 512-game V7 validation
+
 
 export function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -30,6 +43,32 @@ function weightedAverage(items, valueFn, weightFn = () => 1, fallback = 80) {
   return weight ? total / weight : fallback;
 }
 
+// Match V7's nonlinear talent signals, not just the old linear rating averages.
+// Formulae mirror public/sim/simulator.js eliteCreationFactor and
+// eliteFinishAdjustment, whose inputs are the live individual player ratings.
+function eliteCreationFactor(player) {
+  const score = rating(player, "Off. Awareness") * 0.29 +
+    rating(player, "Passing") * 0.27 +
+    rating(player, "Puck Control") * 0.20 +
+    rating(player, "Deking") * 0.12 +
+    number(player?.overall, 80) * 0.12;
+  return clamp(Math.exp((score - 84) * 0.087), 0.52, 3.55);
+}
+
+function eliteFinishAdjustment(player) {
+  const score = rating(player, "Wrist Shot Accuracy") * 0.32 +
+    rating(player, "Slap Shot Accuracy") * 0.16 +
+    rating(player, "Off. Awareness") * 0.24 +
+    rating(player, "Hand Eye") * 0.16 +
+    number(player?.overall, 80) * 0.12;
+  return clamp(0.016 * (Math.exp((score - 86) * 0.074) - 1), -0.009, 0.026);
+}
+
+function v7GoalieEdge(overall) {
+  const elite = clamp(0.0016 * Math.expm1((overall - 85) * 0.18) - 0.0003, -0.003, 0.0075);
+  return clamp((overall - 87) * 0.00145 + elite, -0.024, 0.024);
+}
+
 function skaterOffense(player) {
   return (
     rating(player, "Off. Awareness") * 0.16 +
@@ -44,7 +83,7 @@ function skaterOffense(player) {
     rating(player, "Poise") * 0.075 +
     rating(player, "Speed") * 0.045 +
     rating(player, "Acceleration") * 0.035
-  );
+  ) / 0.975; // Correct original offense weights, which summed to 0.975.
 }
 
 function skaterDefense(player) {
@@ -132,12 +171,25 @@ export function buildTeamModel(abbreviation, roster, lineup) {
   const defending = forwardDefense * 0.24 + defenseDefense * 0.50 + ((pk1 * 0.62 + pk2 * 0.38)) * 0.18 + discipline * 0.08;
   const goalie = goalieStrength(starter);
   const overall = attack * 0.42 + defending * 0.30 + goalie * 0.28;
+  // V7 gives elite creators more puck touches, and finishing ability alters
+  // actual shot conversions. Track these independently of team rating averages.
+  const eliteCreation = (
+    weightedAverage(forwards, (row) => eliteCreationFactor(row.player), (row) => lineWeight(row.entry.line)) * 0.8 +
+    weightedAverage(defense, (row) => eliteCreationFactor(row.player), (row) => pairWeight(row.entry.pair)) * 0.2
+  );
+  const eliteFinishing = (
+    weightedAverage(forwards, (row) => eliteFinishAdjustment(row.player), (row) => lineWeight(row.entry.line)) * 0.8 +
+    weightedAverage(defense, (row) => eliteFinishAdjustment(row.player), (row) => pairWeight(row.entry.pair)) * 0.2
+  );
 
   return {
     abbreviation,
     attack,
     defending,
     goalie,
+    goalieOverall: number(starter.overall, 80),
+    eliteCreation,
+    eliteFinishing,
     pace,
     overall,
     starter: starter.name,
@@ -146,11 +198,24 @@ export function buildTeamModel(abbreviation, roster, lineup) {
 }
 
 export function expectedGoals(offense, opponent) {
-  const attackTerm = (offense.attack - 82) * 0.014;
-  const defenseTerm = (82 - opponent.defending) * 0.011;
-  const goalieTerm = (82 - opponent.goalie) * 0.017;
-  const paceTerm = (((offense.pace + opponent.pace) / 2) - 82) * 0.004;
-  return clamp(LEAGUE_BASE_GOALS * Math.exp(attackTerm + defenseTerm + goalieTerm + paceTerm), 1.45, 4.95);
+  // Same V7 ratings, deployed lineups, elite creation/finishing curves and
+  // nonlinear goalie overall edge, compressed into an inexpensive score model.
+  // This is a V7-aligned *surrogate*, not 25,000 calls to the event engine.
+  const attackTerm = (offense.attack - V7_REFERENCE.attack) * 0.022;
+  const defenseTerm = (V7_REFERENCE.defending - opponent.defending) * 0.016;
+  const goalieTerm = (V7_REFERENCE.goalie - opponent.goalie) * 0.018;
+  const paceTerm = (((offense.pace + opponent.pace) / 2) - V7_REFERENCE.pace) * 0.004;
+  const eliteCreation = Math.max(0.1, number(offense.eliteCreation, V7_REFERENCE.eliteCreation));
+  const eliteCreationTerm = Math.log(eliteCreation / V7_REFERENCE.eliteCreation) * 0.25;
+  // In V7, finishing changes per-shot goal probability; roughly 27.6 shots
+  // per team translates one percentage point into ~0.276 goals.
+  const eliteFinishingTerm = (number(offense.eliteFinishing, 0) - V7_REFERENCE.eliteFinishing) * 9.2;
+  const goalieOverall = number(opponent.goalieOverall, V7_REFERENCE.goalieOverall);
+  const eliteGoalieTerm = (v7GoalieEdge(V7_REFERENCE.goalieOverall) - v7GoalieEdge(goalieOverall)) * 9.2;
+  return clamp(LEAGUE_BASE_GOALS * Math.exp(
+    attackTerm + defenseTerm + goalieTerm + paceTerm +
+    eliteCreationTerm + eliteFinishingTerm + eliteGoalieTerm
+  ), 1.45, 5.5);
 }
 
 export function hashString(value) {
@@ -199,7 +264,7 @@ export function simulateModelGame(awayModel, homeModel, random) {
   let shootout = false;
   if (awayScore === homeScore) {
     overtime = true;
-    shootout = random() < 0.34;
+    shootout = random() < V7_SHOOTOUT_GIVEN_TIE;
     const strengthGap = clamp((homeModel.overall - awayModel.overall) / 7.5, -4, 4);
     const homeOtChance = 1 / (1 + Math.exp(-strengthGap));
     if (random() < homeOtChance) homeScore += 1;
@@ -231,7 +296,7 @@ export function runMonteCarlo(game, awayModel, homeModel, runs = MODEL_RUNS) {
     let homeScore = poisson(homeLambda, random);
     if (awayScore === homeScore) {
       overtime += 1;
-      const shootout = random() < 0.34;
+      const shootout = random() < V7_SHOOTOUT_GIVEN_TIE;
       if (shootout) shootouts += 1;
       if (random() < homeOtChance) homeScore += 1;
       else awayScore += 1;
