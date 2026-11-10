@@ -5,6 +5,7 @@
 import fs from "node:fs/promises";
 import vm from "node:vm";
 import process from "node:process";
+import { summarizeV7Samples } from "../src/lib/v7OddsSamples.js";
 const args=process.argv.slice(2);
 const opt=(k,def="")=>{const i=args.indexOf(k);return i>=0?args[i+1]||def:def;};
 const away=opt("--away").toUpperCase(), home=opt("--home").toUpperCase();
@@ -56,17 +57,39 @@ await ctx.AVHL_LOAD_LIVE_ROSTERS();
 const data=ctx.AVHL_CREATE_MATCHUP_DATA(home,away);
 const key=`v7:2:${fnv(scripts[2])}:${home}:${away}:${fnv(JSON.stringify(data))}`;
 const redisKey="avhl:odds:exact:sample:"+key;
+const summaryRedisKey="avhl:odds:exact:summary:"+key;
 let samples=[];
 if(!dry){const raw=await redis(["GET",redisKey]);const saved=typeof raw==="string"?JSON.parse(raw):null;if(Array.isArray(saved?.samples))samples=saved.samples;}
 if(samples.length>5000)throw Error("Corrupt cached sample count.");
 const initial=samples.length;
+if(!dry && samples.length>=1000){
+  // Repair absent/stale compact summaries even if no new games are needed.
+  const raw=await redis(["GET",summaryRedisKey]);
+  const existingSummary=typeof raw==="string"?JSON.parse(raw):null;
+  if(existingSummary?.count!==samples.length){
+    await redis(["SET",summaryRedisKey,JSON.stringify({
+      count:samples.length,summary:summarizeV7Samples(samples,away,home),
+      engineHash:fnv(scripts[2]),generatedAt:new Date().toISOString()
+    })]);
+  }
+}
 console.log(JSON.stringify({away,home,target,initial,mode:fixture?"fixture":"live",key}));
 for(let i=initial;i<target;i++){
  const seed=parseInt(fnv(`${key}:${i}`),16);
  const game=new ctx.AVHLGameSimulator(structuredClone(data),seed,{headless:true}).simulateGame();
  samples.push(ctx.AVHL_ODDS_EXTRACT_SAMPLE(game,away,home));
  if(samples.length%25===0||samples.length===target){
-  if(!dry)await redis(["SET",redisKey,JSON.stringify({samples,engineHash:fnv(scripts[2]),away,home,source:"exact-v7",at:new Date().toISOString()})]);
+  if(!dry){
+    const generatedAt=new Date().toISOString();
+    await redis(["SET",redisKey,JSON.stringify({samples,engineHash:fnv(scripts[2]),away,home,source:"exact-v7",at:generatedAt})]);
+    // Published viewers fetch only this compact summary, not 1,000+ box scores.
+    if(samples.length>=1000){
+      const summary=summarizeV7Samples(samples,away,home);
+      await redis(["SET",summaryRedisKey,JSON.stringify({
+        count:samples.length,summary,engineHash:fnv(scripts[2]),generatedAt
+      })]);
+    }
+  }
   console.log(`Exact V7 games: ${samples.length} / ${target}`);
  }
 }
