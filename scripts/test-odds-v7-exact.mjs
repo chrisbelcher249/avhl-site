@@ -5,7 +5,7 @@ import {players} from "../data/players.js";
 import {teams} from "../data/teams.js";
 import {buildProjectedLineup} from "../src/lib/lineups.js";
 import {recordFromProjected} from "../src/lib/lineupRecords.js";
-import {summarizeV7Samples,fairMoneyline,wilsonInterval} from "../src/lib/v7OddsSamples.js";
+import {INITIAL_V7_SAMPLES, canPublishV7Odds, summarizeV7Samples,fairMoneyline,wilsonInterval} from "../src/lib/v7OddsSamples.js";
 
 const lineups = Object.fromEntries(teams.map(team=>[
   team.abbreviation,recordFromProjected(team.abbreviation,
@@ -19,9 +19,16 @@ const payload={
 const deliveries=[];
 let resolveDone;
 let rejectDone;
+let collected=[];
 const c={
   console,Date,Math,structuredClone,setTimeout,clearTimeout,
-  postMessage:message=>{deliveries.push(message);if(message.type==="done")resolveDone?.(message);if(message.type==="error")rejectDone?.(new Error(message.error));},
+  postMessage:message=>{
+    deliveries.push(message);
+    if(Array.isArray(message.samples))collected=message.samples;
+    else if(Array.isArray(message.newSamples))collected.push(...message.newSamples);
+    if(message.type==="done")resolveDone?.({...message,samples:collected});
+    if(message.type==="error")rejectDone?.(new Error(message.error));
+  },
   fetch:async uri=>{
     if(String(uri).startsWith("/api/sim-rosters"))return {ok:true,status:200,json:async()=>payload};
     if(uri==="/sim/simulator.js")return {ok:true,text:async()=>fs.readFileSync("public/sim/simulator.js","utf8")};
@@ -34,12 +41,16 @@ c.importScripts=(...paths)=>paths.forEach(p=>vm.runInContext(fs.readFileSync("pu
 vm.runInContext(fs.readFileSync("public/odds/v7-worker.js","utf8"),c,{filename:"/odds/v7-worker.js"});
 async function run(){
   return await new Promise((resolve,reject)=>{
-    resolveDone=resolve;rejectDone=reject;
+    collected=[];resolveDone=resolve;rejectDone=reject;
     c.onmessage({data:{type:"start",gameId:123,away:"ARI",home:"ATL",target:2}});
   });
 }
 const first=await run();
 assert.equal(first.samples.length,2);
+assert.equal(INITIAL_V7_SAMPLES,1000);
+assert.equal(canPublishV7Odds(999),false);
+assert.equal(canPublishV7Odds(1000),true);
+assert.equal(canPublishV7Odds(5000),true);
 assert.equal(deliveries.filter(m=>m.type==="progress").length>=2,true);
 assert.equal(first.samples[0].players.length,36);
 assert(first.samples[0].goalies.length>=2);
