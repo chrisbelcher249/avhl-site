@@ -827,7 +827,7 @@ class AVHLGameSimulator {
       shoot: 0.115, pass: 0.44, hit: 0.61, takeaway: 0.77, penalty: 0.785, cycle: 0.94
     };
     if (state.period === 4) return {
-      shoot: 0.38, pass: 0.70, hit: 0.74, takeaway: 0.82, penalty: 0.835, cycle: 0.98
+      shoot: 0.50, pass: 0.78, hit: 0.81, takeaway: 0.865, penalty: 0.88, cycle: 0.985
     };
     return {
       shoot: 0.325, pass: 0.59, hit: 0.76, takeaway: 0.84, penalty: 0.855, cycle: 0.96
@@ -2643,7 +2643,7 @@ class AVHLGameSimulator {
       passer.offensiveAwareness * 0.11;
     const lanePenalty = laneDefender ? this.clamp((7 - laneDefender.lane.distance) * 0.018, 0, 0.10) : 0;
     const situation = this.teamSituation(state, teamId);
-    const manpowerPassing = situation === "PP" ? 0.069 : situation === "PK" ? -0.035 : state.period === 4 ? 0.015 : 0;
+    const manpowerPassing = situation === "PP" ? 0.069 : situation === "PK" ? -0.035 : state.period === 4 ? 0.042 : 0;
     const successProbability = this.clamp(
       0.75 +
       (["cycle", "one-timer"].includes(purpose) ? 0.075 : 0) +
@@ -2922,7 +2922,7 @@ class AVHLGameSimulator {
       const movement = this.movePuckTowardZone(state, teamId, "OZ", carrier);
       if (movement.stopped || state.nextFaceoff) return true;
       const breakaway = this.isBreakawayState(state, teamId, carrier.id);
-      state.lastContext = breakaway ? "breakaway" : this.random.chance(0.3) ? "rush" : "entry";
+      state.lastContext = breakaway ? "breakaway" : this.random.chance(state.period === 4 ? 0.56 : 0.3) ? "rush" : "entry";
       this.addEvent(
         state,
         "entry",
@@ -5372,6 +5372,12 @@ class AVHLGameSimulator {
     }
 
     if (zone === "NZ") {
+      // 3v3 rewards controlled, open-ice zone entries over dump-and-chase.
+      if (situation === "OT" && roll < 0.62) {
+        this.simulateZoneEntry(state, teamId, false);
+      } else if (situation === "OT" && roll < 0.67) {
+        this.simulatePass(state, teamId, "entry");
+      } else
       // Most shorthanded entries are dumps, but a quick skilled counterattack
       // is still possible. On the PP, control the blue line instead of
       // voluntarily giving up possession on repeated dump-ins.
@@ -5444,7 +5450,9 @@ class AVHLGameSimulator {
       return;
     }
 
-    if (situation === "PK" && roll < 0.12) {
+    if (situation === "OT" && roll < 0.64) {
+      this.simulateBreakout(state, teamId);
+    } else if (situation === "PK" && roll < 0.12) {
       this.simulateBreakout(state, teamId);
     } else if (situation === "PK" && roll < 0.60) {
       this.simulateClear(state, teamId);
