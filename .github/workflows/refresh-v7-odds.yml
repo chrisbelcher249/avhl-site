@@ -39,7 +39,7 @@ jobs:
       - name: Select upcoming live schedule matchups
         id: fixtures
         env:
-          AVHL_ODDS_SITE_URL: "https://avhl.org"
+          AVHL_ODDS_SITE_URL: "https://www.avhl.org"
           AVHL_ODDS_MAX_MATCHUPS: "16"
         run: node scripts/plan-v7-odds-refresh.mjs
 
@@ -66,4 +66,4 @@ jobs:
         run: |
           node scripts/precompute-v7-odds.mjs \
             --away "$AWAY" --home "$HOME" \
-            --target 1000 --site "https://avhl.org" --publish-oidc
+            --target 1000 --site "https://www.avhl.org" --publish-oidc
