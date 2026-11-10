@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { INITIAL_V7_SAMPLES, REFINED_V7_SAMPLES, MAX_V7_SAMPLES, canPublishV7Odds, fairMoneyline, summarizeV7Samples, v7SampleCaveat } from "@/lib/v7OddsSamples";
+import { INITIAL_V7_SAMPLES, canPublishV7Odds, fairMoneyline, summarizeV7Samples, v7SampleCaveat } from "@/lib/v7OddsSamples";
 
 function formatDate(date) {
   const [year, month, day] = String(date).split("-").map(Number);
@@ -85,10 +85,10 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
       if(String(data.gameId)!==String(selected.id))return;
       if(data.type==="error"){
         setJob(current=>({...current,status:"error",error:data.error||"The V7 simulation failed."}));
-      }else if(data.type==="progress"||data.type==="done"){
+      }else if(data.type==="progress"||data.type==="done"||data.type==="pending"){
         setJob(current=>({
           ...current,
-          status:data.type==="done"?"ready":"running",
+          status:data.type==="done"?"ready":data.type==="pending"?"pending":"running",
           samples:Array.isArray(data.samples) ? data.samples :
             (Array.isArray(data.newSamples) && data.newSamples.length
               ? current.samples.concat(data.newSamples) : current.samples),
@@ -99,7 +99,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
       }
     };
     worker.onerror=()=>setJob(current=>({...current,status:"error",error:"The V7 worker could not start."}));
-    worker.postMessage({type:"start",gameId:selected.id,away:away.abbreviation,home:home.abbreviation,target:INITIAL_V7_SAMPLES});
+    worker.postMessage({type:"start",gameId:selected.id,away:away.abbreviation,home:home.abbreviation,target:INITIAL_V7_SAMPLES,mode:"readOnly"});
     return ()=>{worker.postMessage({type:"cancel"});worker.terminate();if(workerRef.current===worker)workerRef.current=null;};
   },[selected?.id,away?.abbreviation,home?.abbreviation]);
 
@@ -108,14 +108,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
     return summarizeV7Samples(job.samples,away.abbreviation,home.abbreviation);
   },[job.samples,job.completed,selected?.id,away?.abbreviation,home?.abbreviation]);
   const progress=Math.min(100,job.target?Math.round(100*job.completed/job.target):0);
-  const pending=job.status==="loading"||job.status==="running";
-  function refine(){
-    if(!workerRef.current||!selected||pending)return;
-    const target=job.completed<REFINED_V7_SAMPLES?REFINED_V7_SAMPLES:Math.min(MAX_V7_SAMPLES,Math.max(REFINED_V7_SAMPLES,job.completed*2));
-    if(target<=job.completed)return;
-    setJob(current=>({...current,status:"running",target,error:""}));
-    workerRef.current.postMessage({type:"start",gameId:selected.id,away:away.abbreviation,home:home.abbreviation,target});
-  }
+  const pending=job.status==="loading"||job.status==="running"||job.status==="pending";
   return <div className="space-y-6">
     <header className="rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm md:p-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -125,7 +118,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
             Every sample is a complete game played by the same V7 simulator that runs the AVHL.
             Official live rosters, owner-selected units, starting goalies, injuries and player ratings
             are loaded directly. No numerical odds appear until 1,000 complete V7 games have finished.
-            Progress is saved on this device for the exact lineup and engine version.
+            Odds are precomputed and shared across visitors, with the upcoming slate checked every 30 minutes.
           </p></div>
         <label className="min-w-[240px] text-xs font-black uppercase tracking-wide text-slate-500">
           Game date
@@ -154,7 +147,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
       {job.status==="error"?<div role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-900">{job.error}</div>:<>
         <div className="mt-6 rounded-2xl bg-slate-50 p-4" aria-live="polite">
           <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="font-black text-[#000B36]">{pending?"Running complete V7 games…":"Sample available"}</span>
+            <span className="font-black text-[#000B36]">{job.status==="ready"?"V7 odds ready":job.status==="pending"?"Preparing odds on the server…":"Checking current V7 odds…"}</span>
             <span className="font-bold tabular-nums text-[#000B36]">{job.completed} / {job.target}</span>
           </div>
           <div role="progressbar" aria-valuenow={job.completed} aria-valuemin={0} aria-valuemax={job.target}
@@ -162,13 +155,10 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
             <div className="h-full rounded-full bg-[#18BDFC] transition-[width] duration-300" style={{width:`${progress}%`}}/>
           </div>
           <p className="mt-2 text-xs leading-5 text-slate-600">
-            {v7SampleCaveat(job.completed)} {job.cached?"Previously calculated samples restored.":""}
-            {pending?" This calculation can take a substantial amount of time on a new lineup; saved progress resumes when you return.":""}
+            {v7SampleCaveat(job.completed)} {job.cached?"Shared precomputed V7 results loaded.":""}
+            {pending?" The scheduled odds job checks upcoming matchups every 30 minutes. You do not need to keep this page open.":""}
           </p>
-          {!pending && job.completed<MAX_V7_SAMPLES?<button type="button" onClick={refine}
-            className="mt-3 rounded-xl bg-[#000B36] px-4 py-2 text-xs font-black text-white">
-            Refine with more V7 games
-          </button>:null}
+
         </div>
         {odds?<div className="mt-6 space-y-5">
           <div className="grid gap-3 sm:grid-cols-2">
