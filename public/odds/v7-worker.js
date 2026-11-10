@@ -90,7 +90,7 @@ function gameSample(game,away,home){
 async function start(message){
   const request = ++activeRequest;
   const {away,home,gameId} = message;
-  const target = Math.max(1,Math.min(5000,Math.floor(Number(message.target)||1000)));
+  let target = Math.max(1,Math.min(5000,Math.floor(Number(message.target)||1000)));
   if (!/^[A-Z0-9]{2,4}$/.test(away)|| !/^[A-Z0-9]{2,4}$/.test(home)||away===home) {
     throw new Error("Invalid game matchup.");
   }
@@ -101,6 +101,7 @@ async function start(message){
   const key=`v7:${SCHEMA}:${engine}:${home}:${away}:${fnv(JSON.stringify(matchup))}`;
   const samples=await readCache(key);
   if(request!==activeRequest)return;
+  target=Math.max(target,samples.length);
   // Restore persisted work once. Subsequent messages report only NEW samples.
   // Previously sending all accumulated player statistics every two games was
   // O(n^2) structured-clone traffic and got expensive at 1,000+ games.
