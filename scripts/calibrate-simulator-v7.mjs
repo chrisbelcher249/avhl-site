@@ -127,9 +127,10 @@ const current = fs.readFileSync("public/sim/simulator.js", "utf8");
 const base = execFileSync("git", ["show", "origin/main:public/sim/simulator.js"], {encoding: "utf8", maxBuffer: 2 * 1024 * 1024});
 const versions = {baseline: simulatorFrom(base), v7: simulatorFrom(current)};
 const n = Math.max(5, Math.min(500, Number(process.argv[2]) || 60));
+const offset = Math.max(0, Number(process.argv[3]) || 0);
 const teamData = names.map((name, index) => buildTeam(name, "T" + index, "team" + index));
 const games = [];
-for (let i = 0; i < n; i++) {
+for (let i = offset; i < offset + n; i++) {
   const away = (i * 7) % teamData.length;
   const home = (i * 7 + 11) % teamData.length;
   if (away === home) throw new Error("Same team fixture");
@@ -179,8 +180,26 @@ const summarize = (Simulator) => {
  const round = v => Number(v.toFixed(3));
  return {games:z.games, goalsPerTeam:round(z.goals/(2*n)), shotsPerTeam:round(z.shots/(2*n)), powerPlayPct:round(z.ppGoals/Math.max(1,z.ppOpp)*100), PPgoals:z.ppGoals, PPOpp:z.ppOpp, SHgoals:z.shGoals, SHgoalsPerGame:round(z.shGoals/n), defenderGoalSharePct:round(100*z.defenderGoals/Math.max(1,z.skaterGoals)), defenderShotSharePct:round(100*z.dShots/Math.max(1,z.shots)), OTperGamePct:round(100*z.ot/n), OTdecidedPct:round(100*(z.ot-z.so)/Math.max(1,z.ot)), SOgames:z.so, shutoutGamePct:round(100*z.shutouts/n), emptyNetGoalsPerGame:round(z.eng/n), elite90PPG:round(z.pts90/Math.max(1,z.gp90)), elite95PPG:round(z.pts95/Math.max(1,z.gp95)), elite90ShotsPg:round(z.shots90/Math.max(1,z.gp90)), elite90TOImin:round(z.toi90/Math.max(1,z.gp90)/60), goalieGA:z.goalieGA, skaterGoals:z.skaterGoals, totalEvents:z.eventCount, replayedGoals:z.goalsWithReplayedScorer, shootingByStrength:z.shotsByStrength};
 };
+// A headless comparison is meaningful only if it generates exactly the same
+// hockey as the full, replay-producing simulator. Check for RNG divergence.
+for (const [label, Simulator] of Object.entries(versions)) {
+  const fixture = games[0];
+  const normal = new Simulator(structuredClone(fixture.data), fixture.seed).simulateGame();
+  const fast = new Simulator(structuredClone(fixture.data), fixture.seed, {headless: true}).simulateGame();
+  const fingerprint = g => JSON.stringify({
+    score: g.finalSummary.score,
+    shots: g.finalSummary.shots,
+    powerPlayGoals: g.finalSummary.powerPlayGoals,
+    powerPlayOpportunities: g.finalSummary.powerPlayOpportunities,
+    shorthandedGoals: g.finalSummary.shorthandedGoals,
+    injuries: g.finalSummary.injuries,
+    skaters: g.finalSummary.skaters,
+    goalieRows: g.finalSummary.goalieRows
+  });
+  if (fingerprint(normal) !== fingerprint(fast)) throw new Error(label + ": headless gameplay differs from complete replay mode");
+}
 const results = Object.fromEntries(Object.entries(versions).map(([key, Simulator]) => [key, summarize(Simulator)]));
-console.log(JSON.stringify({test:"SIM V7 PAIR-SEEDED CALIBRATION",distinctRosters:names.length,seeds:n,results},null,2));
+console.log(JSON.stringify({test:"SIM V7 PAIR-SEEDED CALIBRATION",distinctRosters:names.length,seeds:n,offset,results},null,2));
 // Safety invariants: all player goals counted and replay source remains available.
 for (const [label,x] of Object.entries(results)) {
   if (!x.replayedGoals || x.skaterGoals < x.goalieGA) throw new Error(label + ": invalid scoring / replay accounting");
