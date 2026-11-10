@@ -8,8 +8,8 @@ export const ODDS_GAMEPLAY_VERSION = "V7";
 // These are the full 40-team projected-lineup means as of the V7 release.
 // Refit when the official rating distribution materially changes.
 const V7_REFERENCE = Object.freeze({
-  attack: 83.136, defending: 84.663, goalie: 86.402, pace: 85.140,
-  goalieOverall: 86.4, eliteCreation: 1.0, eliteFinishing: 0.0,
+  attack: 85.193, defending: 84.663, goalie: 86.402, pace: 85.140,
+  goalieOverall: 85.725, eliteCreation: 1.188, eliteFinishing: -0.001,
 });
 const V7_SHOOTOUT_GIVEN_TIE = 0.553; // 55.26% in 512-game V7 validation
 
