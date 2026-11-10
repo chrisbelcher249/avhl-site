@@ -1,4 +1,23 @@
-import { hashString, makeRandom, simulateModelGame } from "./oddsModel.js";
+// RNG is used only to resample cached results of real V7 games, never to
+// manufacture scores or player statistics.
+function hashString(value) {
+  let hash = 2166136261;
+  for (const character of String(value)) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+function makeRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    let x = (state += 0x6d2b79f5);
+    x = Math.imul(x ^ (x >>> 15), x | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 
 export const FUTURE_RUNS = 3000;
 
@@ -58,7 +77,7 @@ function playoffSeeds(conference, teams, records) {
   return [...winners, ...seconds, ...thirds, ...wildCards];
 }
 
-function seriesWinner(a, b, bestOf, models, random, drawGame = simulateModelGame) {
+function seriesWinner(a, b, bestOf, models, random, drawGame) {
   const needed = Math.floor(bestOf / 2) + 1;
   let aWins = 0;
   let bWins = 0;
@@ -70,7 +89,7 @@ function seriesWinner(a, b, bestOf, models, random, drawGame = simulateModelGame
   return aWins > bWins ? a : b;
 }
 
-function conferenceChampion(seeds, models, random, drawGame = simulateModelGame) {
+function conferenceChampion(seeds, models, random, drawGame) {
   if (seeds.length < 10) return null;
   const q89 = seriesWinner(seeds[7], seeds[8], 5, models, random, drawGame);
   const q710 = seriesWinner(seeds[6], seeds[9], 5, models, random, drawGame);
@@ -83,7 +102,7 @@ function conferenceChampion(seeds, models, random, drawGame = simulateModelGame)
   return seriesWinner(r2a, r2b, 7, models, random, drawGame);
 }
 
-export function simulateFutures(schedule, teams, models, runs = FUTURE_RUNS, drawGame = simulateModelGame, seedSuffix = "") {
+function simulateFutures(schedule, teams, models, runs = FUTURE_RUNS, drawGame, seedSuffix = "") {
   const teamIndex = Object.fromEntries(teams.map((team, index) => [team.slug, index]));
   const base = teams.map(() => ({ gp: 0, wins: 0, losses: 0, otl: 0, pts: 0, rw: 0, gf: 0, ga: 0 }));
   const remaining = [];
@@ -104,9 +123,7 @@ export function simulateFutures(schedule, teams, models, runs = FUTURE_RUNS, dra
   const divisionWins = teams.map(() => 0);
   const presidents = teams.map(() => 0);
   const cups = teams.map(() => 0);
-  const modelFingerprint = drawGame === simulateModelGame
-    ? models.map((model) => `${model.abbreviation}:${model.lineupRevision}:${model.attack.toFixed(2)}:${model.defending.toFixed(2)}:${model.goalie.toFixed(2)}`).join("|")
-    : `V7-EXACT-SAMPLES:${seedSuffix}`;
+  const modelFingerprint = `V7-EXACT-SAMPLES:${seedSuffix}`;
   const random = makeRandom(hashString(`AVHL-FUTURES:${completedFingerprint.join("|")}:${modelFingerprint}`));
   const divisionNames = [...new Set(teams.map((team) => team.division))];
   const divisionIndexes = Object.fromEntries(divisionNames.map((division) => [division, teams.map((team, index) => ({ team, index })).filter(({ team }) => team.division === division).map(({ index }) => index)]));
