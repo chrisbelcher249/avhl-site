@@ -93,6 +93,33 @@ async function start(message){
   }
   if(request!==activeRequest)return;
   target=Math.max(target,samples.length);
+
+  if(message.mode==="readOnly"){
+    // A visitor must never run 1,000 full V7 physics games just by opening
+    // the odds page. Read saved results; poll for the 30-minute prewarm job.
+    const sendReady=()=>self.postMessage({
+      type:"done",gameId,key,completed:samples.length,target:samples.length,
+      samples,fromCache:true
+    });
+    if(samples.length>=1000){sendReady();return;}
+    self.postMessage({type:"pending",gameId,key,completed:samples.length,target:1000,
+      message:"Waiting for 1,000 precomputed V7 games."});
+    while(request===activeRequest){
+      await new Promise(resolve=>setTimeout(resolve,30000));
+      if(request!==activeRequest)return;
+      try {
+        const response=await fetch(`/api/odds/v7-cache?key=${encodeURIComponent(key)}`,{cache:"no-store"});
+        if(!response.ok)continue;
+        const shared=await response.json();
+        if(!shared?.ok || !shared.ready || !Array.isArray(shared.samples) || shared.samples.length<1000)continue;
+        samples=shared.samples;
+        await writeCache(key,samples);
+        sendReady();
+        return;
+      }catch{/* Keep polling; a transient shared cache outage must not price with stale data. */}
+    }
+    return;
+  }
   // Restore persisted work once. Subsequent messages report only NEW samples.
   // Previously sending all accumulated player statistics every two games was
   // O(n^2) structured-clone traffic and got expensive at 1,000+ games.
