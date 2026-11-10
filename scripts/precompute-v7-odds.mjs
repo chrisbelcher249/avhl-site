@@ -55,7 +55,7 @@ ctx.self=ctx;ctx.window=ctx;ctx.globalThis=ctx;vm.createContext(ctx);
 scripts.forEach((script,i)=>vm.runInContext(script,ctx,{filename:files[i]}));
 await ctx.AVHL_LOAD_LIVE_ROSTERS();
 const data=ctx.AVHL_CREATE_MATCHUP_DATA(home,away);
-const key=`v7:2:${fnv(scripts[2])}:${home}:${away}:${fnv(JSON.stringify(data))}`;
+const key=`v7:3:${fnv(scripts[2])}:${home}:${away}:${fnv(JSON.stringify(data))}`;
 const redisKey="avhl:odds:exact:sample:"+key;
 const summaryRedisKey="avhl:odds:exact:summary:"+key;
 let samples=[];
