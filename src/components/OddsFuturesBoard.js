@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fairMoneyline } from "@/lib/v7OddsSamples";
 import { FUTURE_RUNS, simulateV7Futures } from "@/lib/futuresModel";
 
