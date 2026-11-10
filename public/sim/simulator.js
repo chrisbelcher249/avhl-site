@@ -5372,16 +5372,13 @@ class AVHLGameSimulator {
     }
 
     if (zone === "NZ") {
-      // 3v3 rewards controlled, open-ice zone entries over dump-and-chase.
+      // 3v3 skaters prioritize controlled entries. Penalty killers favor
+      // clearing dumps while the man advantage favors controlled entry.
       if (situation === "OT" && roll < 0.62) {
         this.simulateZoneEntry(state, teamId, false);
       } else if (situation === "OT" && roll < 0.67) {
         this.simulatePass(state, teamId, "entry");
-      } else
-      // Most shorthanded entries are dumps, but a quick skilled counterattack
-      // is still possible. On the PP, control the blue line instead of
-      // voluntarily giving up possession on repeated dump-ins.
-      if (situation === "PK" && roll < 0.12) {
+      } else if (situation === "PK" && roll < 0.12) {
         this.simulateZoneEntry(state, teamId, false);
       } else if (situation === "PK" && roll < 0.56) {
         this.simulateZoneEntry(state, teamId, true);
