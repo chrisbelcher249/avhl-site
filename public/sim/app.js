@@ -2,7 +2,7 @@
   "use strict";
 
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const SIMULATOR_VERSION = "V6.7.3";
+  const SIMULATOR_VERSION = "V7.0.0";
   const RECENT_GAMES_KEY = "avhlSimulatorRecentGames";
   const RECENT_GAME_LIMIT = 8;
 
