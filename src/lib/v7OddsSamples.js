@@ -3,6 +3,7 @@
 export const INITIAL_V7_SAMPLES = 1000;
 export const REFINED_V7_SAMPLES = 2000;
 export const MAX_V7_SAMPLES = 5000;
+export const canPublishV7Odds = count => Number.isInteger(count) && count >= INITIAL_V7_SAMPLES;
 
 const divide = (value, total) => total ? value / total : 0;
 const pct = (value, total) => divide(value, total);
