@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const KEY_RE = /^v7:(?:2|3):[a-f0-9]{8}:[A-Z0-9]{2,4}:[A-Z0-9]{2,4}:[a-f0-9]{8}$/;
+const KEY_RE = /^v7:3:[a-f0-9]{8}:[A-Z0-9]{2,4}:[A-Z0-9]{2,4}:[a-f0-9]{8}$/;
 const NAMESPACE = "avhl:odds:exact:sample:";
 const SUMMARY_NAMESPACE = "avhl:odds:exact:summary:";
 function config() {
