@@ -89,7 +89,10 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
         setJob(current=>({
           ...current,
           status:data.type==="done"?"ready":"running",
-          samples:data.samples||[],completed:data.completed||0,
+          samples:Array.isArray(data.samples) ? data.samples :
+            (Array.isArray(data.newSamples) && data.newSamples.length
+              ? current.samples.concat(data.newSamples) : current.samples),
+          completed:data.completed||0,
           target:data.target||current.target,error:"",
           cached:Boolean(data.fromCache)
         }));
@@ -121,7 +124,8 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
             Every sample is a complete game played by the same V7 simulator that runs the AVHL.
             Official live rosters, owner-selected units, starting goalies, injuries and player ratings
-            are loaded directly. Results are cached for this exact lineup and engine version.
+            are loaded directly. No numerical odds appear until 1,000 complete V7 games have finished.
+            Progress is saved on this device for the exact lineup and engine version.
           </p></div>
         <label className="min-w-[240px] text-xs font-black uppercase tracking-wide text-slate-500">
           Game date
@@ -159,7 +163,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
           </div>
           <p className="mt-2 text-xs leading-5 text-slate-600">
             {v7SampleCaveat(job.completed)} {job.cached?"Previously calculated samples restored.":""}
-            {pending?" Keep this tab open to finish the current sample.":""}
+            {pending?" This calculation can take a substantial amount of time on a new lineup; saved progress resumes when you return.":""}
           </p>
           {!pending && job.completed<MAX_V7_SAMPLES?<button type="button" onClick={refine}
             className="mt-3 rounded-xl bg-[#000B36] px-4 py-2 text-xs font-black text-white">
