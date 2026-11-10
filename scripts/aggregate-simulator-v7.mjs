@@ -24,7 +24,7 @@ function merge(label) {
   });
   const totals={};
   for (const key of Object.keys(raw[0])) {
-    if(key==="shotsByStrength")continue;
+    if(key==="shotsByStrength" || key==="goalieSamples")continue;
     totals[key]=sum(raw,key);
   }
   totals.shotsByStrength={};
@@ -32,6 +32,28 @@ function merge(label) {
     const z=totals.shotsByStrength[strength]||={attempts:0,shots:0,goals:0};
     for(const k of ["attempts","shots","goals"])z[k]+=values[k]||0;
   }
+  const byGoalie=new Map();
+  for(const r of raw)for(const g of (r.goalieSamples || [])) {
+    const key=String(g.id),p=byGoalie.get(key)||{id:key,name:g.name,overall:g.overall,shots:0,saves:0,goals:0,appearances:0};
+    p.shots+=g.shots;p.saves+=g.saves;p.goals+=g.goals;p.appearances++;
+    byGoalie.set(key,p);
+  }
+  const counted=[...byGoalie.values()].filter(g=>g.appearances>=5 && g.shots>=100).map(g=>({...g, savePct:g.saves/g.shots}));
+  const pearson=(xs,xKey,yKey)=>{
+    if(xs.length<5)return null;
+    const n=xs.length,xm=xs.reduce((s,v)=>s+v[xKey],0)/n,ym=xs.reduce((s,v)=>s+v[yKey],0)/n;
+    let top=0,xx=0,yy=0;
+    for(const g of xs){const x=g[xKey]-xm,y=g[yKey]-ym;top+=x*y;xx+=x*x;yy+=y*y;}
+    return xx*yy ? Number((top/Math.sqrt(xx*yy)).toFixed(4)):null;
+  };
+  const goalieSummary={
+    eligibleGoalies:counted.length,
+    correlationOverallSavePct:pearson(counted,"overall","savePct"),
+    highRated:counted.filter(g=>g.overall>=88).length,
+    highRatedSavePct: (()=>{const arr=counted.filter(g=>g.overall>=88);return arr.length?Number((arr.reduce((s,g)=>s+g.saves,0)/arr.reduce((s,g)=>s+g.shots,0)).toFixed(4)):null;})(),
+    lowRated:counted.filter(g=>g.overall<83).length,
+    lowRatedSavePct: (()=>{const arr=counted.filter(g=>g.overall<83);return arr.length?Number((arr.reduce((s,g)=>s+g.saves,0)/arr.reduce((s,g)=>s+g.shots,0)).toFixed(4)):null;})()
+  };
   const pct=(a,b)=>b ? Number((100*a/b).toFixed(2)) : null;
   const rate=(a,b)=>b ? Number((a/b).toFixed(3)) : null;
   return {
@@ -54,6 +76,7 @@ function merge(label) {
     elite95Appearances:totals.gp95,
     elite90ShotsPG:rate(totals.shots90,totals.gp90),
     replayedGoals:totals.goalsWithReplayedScorer,
+    goaliePerformance:goalieSummary,
     byManpower:totals.shotsByStrength
   };
 }
