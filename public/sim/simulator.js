@@ -821,16 +821,16 @@ class AVHLGameSimulator {
   possessionTactics(state, teamId) {
     const situation = this.teamSituation(state, teamId);
     if (situation === "PP") return {
-      shoot: 0.37, pass: 0.70, hit: 0.75, takeaway: 0.82, penalty: 0.835, cycle: 0.982
+      shoot: 0.415, pass: 0.715, hit: 0.762, takeaway: 0.828, penalty: 0.843, cycle: 0.985
     };
     if (situation === "PK") return {
-      shoot: 0.09, pass: 0.42, hit: 0.60, takeaway: 0.77, penalty: 0.785, cycle: 0.94
+      shoot: 0.115, pass: 0.44, hit: 0.61, takeaway: 0.77, penalty: 0.785, cycle: 0.94
     };
     if (state.period === 4) return {
-      shoot: 0.35, pass: 0.68, hit: 0.73, takeaway: 0.82, penalty: 0.835, cycle: 0.98
+      shoot: 0.38, pass: 0.70, hit: 0.74, takeaway: 0.82, penalty: 0.835, cycle: 0.98
     };
     return {
-      shoot: 0.305, pass: 0.575, hit: 0.76, takeaway: 0.84, penalty: 0.855, cycle: 0.96
+      shoot: 0.325, pass: 0.59, hit: 0.76, takeaway: 0.84, penalty: 0.855, cycle: 0.96
     };
   }
 
@@ -842,7 +842,7 @@ class AVHLGameSimulator {
     if (state.period !== 3 || state.clock <= 0) return null;
     const deficit = state.score[this.opponent(teamId)] - state.score[teamId];
     if (deficit < 1 || deficit > 3) return null;
-    const base = { 1: 120, 2: 180, 3: 210 }[deficit];
+    const base = { 1: 120, 2: 160, 3: 180 }[deficit];
     return base + (this.teamSituation(state, teamId) === "PP" ? 30 : 0);
   }
 
@@ -1131,9 +1131,11 @@ class AVHLGameSimulator {
       desired = team.overtimeUnits[state.otRotationIndex[teamId] % team.overtimeUnits.length] ?? [];
     } else if (situation === "PP") {
       if (forceRotate) state.specialRotationIndex[teamId] += 1;
-      desired = state.specialRotationIndex[teamId] % 2 === 0
-        ? team.specialTeams.pp1
-        : team.specialTeams.pp2;
+      // Most NHL power-play time belongs to the first unit. Preserve
+      // every owner's PP assignments and rotate PP1 / PP1 / PP2.
+      desired = state.specialRotationIndex[teamId] % 3 === 2
+        ? team.specialTeams.pp2
+        : team.specialTeams.pp1;
     } else if (situation === "PK") {
       if (forceRotate) state.specialRotationIndex[teamId] += 1;
       desired = state.specialRotationIndex[teamId] % 2 === 0
@@ -2272,7 +2274,8 @@ class AVHLGameSimulator {
       for (const id of state.onIce[teamId]) {
         const player = team.playerById[id];
         if (!player || !state.positions[id]) continue;
-        const time = this.estimatePuckRecoveryTime(state, player, location) + this.random.range(0, 0.11);
+        const manpowerRecovery = this.teamSituation(state, teamId) === "PP" ? 0.958 : 1;
+        const time = this.estimatePuckRecoveryTime(state, player, location) * manpowerRecovery + this.random.range(0, 0.11);
         candidates.push({ teamId, player, time });
       }
     }
@@ -2640,7 +2643,7 @@ class AVHLGameSimulator {
       passer.offensiveAwareness * 0.11;
     const lanePenalty = laneDefender ? this.clamp((7 - laneDefender.lane.distance) * 0.018, 0, 0.10) : 0;
     const situation = this.teamSituation(state, teamId);
-    const manpowerPassing = situation === "PP" ? 0.055 : situation === "PK" ? -0.035 : state.period === 4 ? 0.015 : 0;
+    const manpowerPassing = situation === "PP" ? 0.069 : situation === "PK" ? -0.035 : state.period === 4 ? 0.015 : 0;
     const successProbability = this.clamp(
       0.75 +
       (["cycle", "one-timer"].includes(purpose) ? 0.075 : 0) +
@@ -3333,7 +3336,7 @@ class AVHLGameSimulator {
 
     const openness = shot.openness[shot.actualTarget] ?? 0.4;
     const situation = this.teamSituation(state, shooter.teamId);
-    const specialTeams = situation === "PP" ? 0.026 : situation === "PK" ? -0.012 : state.period === 4 ? 0.015 : 0;
+    const specialTeams = situation === "PP" ? 0.034 : situation === "PK" ? -0.009 : state.period === 4 ? 0.021 : 0;
     const pressurePenalty = shot.pressure * 0.018;
     const screenBonus = shot.screened ? 0.022 : 0;
     const fatigueAdjustment = (goalie.fatigue - shooter.fatigue) * 0.016;
@@ -4602,7 +4605,7 @@ class AVHLGameSimulator {
     const accuracy = this.shotAccuracyRating(shooter, technique);
     const onNetProbability = this.clamp(
       0.72 +
-      (emptyNet ? -0.005 : 0) +
+      (emptyNet ? -0.055 : 0) +
       (accuracy - 80) * 0.008 +
       (shooter.poise - 80) * 0.003 -
       pressure * 0.11 -
