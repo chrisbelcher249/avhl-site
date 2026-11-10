@@ -355,6 +355,64 @@ h2 {
   object-fit: contain;
 }
 
+/* Licensed portraits are a progressive enhancement; the existing team logo
+   stays beneath each image until a real photo has loaded successfully. */
+.event-player {
+  position: relative;
+}
+.event-player .event-headshot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+.event-player.has-headshot .event-headshot {
+  opacity: 1;
+}
+.player-name-cell .boxscore-photo-slot {
+  display: none;
+  float: left;
+  overflow: hidden;
+  width: 28px;
+  height: 28px;
+  margin: 0 8px 0 0;
+  border-radius: 6px;
+  background: #122138;
+}
+.player-name-cell .boxscore-photo-slot.has-headshot {
+  display: block;
+}
+.player-name-cell .boxscore-photo-slot .boxscore-headshot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+}
+.sim-photo-credits {
+  max-width: 380px;
+  font-size: 0.7rem;
+  color: #9ba9bc;
+}
+.sim-photo-credits summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.sim-photo-credits ul {
+  padding-left: 1.2rem;
+  margin: 0.35rem 0;
+  line-height: 1.5;
+}
+.sim-photo-credits a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .event-player.placeholder {
   border-color: var(--border);
   background: #111b31;
