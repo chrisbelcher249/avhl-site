@@ -68,7 +68,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
   const [selectedDate,setSelectedDate]=useState(initialDate||dates[0]||"");
   const [selectedGameId,setSelectedGameId]=useState(null);
   const [marketTab,setMarketTab]=useState("game");
-  const [job,setJob]=useState({status:"loading",samples:[],completed:0,target:INITIAL_V7_SAMPLES,error:"",cached:false});
+  const [job,setJob]=useState({status:"loading",samples:[],summary:null,completed:0,target:INITIAL_V7_SAMPLES,error:"",cached:false});
   const workerRef=useRef(null);
   const slate=useMemo(()=>games.filter(g=>g.date===selectedDate),[games,selectedDate]);
   const selected=slate.find(g=>g.id===selectedGameId)||slate[0]||null;
@@ -89,6 +89,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
         setJob(current=>({
           ...current,
           status:data.type==="done"?"ready":data.type==="pending"?"pending":"running",
+          summary:data.summary || current.summary,
           samples:Array.isArray(data.samples) ? data.samples :
             (Array.isArray(data.newSamples) && data.newSamples.length
               ? current.samples.concat(data.newSamples) : current.samples),
@@ -105,8 +106,8 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate}){
 
   const odds=useMemo(()=>{
     if(!selected||!away||!home||!canPublishV7Odds(job.completed))return null;
-    return summarizeV7Samples(job.samples,away.abbreviation,home.abbreviation);
-  },[job.samples,job.completed,selected?.id,away?.abbreviation,home?.abbreviation]);
+    return job.summary || summarizeV7Samples(job.samples,away.abbreviation,home.abbreviation);
+  },[job.samples,job.summary,job.completed,selected?.id,away?.abbreviation,home?.abbreviation]);
   const progress=Math.min(100,job.target?Math.round(100*job.completed/job.target):0);
   const pending=job.status==="loading"||job.status==="running"||job.status==="pending";
   return <div className="space-y-6">
