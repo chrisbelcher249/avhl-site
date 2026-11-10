@@ -20,10 +20,12 @@ be faster, but does not meet the 1,000-game publishing floor.
   A lineup, player rating, game-engine, starting-goalie, or valid-roster change
   invalidates the corresponding matchup's cached samples automatically.
 - A read-only API endpoint `/api/odds/v7-cache?key=...` returns a **shared**,
-  completed 1,000+ sample pool from existing Upstash Redis. Invalid and foreign
-  keys are rejected. Cached samples never modify the official game database.
-- The browser falls back to exact local V7 calculations when no shared pool
-  exists; those can be slow and should not be the standard public path.
+  published 1,000+ sample summary from existing Upstash Redis. The compact
+  summary avoids transferring entire game histories to visitors. Invalid and
+  foreign keys are rejected; no official game data is modified.
+- **The public odds page never runs full games on a visitor device.** When
+  precomputed odds are missing, show a pending state and poll the shared cache.
+  The heavy simulations run on scheduled servers, not in a browser tab.
 
 ## Practical precomputation
 
@@ -31,8 +33,9 @@ The repo contains `scripts/precompute-v7-odds.mjs`. It loads current public
 `/api/sim-rosters` data, fails closed unless the roster is `source=live`,
 then runs the *identical* V7 Javascript engine plus the *same* sample
 serialization used in the browser. It writes resumable 25-game checkpoints
-into the existing Redis REST backend. Existing computed samples are reused on
-subsequent jobs, rather than recomputed after a process restart.
+into the existing Redis REST backend and a small read-only aggregate summary
+for fast viewing. Existing computed samples are reused on subsequent jobs,
+rather than recomputed after a process restart.
 
 Example operation in an authorized environment:
 
@@ -46,7 +49,17 @@ For local smoke tests (no Redis, never eligible for publishing):
 node scripts/precompute-v7-odds.mjs --away ARI --home ATL --target 2 --fixture --dry-run
 ```
 
-A **manual-only** GitHub Actions workflow is included. It will not
+Two GitHub Actions workflows are included. The scheduled
+`.github/workflows/refresh-v7-odds.yml` checks the verified live upcoming
+schedule every **30 minutes**. It prioritizes up to 16 upcoming matchups,
+runs up to 8 jobs in parallel, and calls the exact V7 batch runner only for
+missing or outdated owner-lineup/engine fingerprints. Existing 1,000-game
+matchups are **not rerun** at every check. GitHub Actions schedule triggers
+can be delayed, and cold jobs can run longer than one interval. The schedule
+only becomes active on the repository's default branch after the draft PR
+is approved and merged.
+
+A **manual-only** GitHub Actions workflow is also included. It will not
 automatically consume any compute until an operator invokes it and configures
 the repository Secrets `ODDS_UPSTASH_REDIS_REST_URL` and
 `ODDS_UPSTASH_REDIS_REST_TOKEN`, pointing to the site's existing shared cache.
@@ -60,11 +73,12 @@ matchup can take around 18–27 minutes of serial CPU time. Shared, persistent
 precomputation removes this cost from repeat visitors; parallel job execution
 reduces wall time across several fixtures but not total CPU cost.
 
-For a reliable public launch, set up an **authorized prewarm schedule** for
-the approaching slate and re-run affected matchups when lineups/ratings change.
-Never display fewer than 1,000 V7 results. The current GitHub workflow is
-manual; automatic prewarming, distributed scheduling, late-lineup
-invalidations, cost limits and UI tests remain release blockers.
+The auto-refresh workflow and shared compact cache are implemented **in the
+PR only**. Before a real release, configure the repository cache secrets,
+verify scheduled GitHub Actions permissions and compute-budget limits, and
+run an end-to-end live browser test. Newly modified lineups automatically
+invalidate the old cache key; they require a fresh 1,000-game sample before
+new odds may display. Never quietly display stale or 999-game odds.
 
 ## Futures
 
