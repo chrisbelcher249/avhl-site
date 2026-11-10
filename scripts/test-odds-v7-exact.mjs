@@ -22,7 +22,10 @@ let rejectDone;
 let collected=[];
 const c={
   console,Date,Math,structuredClone,setTimeout,clearTimeout,
-  postMessage:message=>{
+  postMessage:original=>{
+    // Real Worker.postMessage performs a structured clone: the emulator must
+    // copy payloads rather than retaining the worker's mutable sample array.
+    const message=structuredClone(original);
     deliveries.push(message);
     if(Array.isArray(message.samples))collected=message.samples;
     else if(Array.isArray(message.newSamples))collected.push(...message.newSamples);
