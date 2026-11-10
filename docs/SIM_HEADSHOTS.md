@@ -1,9 +1,9 @@
 # AVHL simulator headshots — licensed photo discovery (draft)
 
 ## Status and scope
-- **2026-11-10: 1,103 / 1,908 player records (57.8%)** have Commons photograph entries (1,100 exact-ID records, three initial name-keyed manual entries). **805** still have logo/number fallbacks. These are manifest matches, not a guarantee that every image has been manually reviewed or that every external URL will resolve in every browser.
+- **2026-11-10: 1,112 / 1,908 player records (58.3%)** have Commons photograph entries (1,109 exact-ID records, three initial name-keyed manual entries). **796** still have logo/number fallbacks. These are manifest matches, not a guarantee that every image has been manually reviewed or that every external URL will resolve in every browser.
 - The latest discovery code searches Wikidata English Wikipedia titles first, then exact English labels/aliases and checks birthdate + hockey identity before accepting P18 images. Photos without acceptable Commons licensing and author metadata are rejected.
-- Seven additional photographer-credit-reviewed entries added this session: David Pastrnak (0023), Jordan Martinook (0113), Teuvo Teravainen (0125), Jiří Kulich (0063), Mason Lohrei (0030), Olli Määttä (0084), and André Burakovsky (0126). The original three name-keyed photos remain.
+- Sixteen photographer-credit-reviewed ID-specific entries have now been added manually: David Pastrnak (0023), Jordan Martinook (0113), Teuvo Teravainen (0125), Jiří Kulich (0063), Mason Lohrei (0030), Olli Määttä (0084), André Burakovsky (0126), John Beecher (0091), Alex Ovechkin (0699), Aleksander Barkov (0261), Anže Kopitar (0289), Juraj Slafkovský (0338), Jacob Markström (1732), Martin Nečas (0149), Jeremy Swayman (1699), and Matthew Boldy (0311). The original three name-keyed photos remain.
 - Discovery workflow is a long-running PR-only GitHub Action. It merges results with the latest branch manifest without clobbering manual records. Newly found entries still need image/attribution spot checks before production release.
 - Display-only feature for the event feed and completed-game skater/goalie tables.
 - **No changes to the V7 game engine, ratings, owner lineups, game export, simulation IDs, or historical replay schemas.**
