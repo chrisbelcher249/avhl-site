@@ -165,8 +165,9 @@ async function start(message){
       newSamples:unsent,fromCache:samples.length>=target && !unsent.length});
 }
 
-// Explicit preview smoke test. Three actual full V7 games, with final box
-// scores, never published or used to claim probability estimates.
+// Preview-only market-layout review: 12 actual full V7 games + box scores.
+// Do not publish these probabilities as official odds or store them in the
+// 1,000+ run production cache.
 async function previewDemo(message) {
   const request=++activeRequest;
   const {away,home,gameId}=message;
@@ -176,11 +177,14 @@ async function previewDemo(message) {
   if(request!==activeRequest)return;
   const matchup=self.AVHL_CREATE_MATCHUP_DATA(home,away);
   const results=[];
-  for(let i=0;i<3;i++){
+  const samples=[];
+  const target=12;
+  for(let i=0;i<target;i++){
     if(request!==activeRequest)return;
     const seed=(Date.now()+i*100003)>>>0;
     const game=new self.AVHLGameSimulator(structuredClone(matchup),seed,{headless:true}).simulateGame();
     const s=game.finalSummary;
+    samples.push(self.AVHL_ODDS_EXTRACT_SAMPLE(game,away,home));
     results.push({
       awayScore:Number(s.score[game.awayId]),homeScore:Number(s.score[game.homeId]),
       leadingScorers:Object.values(s.skaters||{}).flat()
@@ -188,10 +192,10 @@ async function previewDemo(message) {
         .sort((a,b)=>b.points-a.points).slice(0,3)
         .map(row=>({name:row.name,points:row.points}))
     });
-    self.postMessage({type:"demoProgress",gameId,completed:i+1,target:3,results});
+    self.postMessage({type:"demoProgress",gameId,completed:i+1,target,results});
     await new Promise(resolve=>setTimeout(resolve,0));
   }
-  if(request===activeRequest)self.postMessage({type:"demoDone",gameId,completed:3,target:3,results});
+  if(request===activeRequest)self.postMessage({type:"demoDone",gameId,completed:target,target,results,samples});
 }
 
 self.onmessage=(event)=>{
