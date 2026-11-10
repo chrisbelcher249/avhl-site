@@ -15,7 +15,7 @@ permissions:
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,13 +30,24 @@ jobs:
           node scripts/test-sim-headshots.mjs
       - name: Discover copyright-cleared photos
         env:
-          HEADSHOT_LIMIT: "80"
+          HEADSHOT_LIMIT: "0"
           HEADSHOT_REPORT: headshot-discovery-report.json
         run: node scripts/discover-sim-headshots.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: licensed-headshots-smoke-report
+          name: licensed-headshots-1908-audit
           path: |
             headshot-discovery-report.json
             public/sim/headshots.json
           retention-days: 14
+      - name: Publish matched, licensed portraits to the headshots PR
+        run: |
+          if git diff --quiet -- public/sim/headshots.json; then
+            echo "No new licenses found"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/sim/headshots.json
+          git commit -m "data(sim): publish identity-checked Wikimedia Commons player portraits"
+          git push origin HEAD:sim-headshots-cc-portraits
