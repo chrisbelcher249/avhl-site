@@ -398,6 +398,29 @@ class AVHLGameSimulator {
     };
   }
 
+  // V7: elite ability should not be a nearly-linear lottery ticket.
+  // Exceptional hands/vision/puck skill earn a bigger share of *real* touches
+  // and completed passing plays, without creating goals or assists out of thin air.
+  eliteCreationFactor(player) {
+    const score =
+      player.offensiveAwareness * 0.29 +
+      player.passing * 0.27 +
+      player.puckControl * 0.20 +
+      player.deking * 0.12 +
+      player.overall * 0.12;
+    return this.clamp(Math.exp((score - 84) * 0.087), 0.52, 3.55);
+  }
+
+  eliteFinishAdjustment(player) {
+    const score =
+      player.wristShotAccuracy * 0.32 +
+      player.slapShotAccuracy * 0.16 +
+      player.offensiveAwareness * 0.24 +
+      player.handEye * 0.16 +
+      player.overall * 0.12;
+    return this.clamp(0.016 * (Math.exp((score - 86) * 0.074) - 1), -0.009, 0.026);
+  }
+
   powerPlayScore(player) {
     return (
       player.offensiveAwareness * 1.25 +
@@ -807,7 +830,7 @@ class AVHLGameSimulator {
       shoot: 0.35, pass: 0.68, hit: 0.73, takeaway: 0.82, penalty: 0.855, cycle: 0.98
     };
     return {
-      shoot: 0.27, pass: 0.54, hit: 0.75, takeaway: 0.84, penalty: 0.855, cycle: 0.96
+      shoot: 0.305, pass: 0.575, hit: 0.76, takeaway: 0.84, penalty: 0.855, cycle: 0.96
     };
   }
 
@@ -819,7 +842,7 @@ class AVHLGameSimulator {
     if (state.period !== 3 || state.clock <= 0) return null;
     const deficit = state.score[this.opponent(teamId)] - state.score[teamId];
     if (deficit < 1 || deficit > 3) return null;
-    const base = { 1: 120, 2: 180, 3: 240 }[deficit];
+    const base = { 1: 120, 2: 180, 3: 210 }[deficit];
     return base + (this.teamSituation(state, teamId) === "PP" ? 30 : 0);
   }
 
@@ -2510,14 +2533,20 @@ class AVHLGameSimulator {
         const separation = position && passerPosition
           ? this.clamp(Math.hypot(position.x - passerPosition.x, position.y - passerPosition.y), 4, 45)
           : 18;
-        return (
+        const base =
           player.offensiveAwareness * 0.42 +
           player.puckControl * 0.25 +
           player.speed * 0.14 +
           player.handEye * (purpose === "one-timer" ? 0.18 : 0.06) +
           player.poise * 0.07 +
-          separation * 0.8
-        );
+          separation * 0.8;
+        // Passing lanes prefer genuinely skilled creators. The final pass into
+        // shooting position prefers a forward while still permitting a strong
+        // defenseman to step up, preserving the physical player coordinates.
+        const finalPassBias = purpose === "one-timer"
+          ? (player.position.includes("D") ? 0.68 : 1.28)
+          : 1;
+        return base * this.eliteCreationFactor(player) * finalPassBias;
       },
       (player) => {
         if (player.id === passer.id) return false;
@@ -2878,9 +2907,10 @@ class AVHLGameSimulator {
       defender.bodyChecking * 0.11 + defender.balance * 0.06;
     const situation = this.teamSituation(state, teamId);
     const strengthAdjustment = situation === "PP" ? 0.07 : situation === "PK" ? -0.10 : state.period === 4 ? 0.045 : 0;
+    const eliteEntryAdjustment = this.clamp((this.eliteCreationFactor(carrier) - 1) * 0.018, -0.014, 0.045);
     const entryProbability = this.clamp(
       0.58 + (carrierEntrySkill - defenderEntrySkill) * 0.012 - carrier.fatigue * 0.055 + defender.fatigue * 0.035 +
-        strengthAdjustment,
+        strengthAdjustment + eliteEntryAdjustment,
       0.25,
       0.91
     );
@@ -3308,9 +3338,16 @@ class AVHLGameSimulator {
     const screenBonus = shot.screened ? 0.022 : 0;
     const fatigueAdjustment = (goalie.fatigue - shooter.fatigue) * 0.016;
     const base = this.baseGoalProbability(shot.region, shot.context, shot.technique);
+    // D shots are usually released through more traffic and from farther
+    // out. A spatial high-danger chance remains dangerous for any position.
+    const defenseShotAdjustment = shooter.position.includes("D")
+      ? (shot.region === "point" ? -0.018 : shot.region === "high slot" ? -0.024 : -0.027)
+      : 0.004;
+    const eliteFinish = this.eliteFinishAdjustment(shooter);
     return this.clamp(
       base +
       (shooterSkill - goalieSkill) * 0.0022 +
+      defenseShotAdjustment + eliteFinish +
       (openness - 0.4) * 0.055 +
       specialTeams +
       screenBonus +
@@ -4565,7 +4602,7 @@ class AVHLGameSimulator {
     const accuracy = this.shotAccuracyRating(shooter, technique);
     const onNetProbability = this.clamp(
       0.72 +
-      (emptyNet ? 0.10 : 0) +
+      (emptyNet ? -0.005 : 0) +
       (accuracy - 80) * 0.008 +
       (shooter.poise - 80) * 0.003 -
       pressure * 0.11 -
@@ -5701,7 +5738,7 @@ class AVHLGameSimulator {
         [this.awayId]: aggregateGoalieStats(this.awayId)
       },
       ratingModel: {
-        version: "V6.7.1",
+        version: "V7-dev",
         syntheticRatings: false,
         skaterRatingsUsed: 26,
         goalieRatingsUsed: 20,
