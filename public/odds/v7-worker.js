@@ -73,7 +73,7 @@ async function start(message){
   // cached simulator files, roster state or IndexedDB to locate published odds.
   // Each response re-verifies the current lineup against exactly 1,000 real V7 games.
   if(message.mode==="readOnly"){
-    let announced=false;
+    let lastStatus="";
     while(request===activeRequest){
       try{
         const url="/api/odds/v7-current?home="+encodeURIComponent(home)+
@@ -90,17 +90,17 @@ async function start(message){
             completed:result.count,target:result.count,summary:result.summary,fromCache:true});
           return;
         }
-        if(!announced){
+        if(lastStatus!=="pending"){
           self.postMessage({type:"pending",gameId,key:result.key,completed:0,target:1000,
             message:"Current V7 lineup needs 1,000 game samples."});
-          announced=true;
+          lastStatus="pending";
         }
       }catch(error){
         if(request!==activeRequest)return;
-        if(!announced){
+        if(lastStatus!=="error"){
           self.postMessage({type:"error",gameId,error:
             "Unable to verify official V7 odds; checking again automatically."});
-          announced=true;
+          lastStatus="error";
         }
       }
       await new Promise(resolve=>setTimeout(resolve,30000));
