@@ -131,7 +131,9 @@ export async function renderParlayShareCard(ticket){
   ctx.fillStyle="#526781";ctx.font="800 19px Arial,sans-serif";
   ctx.fillText(NO_MONEY,540,height-81);
   ctx.fillStyle="#75869B";ctx.font="500 17px Arial,sans-serif";
-  ctx.fillText("Model-based picks · Joint outcomes may be correlated · avhl.org/odds",540,height-50);
+  ctx.fillText(ticket.previouslyVerified?
+    "Includes previous verified market prices · Updating · avhl.org/odds":
+    "Model-based picks · Joint outcomes may be correlated · avhl.org/odds",540,height-50);
   ctx.textAlign="left";
   const blob=await new Promise((resolve,reject)=>{
     canvas.toBlob(value=>value?resolve(value):reject(Error("Unable to generate ticket image.")),"image/png");

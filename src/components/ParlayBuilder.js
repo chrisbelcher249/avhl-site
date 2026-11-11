@@ -85,20 +85,21 @@ function FuturePicker({forecast,onAdd,selectedTeams=[],atCapacity=false,stale=fa
       </div>
       <div className="shrink-0 text-right">
         <p className="text-2xl font-black tabular-nums text-[#000B36]">{sample.price}</p>
-        <button type="button" disabled={stale||atCapacity||alreadyPicked||!available}
+        <button type="button" disabled={atCapacity||alreadyPicked||!available}
           onClick={()=>onAdd({
             id:"future:"+team.abbreviation+":"+market+":"+line+":"+side,type:"future",
             label,context:"2026–27 AVHL hybrid season futures",
+            reference:stale,quotedAt:forecast.generatedAt,
             probability:p,samples:forecast.runs,source:forecast.sourceDigest+":"+forecast.generatedAt,
             teamCodes:[team.abbreviation],market,division:team.division,conference:team.conference
           })}
           className="mt-2 rounded-xl bg-[#000B36] px-4 py-2.5 text-xs font-black text-white hover:bg-[#143159] disabled:cursor-not-allowed disabled:opacity-45">
-          {stale?"Updating odds":atCapacity?"8-leg limit":alreadyPicked?"Team already chosen":available?"Add selection +":"Not available"}
+          {atCapacity?"8-leg limit":alreadyPicked?"Team already chosen":available?(stale?"Add prior odds +":"Add selection +"):"Not available"}
         </button>
       </div>
     </div>:null}
     {stale?<p role="status" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
-      Previous verified futures are shown for reference during the refresh. New picks are disabled until the forecast is current.
+      Previous verified futures are available for virtual parlays while the latest forecast updates. Picks use the displayed historical prices, clearly marked on your ticket.
     </p>:null}
     <p className="mt-3 text-xs leading-5 text-[#687992]">
       Choose up to eight different teams (one pick per team). Futures are correlated;
@@ -188,7 +189,10 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
       setLegs(prev=>prev.map(l=>{
         if(l.type!=="game"||!latest.has(l.gameId))return l;
         const q=latest.get(l.gameId);
-        return {...l,stale:!q||q.ready!==true||l.source!==q.key};
+        // Freeze the quoted price on a virtual ticket; don't disable a
+         // previously verified selection just because its snapshot aged out.
+         const activeKey=q?.ready?q.key:q?.fallback?.key;
+         return {...l,reference:!q?.ready||l.source!==activeKey,stale:false};
       }));
     }
     refresh();
@@ -209,16 +213,16 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
              data.fallback?.matchedPairs===780&&data.fallback?.runs>=10000&&
              data.fallback?.teams?.length===40)setSeason(data.fallback);
           setSeasonStale(true);
-          setLegs(prev=>prev.map(l=>l.type==="future"?{...l,stale:true}:l));
+          setLegs(prev=>prev.map(l=>l.type==="future"?{...l,reference:true,stale:false}:l));
           return;
         }
         setSeason(data);
         setSeasonStale(false);
         const current=data.sourceDigest+":"+data.generatedAt;
-        setLegs(prev=>prev.map(l=>l.type==="future"?{...l,stale:l.source!==current}:l));
+        setLegs(prev=>prev.map(l=>l.type==="future"?{...l,reference:l.source!==current,stale:false}:l));
       }catch{
         if(!cancelled){setSeasonStale(true);setLegs(prev=>prev.map(l=>
-          l.type==="future"?{...l,stale:true}:l));}
+          l.type==="future"?{...l,reference:true,stale:false}:l));}
       }
     }
     refresh();
@@ -233,14 +237,15 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
     setCopied(false);
   },[legs,view]);
   const remove=id=>{setLegs(prev=>prev.filter(x=>x.id!==id));setCopied(false);};
-  const stale=legs.some(l=>l.stale);
+  const references=legs.some(l=>l.reference);
   const result=estimatedParlay(legs,virtualPoints);
-  const ready=legs.length>=2&&!stale&&result;
+  const ready=legs.length>=2&&result;
   const ticketText=()=>{
     const items=legs.map((l,i)=>(i+1)+". "+l.label+" ("+l.context+") · "+
       probabilityToAmerican(l.probability,l.samples));
     return ["AVHL "+modeName.toUpperCase()+" FUN PARLAY · NOT REAL MONEY",...items,"",
       "Combined estimated odds: "+result.american+(result.capped?" (display capped)":""),
+      ...(references?["Some selections use previous verified prices while simulations update."]:[]),
       "Virtual points: "+virtualPoints,
       "Potential imaginary return: "+formatPoints(result.potentialPoints)+" points",
       "Illustrative independence estimate only. Same-game and futures outcomes can be strongly correlated.",
@@ -265,7 +270,8 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
     if(!ready||shareBusy)return;
     const record={id:Date.now().toString(36),at:new Date().toISOString(),
       legs:legs.map(l=>({label:l.label,context:l.context,price:probabilityToAmerican(l.probability,l.samples)})),
-      odds:result.american,mode:view,virtualPoints,potentialPoints:result.potentialPoints};
+      odds:result.american,mode:view,virtualPoints,potentialPoints:result.potentialPoints,
+      previouslyVerified:references};
     const next=[record,...saved].slice(0,12);
     try{
       localStorage.setItem(STORAGE_KEY,JSON.stringify(next));
@@ -425,8 +431,8 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-xs font-black leading-5 text-[#000B36]">{l.label}</p>
                     <p className="mt-0.5 text-[11px] text-[#667A93]">{l.context}</p>
-                    {l.stale?<p className="mt-1 text-[11px] font-bold text-[#A90117]">
-                      This price changed or is unavailable. Remove and reselect.
+                    {l.reference?<p className="mt-1 text-[11px] font-bold text-[#996300]">
+                      Previous verified price · Your virtual pick stays available during updates.
                     </p>:null}
                   </div>
                   <button type="button" onClick={()=>remove(l.id)} aria-label={"Remove "+l.label}
@@ -439,6 +445,9 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
                 </div>
               </div>)}
             </div>}
+            {references?<p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-950">
+              Some prices are from an earlier verified simulation snapshot. Your imaginary ticket keeps those quoted odds; new selections use the latest available verified prices.
+            </p>:null}
             <div className="border-t border-[#E2E8F0] pt-4">
               <Control label="Imaginary stake (virtual points)"
                 value={String(virtualPoints)} onChange={v=>setVirtualPoints(Number(v))}
@@ -459,8 +468,8 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
                 </div>
                 <p className="mt-1 text-right text-[11px] text-[#627791]">virtual points · no cash value</p>
               </div>
-              {stale?<p className="mt-3 text-xs font-bold text-[#A90117]">
-                Revalidate stale selections before sharing or saving.
+              {references?<p className="mt-3 text-xs font-semibold leading-5 text-amber-900">
+                Previous verified pricing is included in this virtual ticket.
               </p>:null}
               {legs.length===1?<p className="mt-3 text-xs text-[#64748B]">
                 Add one more selection to make a parlay.

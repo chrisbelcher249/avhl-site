@@ -99,7 +99,7 @@ try{
         label:"Team "+(i+1)+" · Win the Cup",
         context:"2026–27 AVHL season",price:"+150"
       })),
-      odds:"+12,500",virtualPoints:100,potentialPoints:12600};
+      odds:"+12,500",virtualPoints:100,potentialPoints:12600,previouslyVerified:mode==="futures"};
     const output=await renderParlayShareCard(ticket);
     assert.equal(output.blob.type,"image/png");
     assert.match(output.filename,new RegExp(mode+"-"+legsCount+"-leg\\.png$"));
@@ -108,6 +108,10 @@ try{
     assert(drawn.includes("AVHL SPORTSBOOK"));
     assert(drawn.some(line=>line.includes("NO REAL MONEY")));
     assert(drawn.includes("Team "+legsCount+" · Win the Cup"));
+    assert(drawn.some(line=>mode==="futures"?
+      line.includes("Includes previous verified market prices"):
+      line.includes("Model-based picks")),
+      "Shared slips must mark historical model prices as reference-only.");
   }
   await assert.rejects(()=>renderParlayShareCard({mode:"same",legs:[]}),/Invalid shareable parlay/);
 }finally{
