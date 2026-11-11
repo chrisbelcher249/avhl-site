@@ -2,7 +2,8 @@ name: Refresh exact V7 season futures (780 pairs)
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    # Avoid the busiest :00 and :30 GitHub Actions cron minutes.
+    - cron: "7,37 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -20,6 +21,11 @@ on:
 permissions:
   contents: read
   id-token: write
+
+# Serialize work so two snapshot plans do not supersede each other mid-calculation.
+concurrency:
+  group: avhl-v7-futures-refresh
+  cancel-in-progress: false
 
 concurrency:
   group: avhl-exact-v7-season-futures
