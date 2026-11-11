@@ -35,6 +35,7 @@ globalThis.fetch=async (url,opts={})=>{
    if(cmd==="SET"){mem.set(args[0],args[1]);writes++;return{ok:true,json:async()=>({result:"OK"})};}
    if(cmd==="INCR"){const next=Number(mem.get(args[0])||0)+1;mem.set(args[0],String(next));return {ok:true,json:async()=>({result:next})};}
    if(cmd==="MGET")return {ok:true,json:async()=>({result:args.map(k=>mem.has(k)?mem.get(k):null)})};
+   if(cmd==="SCAN")return {ok:true,json:async()=>({result:["0",[]]})};
    throw Error("Unexpected Redis command "+cmd);
  }
  throw Error("Unexpected external network access in V7 futures test "+url);
@@ -100,6 +101,8 @@ try{
    "A pending goalie/lineup change may NOT invalidate the public completed forecast.");
  assert.equal(mem.get("avhl:odds:futures:pending"),snapshot);
  assert.equal(mem.get("avhl:odds:futures:last-verified"),oldDigest);
+ assert.equal(JSON.parse(mem.get("avhl:odds:futures:last-complete-forecast")).sourceDigest,oldDigest,
+   "Last fully verified odds must also survive in a stable archive.");
  publicResult=await GET();
  assert.equal(publicResult.status,200);
  const whileUpdating=await publicResult.json();

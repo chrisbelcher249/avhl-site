@@ -14,7 +14,7 @@ process.env.UPSTASH_REDIS_REST_TOKEN="test-only-not-a-secret";
 const first="012f9ea40d459dfab579a961";
 const second="bbbbbbbbbbbbbbbbbbbbbbbb";
 let current=first,pendingSnapshot=null,forecast=null,progress=780;
-let lastVerified=null,priorForecast=null;
+let lastVerified=null,priorForecast=null,archived=null,scanAvailable=false;
 const source={
   method:"exact-V7-game-outcome-resampling",
   sourceDigest:first,matchedPairs:780,engineSamples:78000,runs:10000,
@@ -24,9 +24,22 @@ const source={
 globalThis.fetch=async(url,options)=>{
   assert.equal(String(url),"https://mock-avhl-redis.invalid");
   const command=JSON.parse(options.body);
+  if(command[0]==="SCAN"){
+    assert.equal(command[3],"avhl:odds:futures:forecast:*");
+    return {ok:true,json:async()=>({result:["0",scanAvailable?[
+      "avhl:odds:futures:forecast:"+first
+    ]:[]]})};
+  }
+  if(command[0]==="SET"){
+    assert.equal(command[1],"avhl:odds:futures:last-complete-forecast");
+    assert.equal(command[4],604800);
+    if(!archived)archived=command[2];
+    return {ok:true,json:async()=>({result:"OK"})};
+  }
   assert.equal(command[0],"GET");
   const key=command[1];
-  const value=key==="avhl:odds:futures:current"?current:
+  const value=key==="avhl:odds:futures:last-complete-forecast"?archived:
+    key==="avhl:odds:futures:current"?current:
     key==="avhl:odds:futures:pending"?pendingSnapshot:
     key==="avhl:odds:futures:last-verified"?lastVerified:
     key==="avhl:odds:futures:forecast:"+current?forecast:
@@ -82,8 +95,24 @@ try{
   assert.equal(pending.status,200);
   assert.equal((await pending.json()).fallback.sourceDigest,first);
 
-  // No prior trusted publication means there are no fabricated lines.
+  // Persistent archive survives even if the older pointer is removed.
+  assert(archived,"Verified legacy forecast should be archived for subsequent reads.");
   lastVerified=null;
+  pending=await GET();
+  assert.equal((await pending.json()).fallback.sourceDigest,first);
+
+  // Recover a legacy verified forecast by scanning Redis when BOTH pointers
+  // are missing. This is the situation that caused Columbus' 0/78k blackout.
+  archived=null;scanAvailable=true;
+  pending=await GET();
+  assert.equal(pending.status,200);
+  const recovered=await pending.json();
+  assert.equal(recovered.status,"updating");
+  assert.equal(recovered.fallback.sourceDigest,first);
+  assert(archived,"The migrated archive should now remain available without rescanning.");
+
+  // No prior trusted publication means there are no fabricated lines.
+  lastVerified=null;archived=null;priorForecast=null;scanAvailable=false;
   pending=await GET();
   assert.equal(pending.status,503);
   assert.equal((await pending.json()).completedPairs,600);
@@ -97,7 +126,7 @@ try{
   forecast=JSON.stringify({...source,sourceDigest:second});
   assert.equal((await GET()).status,503);
 
-  console.log("V7 futures API freshness regression: PASS (atomic current/pending, 0/780 shows older verified prices, safe legacy fallback).");
+  console.log("V7 futures API freshness regression: PASS (atomic swap, old odds at zero progress, legacy Redis archive recovery and no invented prices).");
 }finally{
   globalThis.fetch=savedFetch;
   for(const [name,value] of Object.entries(savedEnv)){

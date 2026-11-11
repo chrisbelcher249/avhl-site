@@ -66,8 +66,12 @@ export async function POST(request){
            const old=JSON.parse(oldRaw);
            if(old?.sourceDigest===publishedDigest && old.matchedPairs===780 &&
              old.engineSamples===78000 && Number.isFinite(Date.parse(old.generatedAt)) &&
-             (old.method===HYBRID_FUTURES_METHOD||old.method===SEASON_METHOD))
+             (old.method===HYBRID_FUTURES_METHOD||old.method===SEASON_METHOD)){
              await redisCommand(["SET",futuresRedisKey("last-verified"),publishedDigest,"EX",604800]);
+             // Independently preserve the last verified forecast as a compact
+             // stable archive; the next planning operation cannot erase it.
+             await redisCommand(["SET",futuresRedisKey("last-complete-forecast"),oldRaw,"EX",604800]);
+           }
          }catch{ /* Corrupt old snapshots must never be promoted to reference odds. */ }
        }
      }
@@ -146,6 +150,7 @@ export async function POST(request){
      // Keep the last fully verified snapshot discoverable while new lineups
      // are rebuilding. This pointer never makes older prices current.
      await redisCommand(["SET",futuresRedisKey("last-verified"),snapshot,"EX",604800]);
+     await redisCommand(["SET",futuresRedisKey("last-complete-forecast"),JSON.stringify(published),"EX",604800]);
      await redisCommand(["SET",futuresRedisKey("progress:"+snapshot),String(TOTAL_PAIRS),"EX",604800]);
      // Commit LAST: no incomplete snapshot is ever the site's active market.
      await redisCommand(["SET",futuresRedisKey("current"),snapshot]);
