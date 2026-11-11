@@ -67,6 +67,11 @@ export default async function OddsPage() {
 
       <div className="mx-auto max-w-7xl space-y-6 px-5 py-8 md:px-8 md:py-10">
         <OddsNav />
+        <div className="flex justify-end">
+          <Link href="/odds/status" className="text-xs font-bold text-[#52647B] underline underline-offset-4 hover:text-[#000B36]">
+            Track live odds calculations
+          </Link>
+        </div>
         <Link href="/odds/season" className="group block rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm transition hover:border-[#18BDFC] hover:shadow-md md:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
