@@ -236,6 +236,7 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
       "Every future game result is drawn from actual V7 engine simulations: 50 with each team at home in all 780 matchups. The season itself resamples stored V7 results, not the spatial engine.",
     ...(hybrid?{hybridDetails:{
       empiricalGames:empirical.games,empiricalHomeAdvantage:empirical.homeAdvantage,
+      empiricalFormCalibration:empirical.formCalibration,
       v7LogitWeight:HYBRID_V7_LOGIT_WEIGHT,
       empiricalLogitWeight:1-HYBRID_V7_LOGIT_WEIGHT,
       activeInjuriesModeled:hybrid.activeInjuriesModeled,
