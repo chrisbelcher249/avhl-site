@@ -468,8 +468,8 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
                 </div>
                 <p className="mt-1 text-right text-[11px] text-[#627791]">virtual points · no cash value</p>
               </div>
-              {stale?<p className="mt-3 text-xs font-bold text-[#A90117]">
-                Revalidate stale selections before sharing or saving.
+              {references?<p className="mt-3 text-xs font-semibold leading-5 text-amber-900">
+                Previous verified pricing is included in this virtual ticket.
               </p>:null}
               {legs.length===1?<p className="mt-3 text-xs text-[#64748B]">
                 Add one more selection to make a parlay.
