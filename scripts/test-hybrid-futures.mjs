@@ -72,6 +72,15 @@ assert.equal(hybrid.matchedPairs,780);
 assert.equal(hybrid.hybridDetails.activeInjuriesModeled,1);
 assert.equal(hybrid.hybridDetails.goalieStartCap,60);
 assert.equal(hybrid.teams.length,40);
+for(const team of hybrid.teams){
+  assert(team.goalieOutlook.length>=2,"Every team requires projected goalie rotation.");
+  const sum=team.goalieOutlook.reduce((n,g)=>n+g.projectedFutureStarts,0);
+  assert(Math.abs(sum-(82-team.record.gp))<1e-8,
+    "Every team must receive exactly one goalie start per remaining game.");
+  for(const g of team.goalieOutlook)
+    assert(g.projectedSeasonStarts<=60+1e-8,
+      "Forecast regular-season goalie starts must never exceed the 60-start ceiling.");
+}
 assert.equal(hybrid.engineSamples,78000);
 assert.equal(hybrid.completedGames,90);
 assert.equal(JSON.stringify(schedule),saved,"Forecasts must never change official scores or lineups.");
