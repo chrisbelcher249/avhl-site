@@ -26,6 +26,7 @@ const DEFAULT_DIRECTIONS = {
   age: "asc",
   yearsLeft: "desc",
   aav: "desc",
+  capHit: "desc",
   careerOne: "desc",
   careerTwo: "desc",
   careerStat: "desc",
@@ -49,6 +50,8 @@ function sortableValue(player, key, isGoalie) {
       return player.yearsLeft ?? null;
     case "aav":
       return player.aav ?? null;
+    case "capHit":
+      return player.capHit ?? player.aav ?? null;
     case "careerOne":
       return isGoalie ? player.career?.sa ?? null : player.career?.g ?? null;
     case "careerTwo":
@@ -146,6 +149,9 @@ export default function RosterSection({ roster, primary, teamSlug, injuredPlayer
           <p className="mt-1 text-sm font-semibold text-[#000B36]/45">
             {roster.count} total · {roster.skaters.length} skaters · {roster.goalies.length} goalies · click any column to sort
           </p>
+          <p className="mt-1 text-xs font-semibold text-[#000B36]/55">
+            AAV is the full contract salary; cap hit is what this team pays after retained salary.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {teamSlug ? <Link href={`/teams/${teamSlug}/lineup`} className="inline-flex items-center justify-center rounded-full border border-[#000B36]/15 bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wide text-[#000B36] transition hover:border-[#18BDFC] hover:bg-[#F1F9FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#18BDFC]">Lineup →</Link> : null}
@@ -157,7 +163,7 @@ export default function RosterSection({ roster, primary, teamSlug, injuredPlayer
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] border-collapse text-left">
+        <table className="w-full min-w-[1100px] border-collapse text-left">
           <thead className="bg-[#F6F8FC] text-[10px] font-black uppercase tracking-[0.14em]">
             <tr>
               <SortHeader label="#" column="number" sort={sort} onSort={handleSort} />
@@ -167,6 +173,7 @@ export default function RosterSection({ roster, primary, teamSlug, injuredPlayer
               <SortHeader label="Age" column="age" sort={sort} onSort={handleSort} align="center" />
               <SortHeader label="Years left" column="yearsLeft" sort={sort} onSort={handleSort} align="center" />
               <SortHeader label="AAV" column="aav" sort={sort} onSort={handleSort} align="center" />
+              <SortHeader label="Cap hit" column="capHit" sort={sort} onSort={handleSort} align="center" />
               <SortHeader label={isGoalie ? "Career SA" : "Career G"} column="careerOne" sort={sort} onSort={handleSort} align="center" />
               <SortHeader label={isGoalie ? "Career SV" : "Career A"} column="careerTwo" sort={sort} onSort={handleSort} align="center" />
               <SortHeader label={isGoalie ? "Career SV%" : "Career PTS"} column="careerStat" sort={sort} onSort={handleSort} align="center" />
@@ -189,6 +196,16 @@ export default function RosterSection({ roster, primary, teamSlug, injuredPlayer
                 <td className="px-5 py-4 text-center text-sm font-bold">{player.age ?? "—"}</td>
                 <td className="px-5 py-4 text-center text-sm font-bold">{player.yearsLeft ?? "—"}</td>
                 <td className="px-5 py-4 text-center text-sm font-black">{money(player.aav)}</td>
+                <td className="px-5 py-4 text-center text-sm font-black">
+                  <span className={player.retainedByOtherTeams > 0 ? "text-emerald-700" : ""}>
+                    {money(player.capHit ?? player.aav)}
+                  </span>
+                  {player.retainedByOtherTeams > 0 ? (
+                    <span className="mt-0.5 block whitespace-nowrap text-[10px] font-bold text-[#000B36]/50">
+                      {money(player.retainedByOtherTeams)} retained
+                    </span>
+                  ) : null}
+                </td>
                 <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? player.career?.sa ?? 0 : player.career?.g ?? 0}</td>
                 <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? player.career?.sv ?? 0 : player.career?.a ?? 0}</td>
                 <td className="px-5 py-4 text-center text-sm font-black">{isGoalie ? pct(player.career?.svPct ?? 0) : player.career?.pts ?? 0}</td>

@@ -29,6 +29,37 @@ assert.equal(buildTeamRosterAndCap([basePlayer], teamName("DEN"), {
   obligations: retained, ltirPlayerIds: ["0001"],
 }).payroll, 0);
 
+// Regression: Trade #303 must charge ND for the retained halves and JAX
+// only for the remaining halves. Full contract AAV is unchanged on roster rows.
+const trade303Players = [
+  { ...basePlayer, id: "0893", name: "Nate Danielson", currentTeam: teamName("JAX"), aav: 4_000_000, yearsLeft: 2 },
+  { ...basePlayer, id: "1045", name: "Konsta Helenius", currentTeam: teamName("JAX"), aav: 5_000_000, yearsLeft: 3 },
+];
+const trade303 = [{
+  number: 303,
+  salaryRetention: "F Nate Danielson — ND retains 50%; F Konsta Helenius — ND retains 50%",
+}];
+const trade303Obligations = computeCapObligations(trade303Players, trade303, []);
+assert.deepEqual(trade303Obligations.warnings, []);
+assert.equal(trade303Obligations.retainedByTeam.ND, 4_500_000);
+const jaxTrade303 = buildTeamRosterAndCap(trade303Players, teamName("JAX"), { obligations: trade303Obligations });
+const ndTrade303 = buildTeamRosterAndCap(trade303Players, teamName("ND"), { obligations: trade303Obligations });
+assert.equal(jaxTrade303.payroll, 4_500_000);
+assert.equal(ndTrade303.payroll, 4_500_000);
+assert.equal(jaxTrade303.capBreakdown.rosterSalary, 9_000_000);
+assert.equal(jaxTrade303.capBreakdown.salaryRetainedByOtherTeams, 4_500_000);
+assert.equal(ndTrade303.capBreakdown.retainedSalary, 4_500_000);
+const danielson = jaxTrade303.skaters.find((player) => player.id === "0893");
+const helenius = jaxTrade303.skaters.find((player) => player.id === "1045");
+assert.equal(danielson.aav, 4_000_000);
+assert.equal(danielson.capHit, 2_000_000);
+assert.equal(danielson.retainedByOtherTeams, 2_000_000);
+assert.equal(helenius.aav, 5_000_000);
+assert.equal(helenius.capHit, 2_500_000);
+assert.equal(helenius.retainedByOtherTeams, 2_500_000);
+assert.equal(trade303Players[0].aav, 4_000_000);
+assert.equal(trade303Players[1].aav, 5_000_000);
+
 const clearance = { row: 2, team: "DEN", player: "F John Smith", outcome: "Cleared", claimedBy: "" };
 const waived = applyWaiverOutcomes([basePlayer], [clearance]);
 assert.equal(waived.players[0].currentTeam, "UFA");
