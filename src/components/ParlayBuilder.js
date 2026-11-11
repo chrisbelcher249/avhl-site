@@ -20,16 +20,16 @@ const shortDate=(value)=>new Date(value+"T12:00:00Z").toLocaleDateString("en-US"
 const fmtPercent=p=>p===0?"0 observed":p===1?"100% observed":
   p<0.0001?"<0.01%":(p*100).toFixed(p<0.01?2:1)+"%";
 const formatPoints=n=>Math.round(n).toLocaleString("en-US");
-function Control({label,value,onChange,options}){
+function Control({label,value,onChange,options,disabled=false}){
   return <label className="block min-w-0">
     <span className="mb-1.5 block text-xs font-bold text-[#64748B]">{label}</span>
     <select className="w-full min-w-0 rounded-xl border border-[#CED8E5] bg-white px-3 py-3 text-sm font-bold text-[#000B36]"
-      value={value} onChange={e=>onChange(e.target.value)} aria-label={label}>
+      value={value} onChange={e=>onChange(e.target.value)} disabled={disabled} aria-label={label}>
       {options.map(([v,text])=><option key={String(v)} value={String(v)}>{text}</option>)}
     </select>
   </label>;
 }
-function FuturePicker({forecast,onAdd,locked}){
+function FuturePicker({forecast,onAdd,selectedTeams=[],atCapacity=false}){
   const [selectedTeam,setSelectedTeam]=useState("");
   const [market,setMarket]=useState("cup");
   const [line,setLine]=useState("40.5");
@@ -42,6 +42,7 @@ function FuturePicker({forecast,onAdd,locked}){
       Awaiting the verified 10,000-scenario hybrid futures forecast. No substitute lines are displayed.
     </div>;
   }
+  const alreadyPicked=selectedTeams.includes(team?.abbreviation);
   const win=market==="wins",status=win?winTotalOutcomeStatus(team,line,side):{
     possible:true,guaranteed:false
   };
@@ -83,26 +84,27 @@ function FuturePicker({forecast,onAdd,locked}){
       </div>
       <div className="shrink-0 text-right">
         <p className="text-2xl font-black tabular-nums text-[#000B36]">{sample.price}</p>
-        <button type="button" disabled={locked||!available}
+        <button type="button" disabled={atCapacity||alreadyPicked||!available}
           onClick={()=>onAdd({
             id:"future:"+team.abbreviation+":"+market+":"+line+":"+side,type:"future",
             label,context:"2026–27 AVHL hybrid season futures",
             probability:p,samples:forecast.runs,source:forecast.sourceDigest+":"+forecast.generatedAt,
-            teamCodes:[team.abbreviation]
+            teamCodes:[team.abbreviation],market,division:team.division,conference:team.conference
           })}
           className="mt-2 rounded-xl bg-[#000B36] px-4 py-2.5 text-xs font-black text-white hover:bg-[#143159] disabled:cursor-not-allowed disabled:opacity-45">
-          {locked?"Futures pick added":available?"Add selection +":"Not available"}
+          {atCapacity?"8-leg limit":alreadyPicked?"Team already chosen":available?"Add selection +":"Not available"}
         </button>
       </div>
     </div>:null}
     <p className="mt-3 text-xs leading-5 text-[#687992]">
-      One futures pick per ticket. Extremely rare events have a display cap, not a measured
-      one-in-a-million probability. Other futures can be correlated or mutually exclusive.
+      Choose up to eight different teams (one pick per team). Futures are correlated;
+      the combined price is illustrative, not a joint-simulation result.
     </p>
   </section>;
 }
 export default function ParlayBuilder({games,dates,directory,initialSnapshots={},scheduleReady}){
-  const [view,setView]=useState("games");
+  const [view,setView]=useState("same");
+  const [selectedGameId,setSelectedGameId]=useState(String(games[0]?.id||""));
   const [selectedDate,setSelectedDate]=useState(dates[0]||"");
   const [gameQuotes,setGameQuotes]=useState(initialSnapshots);
   const [season,setSeason]=useState(null);
@@ -112,6 +114,8 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
   const [saved,setSaved]=useState([]);
   const [copied,setCopied]=useState(false);
   const visibleGames=useMemo(()=>games.filter(g=>g.date===selectedDate),[games,selectedDate]);
+  const selectedGame=visibleGames.find(g=>String(g.id)===selectedGameId)||visibleGames[0];
+  const modeName=view==="same"?"Same-game":view==="day"?"One-day":"Futures";
   const slipGameIds=legs.filter(l=>l.type==="game").map(l=>l.gameId).sort((a,b)=>a-b).join(",");
   useEffect(()=>{
     try{
@@ -188,12 +192,12 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
     return ()=>{cancelled=true;if(timer)clearInterval(timer);};
   },[]);
   const add=useCallback(candidate=>{
-    const decision=canAddParlayLeg(legs,candidate);
+    const decision=canAddParlayLeg(legs,candidate,view);
     if(!decision.ok){setNotice(decision.reason);return;}
     setLegs(prev=>[...prev,{...candidate,stale:false}]);
     setNotice("Added to your slip: "+candidate.label);
     setCopied(false);
-  },[legs]);
+  },[legs,view]);
   const remove=id=>{setLegs(prev=>prev.filter(x=>x.id!==id));setCopied(false);};
   const stale=legs.some(l=>l.stale);
   const result=estimatedParlay(legs,virtualPoints);
@@ -201,11 +205,11 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
   const ticketText=()=>{
     const items=legs.map((l,i)=>(i+1)+". "+l.label+" ("+l.context+") · "+
       probabilityToAmerican(l.probability,l.samples));
-    return ["AVHL FUN PARLAY · NOT REAL MONEY",...items,"",
+    return ["AVHL "+modeName.toUpperCase()+" FUN PARLAY · NOT REAL MONEY",...items,"",
       "Combined estimated odds: "+result.american+(result.capped?" (display capped)":""),
       "Virtual points: "+virtualPoints,
       "Potential imaginary return: "+formatPoints(result.potentialPoints)+" points",
-      "Estimate assumes independent legs. Outcomes may be related; not an actual betting price.",
+      "Illustrative independence estimate only. Same-game and futures outcomes can be strongly correlated.",
       "No real money, accounts, wagers or prizes."].join("\n");
   };
   async function copySlip(){
@@ -217,7 +221,7 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
     if(!ready)return;
     const record={id:Date.now().toString(36),at:new Date().toISOString(),
       legs:legs.map(l=>({label:l.label,context:l.context,price:probabilityToAmerican(l.probability,l.samples)})),
-      odds:result.american,virtualPoints,potentialPoints:result.potentialPoints};
+      odds:result.american,mode:view,virtualPoints,potentialPoints:result.potentialPoints};
     const next=[record,...saved].slice(0,12);
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(next));setSaved(next);
       setNotice("Saved on this browser. This is a snapshot, not a tracked wager.");}
