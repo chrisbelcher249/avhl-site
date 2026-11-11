@@ -12,10 +12,22 @@ const key="v7:3:1234abcd:ARI:ATL:abcdef12";
 let cached=[];
 let compact=null;
 let pointer=null;
+let legacyScan=false;
 let remoteReads=0;
 let sampleReads=0;
 globalThis.fetch=async (_url,options)=>{
   const cmd=JSON.parse(options.body);
+  if(cmd[0]==="SCAN"){
+    assert.equal(cmd[3],"avhl:odds:exact:summary:v7:3:*:ARI:ATL:*");
+    return {ok:true,json:async()=>({result:["0",legacyScan?["avhl:odds:exact:summary:"+key]:[]]})};
+  }
+  if(cmd[0]==="SET"){
+    assert.equal(cmd[1],"avhl:odds:exact:latest:ARI:ATL");
+    assert.equal(cmd[2],key);
+    assert.equal(cmd[5],"NX");
+    if(!pointer)pointer=cmd[2];
+    return {ok:true,json:async()=>({result:"OK"})};
+  }
   assert.equal(cmd[0],"GET");
   assert([ "avhl:odds:exact:sample:"+key, "avhl:odds:exact:summary:"+key,
     "avhl:odds:exact:latest:ARI:ATL" ].includes(cmd[1]));
@@ -71,13 +83,18 @@ try {
   const historical=await lastVerifiedGameOdds("ARI","ATL");
   assert.equal(historical.key,key);
   assert.equal(historical.summary.homeWin,0.62);
+  pointer=null;legacyScan=true;
+  const recovered=await lastVerifiedGameOdds("ARI","ATL");
+  assert.equal(recovered.key,key,"Legacy signed V7 archive must restore prior odds.");
+  assert.equal(pointer,key,"Recovered verified archive should register a matching reference pointer.");
+  legacyScan=false;
   assert.equal(await lastVerifiedGameOdds("ARI","ATL",key),null,"Current key cannot be its own stale fallback.");
   compact.publisher="untrusted";
   assert.equal(await lastVerifiedGameOdds("ARI","ATL"),null,"Never display unsigned historical markets.");
   compact.publisher="trusted-github-actions";
   compact.generatedAt=new Date(Date.now()-32*24*60*60*1000).toISOString();
   assert.equal(await lastVerifiedGameOdds("ARI","ATL"),null,"Expired markets must not be shown.");
-  console.log("Exact V7 shared cache: PASS (1k gate, signed last-good matchup reference, no stale price as current).");
+  console.log("Exact V7 shared cache: PASS (1k gate, signed legacy matchup recovery, no stale price as current).");
 } finally {
   globalThis.fetch=oldFetch;
   for (const [key,value] of Object.entries({
