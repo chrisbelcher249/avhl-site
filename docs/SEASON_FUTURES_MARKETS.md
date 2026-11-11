@@ -1,88 +1,103 @@
-# AVHL 2026–27 Season Futures — Model and Rules
+# AVHL 2026–27 Season Futures — exact V7 sample-backed markets
 
-## Available markets
+## Game engine is the only score generator
 
-The season hub at /odds/season provides for all 40 Major League teams:
-- Regular-season wins projection, win-total over/under choices (20.5–60.5).
-- Expected final points, rank, and 10th/50th/90th-percentile wins.
-- Division-title probability (four winners).
-- Western/Eastern regular-season first-place probability.
-- Presidents' Trophy (one winner).
-- Playoff qualification (20 teams; ten per conference).
-- Reach Round 1, Round 2, Conference Final, and League Final.
-- Cup championship probability (one winner).
-- League top-five and top-ten finish likelihoods.
-- Relegation odds: league places **38–40** (bottom three).
-- Per-team overview and distribution of projected regular-season wins.
+The full season-futures system uses **780 distinct unordered pairings** of the
+40 AVHL Major League teams. For each pair it stores **100 actual V7 physics
+simulations**, 50 with one team at home and 50 with the other team at home.
+The initial sample database therefore requires **78,000 real V7 games**.
 
-## Source and method (explicitly different from exact V7 game odds)
+Each individual score, result, and overtime flag comes directly from
+`AVHLGameSimulator.simulateScoreOnly()`, which runs the same on-ice
+mechanics as the full V7 event simulator. The score-only mode does not
+substitute an independent Poisson or standings-based prediction formula.
+Saved game outcomes are resampled (with their original home orientation)
+into 10,000 synthetic **seasons**. This avoids replaying 1,640 full physics
+games for every season scenario while keeping the simulated results
+grounded in actual V7 outcomes.
 
-This season-outlook module is a **provisional standings-based statistical
-forecast**, not thousands of complete V7 engine games. The current season's
-official completed games set team quality and provide an empirical distribution
-of score margins and overtime. Remaining games use a smoothed, pairwise
-win-probability model estimated from each team's record and goal differential,
-with empirical home-ice adjustment. We then draw 10,000 complete
-remaining-season scenarios and apply the exact 2026–27 AVHL league seeding,
-bracket, and relegation rules.
+The published regular-season results and official AVHL league standings
+and playoff rules are preserved. The live forecast covers win totals,
+expected points, division and conference titles, Presidents' Trophy,
+playoff qualification and advancement, Cup and bottom-three relegation.
 
-The model is **not** a guarantee of accuracy or an official sportsbook market.
-Its 10,000 runs reduce random sampling noise, but do not eliminate uncertainty
-in projecting team quality. The model does not include future injuries or new
-roster transactions until their effects appear in actual results. Probability
-calibration against out-of-sample AVHL seasons and comparison against V7 exact
-game samples should precede any claim of betting-grade reliability.
+## Required coverage and publication
 
-**Game and player prop odds remain completely separate** and still require at
-least 1,000 exact full V7 games for the current lineup and simulator build.
-Neither the pre-existing Poisson model nor this statistical futures model can
-silently provide game odds.
+All **780 pairs with both 50-game home orientations** must be complete
+before ANY new season-futures prices are published. When cached outcomes
+are missing, the API returns HTTP 503 with a completed-pair count; the UI
+shows a progress bar rather than falling back to the old standings-only
+model. A new lineup/roster/engine fingerprint invalidates any outdated
+futures forecast.
 
-## League format implemented
+The **individual game/player odds 1,000-game requirement remains
+unchanged**. The 100-game-per-pair database is for season futures, not
+a replacement for the full game-odds sample threshold.
 
-40 clubs, four divisions with ten clubs each, 20 per conference. Every team
-has 82 regular-season games; total scheduled matches 1,640.
-Ranked by the published official tiebreakers:
-PTS → PTS% → RW → W → GF/G → GA/G (lower) → GD → team name.
+## Every 30 minutes, only changed matchups
 
-Playoff entry:
-- 1–3 in each division automatically qualify (six per conference).
-- Four additional wild-card teams in each conference.
-- Ten playoff teams in each conference; seeds 1–2 division winners, 3–4
-  second places, 5–6 third places, 7–10 wild cards.
-- Seeds 7–10 play best-of-five qualifiers, with seeds 1–6 receiving byes.
-- Best-of-seven Round 1, Round 2, Conference Final, and League Final.
-- Each season scenario has exactly 20 playoff qualifiers, 16 Round 1 teams,
-  eight Round 2 teams, four Conference Final teams, two League Final
-  teams, and one Cup champion.
+The GitHub Actions workflow
+`.github/workflows/refresh-v7-futures.yml` checks every 30 minutes:
 
-Relegation: overall league places 38, 39, 40 in **the complete 40-team
-league standings**. Three relegated teams per scenario.
+1. Get current official live roster/player ratings/owner lineups.
+2. Hash both complete V7 matchup configurations for all 780 pairs plus
+   the V7 simulator source. The pair hash changes only when the game
+   engine or relevant team lineup/roster/player ratings change.
+3. Compare each pair against previously stored 50+50 game outcomes in
+   Vercel's existing Redis cache.
+4. Simulate **only missing or changed pairs**, split into shards of up to
+   10 pairings across at most sixteen parallel GitHub Actions jobs.
+5. Once all current fingerprints are complete, resample the 10,000
+   remaining-season/whole-playoff scenarios with the newest official
+   scores and publish one compact, versioned, time-stamped forecast.
 
-The official schedule, completed results, season length and conference/division
-structure are validated before generating any probabilities. If the live
-schedule or complete live results are unavailable, the API returns an error
-and the UI withholds probabilities; it does not use a bundled fallback.
+Existing unchanged V7 game samples are reused. New official game results
+do not require new V7 physics simulations; they do require a new season
+projection. The schedule check is every 30 minutes, but cold simulation
+jobs can take substantially longer and scheduled runs may be delayed.
 
-## Performance and freshness
+Workers authenticate using GitHub Actions OIDC. Vercel verifies the
+signed workload identity for the exact repository, approved workflow
+and main branch before accepting results. Redis credentials never leave
+the server. A 50+50 pair is ingested atomically; partially simulated pairs
+are withheld.
 
-On an independent two-vCPU test environment, 10,000 full season scenarios
-complete in roughly 1.5 seconds of local JavaScript execution. The
-server-side computation is cached with a 30-minute revalidation window.
-The /odds/season page fetches one compact summary and allows immediate
-switching between all markets without restarting simulations.
+## Accuracy and uncertainty
 
-The existing /odds/divisions, /odds/presidents-trophy and /odds/cup routes
-redirect to the new season hub rather than using the older expensive,
-insufficiently sampled exact-pair futures worker. /odds/wins,
-/odds/playoffs, and /odds/relegation are convenient direct links.
+Real V7 outcomes are a substantial improvement over invented
+standings-only probabilities. Nevertheless, **100 games per pairing is
+a noisy initial sample**. For a 50%-probability matchup, the approximate
+95% sampling margin is ±9.8 percentage points at 100 games overall;
+home-specific estimates based on only 50 simulations have wider
+uncertainty. Rare playoff/Cup/relegation outcomes have additional error
+because they are built from those empirical distributions.
 
-## Invariants tested
+We should eventually increase and adaptively refine these samples,
+and validate the forecast against subsequent real V7 games.
 
-Every scenario has:
-- Four division champions and two conference regular-season leaders.
-- One Presidents' Trophy winner and one Cup champion.
-- Twenty playoff qualifiers, sixteen Round 1, eight Round 2, four conference
-  finalists, and two Cup finalists.
-- Exactly three relegated teams.
-- 82-game records, with original official results unchanged.
+There is **no claim that 10,000 complete V7 physics seasons were run**.
+The 10,000 complete *season scenarios* draw from the 78,000 actual V7
+game outcomes. All moneylines are fair model conversions without a
+sportsbook margin.
+
+## Official league rules
+
+Forty teams, four divisions, 82 games per club, 1,640 regular-season
+games. Standings follow the site's official tiebreakers. Each
+scenario has four division champions, one Presidents' Trophy winner,
+20 playoff qualifiers (10 per conference), a best-of-five 7–10
+qualifier, a 16-team Round 1, best-of-seven subsequent rounds, one
+Cup champion, and exactly **three relegated teams** (league ranks 38–40).
+
+## Release checks
+
+- Pair helpers verify 40-team/780-pair coverage and exactly 50 outcomes
+  for each home orientation.
+- The signed publishing endpoint rejects unauthorized, incomplete and
+  mismatched snapshots; a single pair cannot produce public futures.
+- The forecast verifies all 780 pair pools before projecting any game;
+  never creates score outcomes from team ratings or historical standings.
+- The existing site and hockey simulator regression suites must pass.
+- Live V7 smoke tests produce real scores for both home orientations.
+- Initial precomputation is **substantial** (78,000 full games). No
+  forecast is presented until the cache is genuinely ready.

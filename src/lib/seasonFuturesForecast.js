@@ -1,9 +1,9 @@
-// Exploratory, standings-based season futures. This is NOT the V7 physics
-// simulator and is never used for single-game/model player odds. Exactly
-// completed AVHL results and official conference/qualifier/relegation rules
-// determine the starting state and ranking of every projected season.
+import {drawV7Score,TOTAL_PAIRS,validatePairPool} from "./v7FuturesPairs.js";
+// Full-season futures resample observed results from 780 real V7 matchup
+// pools (50 games with each team at home). No statistical score model is used.
+// Official completed games, standings and playoff/relegation rules stay fixed.
 export const SEASON_SCENARIOS = 10000;
-export const SEASON_METHOD = "standings-based-empirical";
+export const SEASON_METHOD = "exact-V7-game-outcome-resampling";
 const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
 const clean=x=>Number.isFinite(Number(x))?Number(x):0;
 const empty=()=>({gp:0,wins:0,losses:0,otl:0,pts:0,rw:0,gf:0,ga:0});
@@ -53,25 +53,19 @@ function seedsFor(conference,teams,records){
   return [...tiers.map(t=>t.sort((a,b)=>compare(a,b,records,teams))).flat(),...wild];
 }
 function indicator(array,index){array[index]++;}
-function series(a,b,length,quality,random,homeAdv,higherSeed){
+function series(a,b,length,draw,higherSeed){
   const needed=(length+1)/2;
   let aw=0,bw=0;
   for(let i=0;aw<needed&&bw<needed;i++){
-    // True 2-2-1 (qualifier) or 2-2-1-1-1 (best-of-seven) structure.
-    // The team with higher remaining seed gets the first two home games,
-    // regardless of which side of the fixed bracket it originally occupied.
     const higherHome=i<2 || (i>=4&&i%2===0);
     const aHome=higherHome?(higherSeed===a):(higherSeed!==a);
     const home=aHome?a:b,away=aHome?b:a;
-    const p=homeProbability(home,away,quality,homeAdv);
-    if(random()<p){if(aHome)aw++;else bw++;}
+    const result=draw(home,away);
+    const homeWon=result.homeScore>result.awayScore;
+    if(homeWon){if(aHome)aw++;else bw++;}
     else{if(aHome)bw++;else aw++;}
   }
   return aw>bw?a:b;
-}
-function homeProbability(h,a,quality,homeAdv){
-  const delta=clamp(quality[h]-quality[a]+homeAdv,-4,4);
-  return clamp(1/(1+Math.exp(-delta)),0.03,0.97);
 }
 function quantile(hist,q){
   const total=hist.reduce((s,v)=>s+v,0);
@@ -79,15 +73,20 @@ function quantile(hist,q){
   for(let i=0;i<hist.length;i++){cum+=hist[i];if(cum>=q*total)return i;}
   return hist.length-1;
 }
-export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS){
+export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools=null,sourceDigest=""){
+  // Fail closed. No games are invented by team-strength or Poisson formulas.
+  if(!pools||Object.keys(pools).length!==TOTAL_PAIRS)
+    throw Error("780 fully sampled official V7 matchups are required.");
+  for(const [key,pool] of Object.entries(pools))
+    if(!/^[A-Z0-9]{2,4}:[A-Z0-9]{2,4}$/.test(key)||!validatePairPool(pool))
+      throw Error("Invalid or incomplete 50/50 V7 pair pool: "+key);
   if(!Array.isArray(schedule)||!Array.isArray(teams)||teams.length!==40)
     throw Error("A full 40-team AVHL season is required.");
   if(!Number.isInteger(runs)||runs<1||runs>30000)throw Error("Invalid simulation count.");
   const idx=Object.fromEntries(teams.map((t,i)=>[t.slug,i]));
   if(Object.keys(idx).length!==40||new Set(teams.map(t=>t.abbreviation)).size!==40)
     throw Error("40 unique clubs are required.");
-  const base=teams.map(()=>empty()),remaining=[],observed=[];
-  let homeWins=0,awayWins=0;
+  const base=teams.map(()=>empty()),remaining=[];
   const fingerprint=[];
   for(const game of schedule){
     const a=idx[game.away],h=idx[game.home];
@@ -99,25 +98,14 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS){
     const ot=Boolean(game.overtime);
     if(ot&&Math.abs(as-hs)!==1)throw Error("Overtime result must be one goal apart.");
     applyResult(base[a],base[h],as,hs,ot);
-    observed.push({high:Math.max(as,hs),low:Math.min(as,hs),ot});
-    homeWins+=Number(hs>as);awayWins+=Number(as>hs);
     fingerprint.push(String(game.id)+":"+as+"-"+hs+":"+(ot?"OT":"REG"));
   }
-  if(!observed.length)throw Error("No completed official AVHL games to anchor season futures.");
   if(schedule.length!==1640)throw Error("Season forecast requires exactly 1,640 scheduled games.");
   if(teams.some((t,i)=>base[i].gp+remaining.filter(g=>g.a===i||g.h===i).length!==82))
     throw Error("Each AVHL club must have an 82-game season.");
 
-  // Shrunk team strengths from completed official season games only.
-  // These are fast statistical *projections*, not simulated V7 matchups.
-  const quality=base.map(r=>{
-    const record=Math.log((r.wins+0.45*r.otl+8)/(r.losses+0.55*r.otl+8));
-    const goalRate=Math.log((r.gf+45)/(r.ga+45));
-    return clamp(0.72*record+1.25*goalRate,-1.3,1.3);
-  });
-  const homeP=clamp((homeWins+50)/(homeWins+awayWins+100),0.43,0.58);
-  const homeAdv=Math.log(homeP/(1-homeP));
-  const random=makeRandom(hashString("AVHL-SEASON:2026-27:forecast-v2:"+fingerprint.join("|")+":"+runs));
+  const random=makeRandom(hashString("AVHL-EXACT-V7-2026-27:"+sourceDigest+":"+fingerprint.join("|")+":"+runs));
+  const draw=(home,away)=>drawV7Score(pools,teams[home].abbreviation,teams[away].abbreviation,random);
 
   const labels=["division","conference","presidents","playoffs","round1","round2",
     "conferenceFinal","cupFinal","cup","relegation","topFive","topTen"];
@@ -133,11 +121,8 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS){
     // Sample score/OT shapes from actual completed AVHL games. Reweight
     // the winner by regular-season strength and observed home advantage.
     for(const game of remaining){
-      const empirical=observed[Math.floor(random()*observed.length)];
-      const homeWin=random()<homeProbability(game.h,game.a,quality,homeAdv);
-      const h=homeWin?empirical.high:empirical.low;
-      const a=homeWin?empirical.low:empirical.high;
-      applyResult(rec[game.a],rec[game.h],a,h,empirical.ot);
+      const result=draw(game.h,game.a);
+      applyResult(rec[game.a],rec[game.h],result.awayScore,result.homeScore,result.ot);
     }
     const ranks=teams.map((_,i)=>i).sort((a,b)=>compare(a,b,rec,teams));
     indicator(counts.presidents,ranks[0]);
@@ -162,7 +147,7 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS){
       const seeds=seedsFor(conf,teams,rec);
       const rank=Object.fromEntries(seeds.map((id,i)=>[id,i]));
       const higher=(a,b)=>rank[a]<rank[b]?a:b;
-      const playoff=(a,b,bestOf)=>series(a,b,bestOf,quality,random,homeAdv,higher(a,b));
+      const playoff=(a,b,bestOf)=>series(a,b,bestOf,draw,higher(a,b));
       for(const seed of seeds)indicator(counts.playoffs,seed);
       const play89=playoff(seeds[7],seeds[8],5);
       const play710=playoff(seeds[6],seeds[9],5);
@@ -185,13 +170,13 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS){
       champions.push(champion);
     }
     const finalHome=compare(champions[0],champions[1],rec,teams)<=0?champions[0]:champions[1];
-    indicator(counts.cup,series(champions[0],champions[1],7,quality,random,homeAdv,finalHome));
+    indicator(counts.cup,series(champions[0],champions[1],7,draw,finalHome));
   }
   return {
     version:"season-futures-statistical-v2",method:SEASON_METHOD,runs,
-    completedGames:observed.length,remainingGames:remaining.length,
-    modelNote:"Current-season standings and observed AVHL score patterns; fast exploratory forecast, not exact V7-game physics.",
-    homeWinPrior:homeP,
+    completedGames:fingerprint.length,remainingGames:remaining.length,
+    modelNote:"Every future game result is drawn from actual V7 engine simulations: 50 with each team at home in all 780 matchups. The season itself resamples stored V7 results, not the spatial engine.",
+    sourceDigest,matchedPairs:TOTAL_PAIRS,engineSamples:TOTAL_PAIRS*100,
     teams:teams.map((team,i)=>({
       ...team,record:{...base[i]},projectedWins:totalW[i]/runs,
       projectedPoints:totalPts[i]/runs,projectedRank:totalRank[i]/runs,

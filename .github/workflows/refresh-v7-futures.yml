@@ -1,0 +1,86 @@
+name: Refresh exact V7 season futures (780 pairs)
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "public/sim/simulator.js"
+      - "public/sim/data.js"
+      - "src/lib/v7FuturesPairs.js"
+      - "src/lib/seasonFuturesForecast.js"
+      - "scripts/precompute-v7-futures.mjs"
+      - ".github/workflows/refresh-v7-futures.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: avhl-exact-v7-season-futures
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      snapshot: ${{ steps.inspect.outputs.snapshot }}
+      missing: ${{ steps.inspect.outputs.missing }}
+      matrix: ${{ steps.inspect.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Verify all 780 exact live V7 pairing fingerprints
+        id: inspect
+        env:
+          AVHL_ODDS_SITE_URL: "https://www.avhl.org"
+        run: node scripts/precompute-v7-futures.mjs --mode plan
+
+  calculate:
+    needs: plan
+    if: needs.plan.outputs.missing != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Generate genuine 50-home 50-away V7 games per pairing
+        env:
+          AVHL_ODDS_SITE_URL: "https://www.avhl.org"
+          V7_FUTURES_PAIRS_JSON: ${{ toJSON(matrix.pairs) }}
+          SNAPSHOT: ${{ needs.plan.outputs.snapshot }}
+        run: |
+          node scripts/precompute-v7-futures.mjs --mode shard --snapshot "$SNAPSHOT"
+
+  publish:
+    needs: [plan,calculate]
+    if: always() && needs.plan.result == 'success' && (needs.calculate.result == 'success' || needs.calculate.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Publish complete V7-sampled season futures or fail closed
+        env:
+          SNAPSHOT: ${{ needs.plan.outputs.snapshot }}
+        run: |
+          node scripts/precompute-v7-futures.mjs --mode finalize --snapshot "$SNAPSHOT"
