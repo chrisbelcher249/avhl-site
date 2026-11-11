@@ -2,7 +2,8 @@ name: Refresh AVHL exact V7 odds (every 30 minutes)
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    # Offset from busy GitHub Actions half-hour boundaries; still twice hourly.
+    - cron: "11,41 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
