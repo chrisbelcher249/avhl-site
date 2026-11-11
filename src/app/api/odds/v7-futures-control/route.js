@@ -66,7 +66,7 @@ export async function POST(request){
      const storageKey=futuresRedisKey("pair:"+key);
      // Only a fully complete 50/50 V7 pair is ever published.
      const previously=await redisCommand(["GET",storageKey]);
-     await redisCommand(["SET",storageKey,JSON.stringify(pool),"EX",2592000]);
+     await redisCommand(["SET",storageKey,JSON.stringify(pool),"EX",17280000]);
      if(previously==null)await redisCommand(["INCR",futuresRedisKey("progress:"+snapshot)]);
      return response({ok:true,key,samples:100});
    }
