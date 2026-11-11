@@ -298,6 +298,30 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
             <Price p={explorer?.probabilities?.[key]||0}/>
           </div>)}
         </div>
+        {explorer?.goalieOutlook?.length?<section className="rounded-2xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-black text-[#000B36]">Projected goalie rotation</h3>
+          <p className="mt-1 text-xs text-[#64748B]">Expected remaining regular-season starts, using recorded starts and the 60-start maximum</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {explorer.goalieOutlook.map(g=><div key={g.playerId}
+              className="rounded-xl border border-[#000B36]/10 bg-[#F8FAFC] p-3">
+              <p className="text-sm font-bold text-[#000B36]">{g.name}</p>
+              <p className="mt-1 text-xs text-[#64748B]">{g.currentStarts} starts so far · {g.overall} OVR</p>
+              <p className="mt-2 text-lg font-black text-[#000B36]">{g.projectedFutureStarts.toFixed(1)}
+                <span className="text-xs font-medium text-[#64748B]"> remaining starts</span>
+              </p>
+            </div>)}
+          </div>
+        </section>:null}
+        {explorer?.injuryReturns?.length?<section className="rounded-2xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-black text-[#000B36]">Injured-player returns considered</h3>
+          <p className="mt-1 text-xs text-[#64748B]">Players are withheld through their recorded missed games and become eligible for projection on their expected return game</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {explorer.injuryReturns.map(p=><div key={p.playerId} className="rounded-xl bg-[#F5F7FA] p-3">
+              <p className="text-sm font-bold text-[#000B36]">{p.name}</p>
+              <p className="mt-1 text-xs text-[#64748B]">{p.expectedReturnGameId?"Eligible from game #"+p.expectedReturnGameId:"Return game not yet scheduled"}</p>
+            </div>)}
+          </div>
+        </section>:null}
         {explorer?<section className="rounded-2xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-black text-[#000B36]">Projected win-total distribution</h3>
           <p className="mt-1 text-xs text-[#64748B]">Observed model frequency in each completed-season scenario</p>
@@ -312,10 +336,11 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
       </div>}
       <p className="text-xs leading-5 text-[#6B7A90]">
         Odds are mathematically fair model-implied American prices, with no sportsbook margin.
-        A dash indicates an event observed in none or all of the sampled seasons. Every simulated outcome
-        comes from the V7 game engine, but only 50 samples per home orientation means matchup and long-shot
-        Cup/relegation odds still have modeling and sampling uncertainty. Game/player props separately require
-        1,000 complete V7 simulations for the actual scheduled home/away matchup.
+        A dash indicates an event observed in none or all sampled seasons. Pure V7 uses unmodified
+        simulator outcomes; hybrid reweights the winner of sampled V7 scorelines using actual AVHL form,
+        expected injury returns and projected goalie rotation. Neither is a guarantee, and only
+        50 samples per home orientation means long-shot futures remain uncertain.
+        Game/player props separately require 1,000 complete V7 simulations for each scheduled matchup.
       </p>
     </>:null}
   </div>;
