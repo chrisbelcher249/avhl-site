@@ -46,7 +46,7 @@ The GitHub Actions workflow
 3. Compare each pair against previously stored 50+50 game outcomes in
    Vercel's existing Redis cache.
 4. Simulate **only missing or changed pairs**, split into shards of up to
-   20 pairings across at most eight parallel GitHub Actions jobs.
+   10 pairings across at most sixteen parallel GitHub Actions jobs.
 5. Once all current fingerprints are complete, resample the 10,000
    remaining-season/whole-playoff scenarios with the newest official
    scores and publish one compact, versioned, time-stamped forecast.
