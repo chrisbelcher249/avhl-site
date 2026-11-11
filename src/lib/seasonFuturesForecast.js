@@ -3,8 +3,10 @@ import {HYBRID_FUTURES_METHOD,HYBRID_V7_LOGIT_WEIGHT,MAX_GOALIE_STARTS,
   fitEmpiricalStrength,empiricalHomeWinProbability,buildHybridContext,
   returnLogitShift,chooseGoalie,goalieStartMap,
   hybridHomeWinProbability,adjustV7Result,v7HomeWinRate} from "./hybridFuturesModel.js";
-// Full-season futures resample observed results from 780 real V7 matchup
-// pools (50 games with each team at home). No statistical score model is used.
+// Both forecasting modes reuse 780 genuine V7 pools (50 games per home orientation).
+// The pure-V7 comparison keeps all outcomes unchanged; the hybrid mode retains
+// score/OT shapes and recalibrates future winners using observed AVHL results,
+// expected injured-player returns and capped goalie rotation.
 // Official completed games, standings and playoff/relegation rules stay fixed.
 export const SEASON_SCENARIOS = 10000;
 export const SEASON_METHOD = "exact-V7-game-outcome-resampling";
@@ -173,8 +175,8 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
   for(let run=0;run<runs;run++){
     const rec=base.map(r=>({...r}));
     if(hybrid)scenarioGoalieStarts=teams.map(t=>goalieStartMap(hybrid.byTeam[t.abbreviation]));
-    // Sample score/OT shapes from actual completed AVHL games. Reweight
-    // the winner by regular-season strength and observed home advantage.
+    // Preserve every completed official result. Pure mode draws unmodified
+    // V7 outcomes; hybrid mode adjusts V7 win probabilities per scheduled game.
     for(const game of remaining){
       const result=draw(game.h,game.a,game.id);
       applyResult(rec[game.a],rec[game.h],result.awayScore,result.homeScore,result.ot);
