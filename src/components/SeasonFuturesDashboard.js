@@ -96,12 +96,35 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
   const [selectedTeam,setSelectedTeam]=useState("");
   useEffect(()=>{
     let cancelled=false;
-    setState({status:"loading",error:""});
-    fetch("/api/odds/season",{cache:"no-store"})
-      .then(async response=>{const data=await response.json();if(!response.ok||!data.ok)throw Error(data.error||"Season outlook is currently unavailable.");return data;})
-      .then(data=>{if(cancelled)return;setSnapshot(data);setSelectedTeam(data.teams?.[0]?.abbreviation||"");setState({status:"ready",error:""});})
-      .catch(error=>{if(!cancelled)setState({status:"error",error:error.message||String(error)});});
-    return ()=>{cancelled=true;};
+    let next=null;
+    async function refresh(){
+      let delay=60000;
+      try{
+        const response=await fetch("/api/odds/season",{cache:"no-store"});
+        const data=await response.json();
+        if(cancelled)return;
+        if(response.ok && data.ok && data.sourceDigest &&
+           data.method==="exact-V7-game-outcome-resampling" && data.matchedPairs===780){
+          setSnapshot(data);
+          setSelectedTeam(current=>current||data.teams?.[0]?.abbreviation||"");
+          setState({status:"ready",error:""});
+          delay=1800000;
+        }else{
+          setSnapshot(null); // NEVER keep displaying prices for an invalidated lineup.
+          if(data.status==="building"){
+            setState({status:"building",error:data.error||"",
+              done:data.completedPairs||0,total:data.requiredPairs||780});
+          }else{
+            setState({status:"error",error:data.error||"V7 futures temporarily unavailable."});
+          }
+        }
+      }catch(error){
+        if(!cancelled){setSnapshot(null);setState({status:"error",error:error.message||String(error)});}
+      }
+      if(!cancelled)next=setTimeout(refresh,delay);
+    }
+    refresh();
+    return ()=>{cancelled=true;if(next)clearTimeout(next);};
   },[]);
   const data=snapshot,teams=data?.teams||[];
   const tabs=TABS;
@@ -140,12 +163,14 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
       <h2 className="mt-2 text-2xl font-black tracking-tight text-[#000B36] md:text-3xl">Every race. Every team. One season.</h2>
       <p className="mt-3 max-w-4xl text-sm leading-6 text-[#54647A]">
         Projected wins, division titles, playoff spots, postseason advancement, Cup odds and relegation.
-        Percentages come from a fast <strong>standings-based statistical forecast</strong> using the official completed
-        schedule and 10,000 remaining-season scenarios. Unlike the game odds, these are <strong>not 10,000 complete V7 physics
-        simulations</strong>. The forecast should be treated as provisional and is not a sportsbook price.
+        Every remaining-game result is drawn from <strong>actual V7 hockey simulations</strong>:
+        780 team pairings, 50 with each team at home, for <strong>78,000 complete V7 games</strong>.
+        Then 10,000 full-season scenarios reuse those real results. They are not 10,000 new physics simulations;
+        100 games per pairing is an initial sample and rare-outcome odds remain uncertain.
       </p>
       {data?<div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-[#5A6880]">
-        <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">{data.runs.toLocaleString()} scenarios</span>
+        <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">{data.runs.toLocaleString()} season draws</span>
+        <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">780 V7 matchups · 50/50 home split</span>
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">{data.completedGames} completed games</span>
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">{data.remainingGames} games remaining</span>
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">Updated {date(data.generatedAt)} ET</span>
@@ -160,6 +185,23 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
     </nav>
     {state.status==="loading"?<section aria-live="polite" className="rounded-2xl border border-[#000B36]/10 bg-white p-7 text-sm font-semibold text-[#62718A]">
       Loading the latest official results and cached 10,000-season projection…
+    </section>:null}
+    {state.status==="building"?<section role="status" aria-live="polite" className="rounded-2xl border border-[#18BDFC]/30 bg-white p-6 shadow-sm">
+      <h3 className="text-lg font-black text-[#000B36]">Building real V7 season odds</h3>
+      <p className="mt-2 text-sm leading-6 text-[#5C6C82]">{state.error}</p>
+      <div className="mt-4 flex items-center justify-between text-xs font-bold text-[#000B36]">
+        <span>Fully sampled matchups</span><span>{state.done||0} / {state.total||780}</span>
+      </div>
+      <div role="progressbar" aria-label="V7 futures matchup cache progress" aria-valuenow={state.done||0} aria-valuemin={0} aria-valuemax={780}
+        className="mt-2 h-3 overflow-hidden rounded-full bg-[#E7EDF5]">
+        <div className="h-full bg-[#18BDFC] transition-[width] duration-300"
+          style={{width:((state.done||0)/780*100)+"%"}}/>
+      </div>
+      <p className="mt-3 text-xs leading-5 text-[#6B7A90]">
+        Each completed pairing contains 50 actual V7 games at each home rink. The scheduled job checks
+        every 30 minutes and reuses unchanged pairs. No standings-model probabilities will be displayed.
+        This page checks for a completed cache automatically.
+      </p>
     </section>:null}
     {state.status==="error"?<section role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
       <h3 className="text-lg font-black text-amber-950">Season projections temporarily unavailable</h3>
@@ -245,9 +287,10 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
       </div>}
       <p className="text-xs leading-5 text-[#6B7A90]">
         Odds are mathematically fair model-implied American prices, with no sportsbook margin.
-        A dash indicates an event observed in 0 or all scenarios. Results-based modeling
-        uncertainty exceeds the random sampling error of 10,000 scenarios; these probabilities
-        are not interchangeable with 1,000-game exact-V7 matchup estimates.
+        A dash indicates an event observed in none or all of the sampled seasons. Every simulated outcome
+        comes from the V7 game engine, but only 50 samples per home orientation means matchup and long-shot
+        Cup/relegation odds still have modeling and sampling uncertainty. Game/player props separately require
+        1,000 complete V7 simulations for the actual scheduled home/away matchup.
       </p>
     </>:null}
   </div>;
