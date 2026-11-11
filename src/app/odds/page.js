@@ -6,8 +6,8 @@ import { getTeams } from "@/lib/teams";
 import { GET as getCurrentVerifiedV7Odds } from "@/app/api/odds/v7-current/route";
 
 export const metadata = {
-  title: "Odds",
-  description: "AVHL model odds generated from current lineups, player ratings, and Monte Carlo score simulations.",
+  title: "AVHL Sportsbook",
+  description: "AVHL Sportsbook: simulated game odds, player props, season futures and virtual-only parlays.",
 };
 
 export const dynamic = "force-dynamic";
@@ -97,10 +97,10 @@ export default async function OddsPage({searchParams}) {
     <main className="min-h-screen bg-slate-50 text-[#000B36]">
       <section className="bg-[#000B36] text-white">
         <div className="mx-auto max-w-7xl px-5 py-12 md:px-8 md:py-16">
-          <p className="text-sm font-black uppercase tracking-[0.24em] text-cyan-300">AVHL Model · 2026–27</p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Odds</h1>
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-cyan-300">AVHL Sportsbook · 2026–27</p>
+          <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">AVHL Sportsbook</h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-white/65 md:text-lg">
-            Matchup probabilities generated from the same live rosters and active lineups that feed the AVHL simulator, then converted into fair model lines.
+            Official AVHL game lines, player props, season futures and parlays, powered by the league simulation models. All predictions and virtual tickets are for entertainment only.
           </p>
         </div>
       </section>
@@ -123,9 +123,9 @@ export default async function OddsPage({searchParams}) {
           </Link>
           <Link href="/odds/parlay" className="group flex h-full flex-col justify-between rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm transition hover:border-[#18BDFC] hover:shadow-md md:p-6">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#A90117]">Third section · For fun only</p>
-              <h2 className="mt-1 text-xl font-black text-[#000B36]">Make your own AVHL parlay</h2>
-              <p className="mt-2 text-sm text-[#65748B]">Combine verified game lines, player props and futures, then share a virtual ticket. No real money.</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#A90117]">Virtual tickets · For fun only</p>
+              <h2 className="mt-1 text-xl font-black text-[#000B36]">Build your parlay</h2>
+              <p className="mt-2 text-sm text-[#65748B]">Create same-game, one-day or futures parlays and share a branded ticket image. Virtual points only; no real money.</p>
             </div>
             <p className="mt-4 text-xs font-black text-[#000B36] group-hover:text-[#A90117]">Open Parlay Builder →</p>
           </Link>
