@@ -14,7 +14,7 @@
     "test:replays": "node scripts/test-replay-storage.mjs",
     "test:sns-replays": "node scripts/test-sns-replay-links.mjs",
     "test:puck-possession": "node scripts/test-puck-possession.mjs",
-    "prebuild": "npm run test:puck-possession && npm run test:ot-shootout-standings && npm run test:goalie-shutouts && npm run test:goalie-starts && npm run test:goalie-decisions && npm run test:team-stats-sorting && npm run test:schedule-archives && npm run test:upcoming-game-venue && npm run test:cap-accounting && npm run test:transactions && npm run test:odds-v7-exact && npm run test:odds-v7-futures && npm run test:odds-v7-cache && npm run test:odds-v7-refresh && npm run test:odds-v7-markets && npm run test:odds-v7-oidc && npm run test:odds-v7-precompute && npm run test:season-futures && npm run test:v7-futures-control && npm run test:v7-futures-api && npm run test:v7-futures-smoke",
+    "prebuild": "npm run test:puck-possession && npm run test:ot-shootout-standings && npm run test:goalie-shutouts && npm run test:goalie-starts && npm run test:goalie-decisions && npm run test:team-stats-sorting && npm run test:schedule-archives && npm run test:upcoming-game-venue && npm run test:cap-accounting && npm run test:transactions && npm run test:odds-v7-exact && npm run test:odds-v7-futures && npm run test:odds-v7-cache && npm run test:odds-v7-refresh && npm run test:odds-v7-markets && npm run test:odds-v7-oidc && npm run test:odds-v7-precompute && npm run test:season-futures && npm run test:v7-futures-control && npm run test:v7-futures-api && npm run test:hybrid-futures && npm run test:v7-futures-smoke",
     "test:ot-shootout-standings": "node scripts/test-ot-shootout-standings.mjs",
     "test:goalie-shutouts": "node scripts/test-goalie-shutouts.mjs",
     "test:goalie-starts": "node scripts/test-goalie-starts.mjs",
@@ -34,6 +34,7 @@
     "test:season-futures": "node scripts/test-season-futures-forecast.mjs",
     "test:v7-futures-control": "node scripts/test-v7-futures-control.mjs",
     "test:v7-futures-api": "node scripts/test-v7-futures-api-read.mjs",
+    "test:hybrid-futures": "node scripts/test-hybrid-futures.mjs",
     "test:v7-futures-smoke": "node scripts/precompute-v7-futures.mjs --mode smoke --fixture"
   },
   "dependencies": {
