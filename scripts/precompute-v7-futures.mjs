@@ -133,8 +133,14 @@ async function main(){
    const {a,b,key}=all.find(x=>x.a==="ARI"&&x.b==="ATL")||all[0];
    const first=ctx.AVHL_CREATE_MATCHUP_DATA(a,b);
    const second=ctx.AVHL_CREATE_MATCHUP_DATA(b,a);
-   const left=sampleMatchup(ctx,first,key,true,1),right=sampleMatchup(ctx,second,key,false,1);
-   console.log(JSON.stringify({mode:"fixture-v7-game-smoke",first:a,second:b,scoreAHome:left,scoreBHome:right,
+   const count=Number(arg("--games","1"));
+   if(!Number.isInteger(count)||count<1||count>50)throw Error("Smoke games must be 1–50 per orientation.");
+   const left=sampleMatchup(ctx,first,key,true,count),right=sampleMatchup(ctx,second,key,false,count);
+   const full=count===50?validatePairPool({firstHome:left,secondHome:right}):null;
+   if(count===50&&!full)throw Error("Failed full V7 50/50 pairing smoke.");
+   console.log(JSON.stringify({mode:"fixture-v7-game-smoke",first:a,second:b,
+     scoreAHome:count===1?left:left.slice(0,3),scoreBHome:count===1?right:right.slice(0,3),
+     perHomeGames:count,validFullPool:full,
      pairCount:all.length,digest:snapshot,engineHash:sha16(engine)}));
    return;
  }
