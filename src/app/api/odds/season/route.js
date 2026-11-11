@@ -30,38 +30,42 @@ async function lastCompleteForecast(current){
 }
 export async function GET(){
  try{
-   // The 30-minute scheduled job publishes a canonical live-engine/lineup
-   // fingerprint. Any lineup change invalidates the previous forecast.
-   const snapshot=await redisCommand(["GET",futuresRedisKey("current")]);
-   if(!DIGEST.test(snapshot||"")){
-     const fallback=await lastCompleteForecast(null);
-     return reply({ok:false,status:fallback?"updating":"building",
-       completedPairs:0,requiredPairs:780,fallback,
-       error:"The current 780-pair V7 matchup database has not been prepared yet."},
-       fallback?200:503);
-   }
-   // A complete forecast remains valid for its canonical V7 lineup snapshot.
-   // Do not pretend the 780-pair database is still building solely because
-   // a GitHub scheduled refresh has been delayed beyond two hours.
-   const saved=await redisCommand(["GET",futuresRedisKey("forecast:"+snapshot)]);
-   if(saved){
-     const forecast=JSON.parse(saved);
-     if(completeForecast(forecast,snapshot)){
-       return reply({ok:true,...forecast});
+   // "current" is the last fully published V7 forecast. "pending" is
+   // independently prepared by the background workflow, never made active
+   // until all 780 verified pair pools and the hybrid forecast are complete.
+   const [current,pending]=await Promise.all([
+     redisCommand(["GET",futuresRedisKey("current")]),
+     redisCommand(["GET",futuresRedisKey("pending")])
+   ]);
+   const preparing=DIGEST.test(pending||"")&&pending!==current;
+   let verified=null;
+   if(DIGEST.test(current||"")){
+     const raw=await redisCommand(["GET",futuresRedisKey("forecast:"+current)]);
+     if(raw){
+       const forecast=JSON.parse(raw);
+       if(completeForecast(forecast,current))verified=forecast;
      }
    }
-   const progress=Number(await redisCommand(["GET",futuresRedisKey("progress:"+snapshot)]))||0;
-   const fallback=await lastCompleteForecast(snapshot);
-   return reply({ok:false,status:fallback?"updating":"building",
+   if(verified&&!preparing)return reply({ok:true,...verified});
+
+   const progressSnapshot=preparing?pending:DIGEST.test(pending||"")?pending:current;
+   const progress=DIGEST.test(progressSnapshot||"")?
+     Number(await redisCommand(["GET",futuresRedisKey("progress:"+progressSnapshot)]))||0:0;
+   // In transition, the complete previous forecast stays available for
+   // reference on every device, even on a fresh load with no browser cache.
+   const fallback=verified||await lastCompleteForecast(current);
+   return reply({
+     ok:false,status:fallback?"updating":"building",
      completedPairs:Math.max(0,Math.min(780,progress)),requiredPairs:780,
      completedGameSamples:Math.max(0,Math.min(780,progress))*100,
      targetGameSamples:78000,fallback,
-     error:fallback?"Refreshing the 780-pair V7 database for the current lineups. Previous verified futures remain visible for reference only.":
-       "Exact V7 pairings are being generated or refreshed. Current futures odds will appear after the full 50/50 matchup database is complete."},
-     fallback?200:503);
+     error:fallback?
+       "Refreshing V7 season futures. Previous verified odds stay visible until the new complete forecast is published.":
+       "The first complete 780-pair V7 season forecast is still building."
+   },fallback?200:503);
  }catch(error){
    console.error("V7 season futures read failure",error);
    return reply({ok:false,status:"unavailable",
-     error:"The verified V7 matchup database is temporarily unavailable. Outdated standings-model odds will not be substituted."},503);
+     error:"The verified V7 matchup database is temporarily unavailable. Unverified odds will not be substituted."},503);
  }
 }

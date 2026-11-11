@@ -53,7 +53,25 @@ export async function POST(request){
      const missing=entries.filter((p,i)=>!validatePairPool(values[i]));
      const plan={snapshot,entries,createdAt:new Date().toISOString()};
      await redisCommand(["SET",futuresRedisKey("plan:"+snapshot),JSON.stringify(plan),"EX",604800]);
-     await redisCommand(["SET",futuresRedisKey("current"),snapshot]);
+     // Maintain separate preparing and published pointers. Previously inspect
+     // moved "current" immediately, causing the odds page to go blank until
+     // all 780 pairings were ready. Current MUST remain a finished forecast.
+     // Also backfill the last-verified pointer for forecasts published before
+     // the reference-pointer feature was introduced.
+     const publishedDigest=await redisCommand(["GET",futuresRedisKey("current")]);
+     if(DIGEST_RE.test(publishedDigest||"")){
+       const oldRaw=await redisCommand(["GET",futuresRedisKey("forecast:"+publishedDigest)]);
+       if(oldRaw){
+         try{
+           const old=JSON.parse(oldRaw);
+           if(old?.sourceDigest===publishedDigest && old.matchedPairs===780 &&
+             old.engineSamples===78000 && Number.isFinite(Date.parse(old.generatedAt)) &&
+             (old.method===HYBRID_FUTURES_METHOD||old.method===SEASON_METHOD))
+             await redisCommand(["SET",futuresRedisKey("last-verified"),publishedDigest,"EX",604800]);
+         }catch{ /* Corrupt old snapshots must never be promoted to reference odds. */ }
+       }
+     }
+     await redisCommand(["SET",futuresRedisKey("pending"),snapshot,"EX",604800]);
      await redisCommand(["SET",futuresRedisKey("progress:"+snapshot),String(TOTAL_PAIRS-missing.length),"EX",604800]);
      return response({ok:true,snapshot,completed:TOTAL_PAIRS-missing.length,
        required:TOTAL_PAIRS,missing});
@@ -64,8 +82,8 @@ export async function POST(request){
         !validatePairPool(pool))return response({ok:false,error:"Invalid V7 game outcome pool."},400);
      const plan=await getPlan(snapshot);
      if(!plan?.entries?.some(p=>p.key===key))return response({ok:false,error:"Unknown V7 pairing in snapshot."},400);
-     const current=await redisCommand(["GET",futuresRedisKey("current")]);
-     if(current!==snapshot)return response({ok:false,error:"Stale V7 pairing snapshot."},409);
+     const pending=await redisCommand(["GET",futuresRedisKey("pending")]);
+     if(pending!==snapshot)return response({ok:false,error:"Stale V7 pairing snapshot."},409);
      const storageKey=futuresRedisKey("pair:"+key);
      // Only a fully complete 50/50 V7 pair is ever published.
      const previously=await redisCommand(["GET",storageKey]);
@@ -76,8 +94,8 @@ export async function POST(request){
    if(action==="finalize"){
      const {snapshot}=body||{};
      if(!DIGEST_RE.test(snapshot||""))return response({ok:false,error:"Invalid V7 snapshot."},400);
-     const current=await redisCommand(["GET",futuresRedisKey("current")]);
-     if(current!==snapshot)return response({ok:false,error:"Superseded V7 snapshot."},409);
+     const pending=await redisCommand(["GET",futuresRedisKey("pending")]);
+     if(pending!==snapshot)return response({ok:false,error:"Superseded V7 snapshot."},409);
      const plan=await getPlan(snapshot);
      if(!plan?.entries||plan.entries.length!==TOTAL_PAIRS)return response({ok:false,error:"Missing V7 pairing plan."},409);
      const values=await redisMultiGet(plan.entries.map(p=>futuresRedisKey("pair:"+p.key)));
@@ -129,6 +147,8 @@ export async function POST(request){
      // are rebuilding. This pointer never makes older prices current.
      await redisCommand(["SET",futuresRedisKey("last-verified"),snapshot,"EX",604800]);
      await redisCommand(["SET",futuresRedisKey("progress:"+snapshot),String(TOTAL_PAIRS),"EX",604800]);
+     // Commit LAST: no incomplete snapshot is ever the site's active market.
+     await redisCommand(["SET",futuresRedisKey("current"),snapshot]);
      return response({ok:true,published:true,snapshot,pairedGameSamples:78000,
        completedGames:outlook.completedGames,runs:outlook.runs});
    }

@@ -13,7 +13,7 @@ process.env.UPSTASH_REDIS_REST_TOKEN="test-only-not-a-secret";
 
 const first="012f9ea40d459dfab579a961";
 const second="bbbbbbbbbbbbbbbbbbbbbbbb";
-let current=first,forecast=null,progress=780;
+let current=first,pendingSnapshot=null,forecast=null,progress=780;
 let lastVerified=null,priorForecast=null;
 const source={
   method:"exact-V7-game-outcome-resampling",
@@ -27,10 +27,11 @@ globalThis.fetch=async(url,options)=>{
   assert.equal(command[0],"GET");
   const key=command[1];
   const value=key==="avhl:odds:futures:current"?current:
+    key==="avhl:odds:futures:pending"?pendingSnapshot:
     key==="avhl:odds:futures:last-verified"?lastVerified:
     key==="avhl:odds:futures:forecast:"+current?forecast:
     key==="avhl:odds:futures:forecast:"+first?priorForecast:
-    key==="avhl:odds:futures:progress:"+current?String(progress):null;
+    key==="avhl:odds:futures:progress:"+(pendingSnapshot||current)?String(progress):null;
   return {ok:true,json:async()=>({result:value})};
 };
 try{
@@ -44,20 +45,42 @@ try{
   assert.equal(full.runs,10000);
   assert.equal(full.engineSamples,78000);
 
-  // A newly selected fingerprint must show older fully verified prices
-  // as REFERENCE ONLY, never as current prices.
-  current=second;progress=600;
-  forecast=null;
-  lastVerified=first;
-  priorForecast=JSON.stringify(source);
+  // Atomic in-flight snapshot: the old current pointer stays published.
+  // Even at 0/780 newly sampled pairs, the old completed futures persist.
+  pendingSnapshot=second;progress=0;
   let pending=await GET();
   assert.equal(pending.status,200);
-  const updating=await pending.json();
+  let updating=await pending.json();
+  assert.equal(updating.ok,false);
+  assert.equal(updating.status,"updating");
+  assert.equal(updating.completedPairs,0);
+  assert.equal(updating.fallback.sourceDigest,first);
+  progress=600;
+  pending=await GET();
+  assert.equal(pending.status,200);
+  updating=await pending.json();
   assert.equal(updating.ok,false);
   assert.equal(updating.status,"updating");
   assert.equal(updating.completedPairs,600);
   assert.equal(updating.fallback.sourceDigest,first);
   assert.equal(updating.fallback.teams[0].abbreviation,"ATL");
+
+  // The final atomic switch publishes the new complete forecast.
+  current=second;
+  forecast=JSON.stringify({...source,sourceDigest:second,
+    generatedAt:new Date().toISOString()});
+  pending=await GET();
+  assert.equal(pending.status,200);
+  assert.equal((await pending.json()).sourceDigest,second);
+
+  // Legacy recovery: a previous version might already have moved "current"
+  // before finishing, but a valid last-verified pointer must still work.
+  forecast=null;
+  lastVerified=first;
+  priorForecast=JSON.stringify(source);
+  pending=await GET();
+  assert.equal(pending.status,200);
+  assert.equal((await pending.json()).fallback.sourceDigest,first);
 
   // No prior trusted publication means there are no fabricated lines.
   lastVerified=null;
@@ -66,7 +89,7 @@ try{
   assert.equal((await pending.json()).completedPairs,600);
 
   // Reject corrupted or incorrectly labeled forecasts even at 780/780.
-  current=first;progress=780;
+  current=first;pendingSnapshot=null;progress=780;
   forecast=JSON.stringify({...source,engineSamples:7800});
   pending=await GET();
   assert.equal(pending.status,503);
@@ -74,7 +97,7 @@ try{
   forecast=JSON.stringify({...source,sourceDigest:second});
   assert.equal((await GET()).status,503);
 
-  console.log("V7 futures API freshness regression: PASS (latest verified remains current; previous full V7 forecast shown as updating-only; no invented prices).");
+  console.log("V7 futures API freshness regression: PASS (atomic current/pending, 0/780 shows older verified prices, safe legacy fallback).");
 }finally{
   globalThis.fetch=savedFetch;
   for(const [name,value] of Object.entries(savedEnv)){
