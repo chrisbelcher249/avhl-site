@@ -1,4 +1,8 @@
 import {drawV7Score,TOTAL_PAIRS,validatePairPool} from "./v7FuturesPairs.js";
+import {HYBRID_FUTURES_METHOD,HYBRID_V7_LOGIT_WEIGHT,MAX_GOALIE_STARTS,
+  fitEmpiricalStrength,empiricalHomeWinProbability,buildHybridContext,
+  returnLogitShift,chooseGoalie,goalieStartMap,
+  hybridHomeWinProbability,adjustV7Result,v7HomeWinRate} from "./hybridFuturesModel.js";
 // Full-season futures resample observed results from 780 real V7 matchup
 // pools (50 games with each team at home). No statistical score model is used.
 // Official completed games, standings and playoff/relegation rules stay fixed.
@@ -73,7 +77,7 @@ function quantile(hist,q){
   for(let i=0;i<hist.length;i++){cum+=hist[i];if(cum>=q*total)return i;}
   return hist.length-1;
 }
-export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools=null,sourceDigest=""){
+export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools=null,sourceDigest="",hybridInput=null){
   // Fail closed. No games are invented by team-strength or Poisson formulas.
   if(!pools||Object.keys(pools).length!==TOTAL_PAIRS)
     throw Error("780 fully sampled official V7 matchups are required.");
@@ -91,7 +95,7 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
   for(const game of schedule){
     const a=idx[game.away],h=idx[game.home];
     if(a==null||h==null||a===h)throw Error("Official schedule contains an unknown team.");
-    if(game.awayScore==null&&game.homeScore==null){remaining.push({a,h});continue;}
+    if(game.awayScore==null&&game.homeScore==null){remaining.push({a,h,id:game.id});continue;}
     const as=clean(game.awayScore),hs=clean(game.homeScore);
     if(as<0||hs<0||as===hs||!Number.isInteger(as)||!Number.isInteger(hs))
       throw Error("Incomplete/invalid completed official game score.");
@@ -104,8 +108,58 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
   if(teams.some((t,i)=>base[i].gp+remaining.filter(g=>g.a===i||g.h===i).length!==82))
     throw Error("Each AVHL club must have an 82-game season.");
 
-  const random=makeRandom(hashString("AVHL-EXACT-V7-2026-27:"+sourceDigest+":"+fingerprint.join("|")+":"+runs));
-  const draw=(home,away)=>drawV7Score(pools,teams[home].abbreviation,teams[away].abbreviation,random);
+  const hybrid=hybridInput ? buildHybridContext({
+    teams,players:hybridInput.players,lineups:hybridInput.lineups,
+    injuries:hybridInput.injuries,goalieStats:hybridInput.goalieStats
+  }) : null;
+  const empirical=hybrid?fitEmpiricalStrength(schedule,teams):null;
+  const random=makeRandom(hashString(
+    (hybrid?"AVHL-HYBRID-V7-2026-27:":"AVHL-EXACT-V7-2026-27:")+
+      sourceDigest+":"+fingerprint.join("|")+":"+runs));
+  // All 780 real V7 matchup pools are reused; a new 78,000-game run is NOT
+  // needed to update empirical form, planned goalie rotation or injury returns.
+  const directions=new Map();
+  const futureContext=new Map();
+  let afterReturn={};
+  if(hybrid){
+    for(const home of teams)for(const away of teams)if(home.abbreviation!==away.abbreviation){
+      const pair=[home.abbreviation,away.abbreviation].sort();
+      const pool=pools[pair.join(":")];
+      if(!pool)throw Error("Missing actual V7 pair "+pair.join(":"));
+      directions.set(home.abbreviation+":"+away.abbreviation,{
+        baseline:v7HomeWinRate(pool,home.abbreviation===pair[0]),
+        empirical:empiricalHomeWinProbability(empirical,home.abbreviation,away.abbreviation)
+      });
+    }
+    for(const team of teams)afterReturn[team.abbreviation]=returnLogitShift(
+      hybrid.byTeam[team.abbreviation],Number.MAX_SAFE_INTEGER);
+    for(const game of remaining){
+      futureContext.set(game.id,{
+        homeReturn:returnLogitShift(hybrid.byTeam[teams[game.h].abbreviation],Number(game.id)),
+        awayReturn:returnLogitShift(hybrid.byTeam[teams[game.a].abbreviation],Number(game.id))
+      });
+    }
+  }
+  let scenarioGoalieStarts=null;
+  const draw=(home,away,gameId=null)=>{
+    const h=teams[home].abbreviation,a=teams[away].abbreviation;
+    const sample=drawV7Score(pools,h,a,random);
+    if(!hybrid)return sample;
+    const homeState=hybrid.byTeam[h],awayState=hybrid.byTeam[a];
+    const regular=gameId!==null;
+    const homeGoalie=chooseGoalie(homeState,regular?gameId:Number.MAX_SAFE_INTEGER,
+      scenarioGoalieStarts[home],random,{regularSeason:regular});
+    const awayGoalie=chooseGoalie(awayState,regular?gameId:Number.MAX_SAFE_INTEGER,
+      scenarioGoalieStarts[away],random,{regularSeason:regular});
+    const odds=directions.get(h+":"+a);
+    const returns=regular?futureContext.get(gameId):{
+      homeReturn:afterReturn[h],awayReturn:afterReturn[a]
+    };
+    const target=hybridHomeWinProbability(odds.baseline,odds.empirical,
+      homeState,awayState,homeGoalie,awayGoalie,
+      returns.homeReturn,returns.awayReturn);
+    return adjustV7Result(sample,odds.baseline,target,random);
+  };
 
   const labels=["division","conference","presidents","playoffs","round1","round2",
     "conferenceFinal","cupFinal","cup","relegation","topFive","topTen"];
@@ -118,10 +172,11 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
   const conferences=["Western","Eastern"];
   for(let run=0;run<runs;run++){
     const rec=base.map(r=>({...r}));
+    if(hybrid)scenarioGoalieStarts=teams.map(t=>goalieStartMap(hybrid.byTeam[t.abbreviation]));
     // Sample score/OT shapes from actual completed AVHL games. Reweight
     // the winner by regular-season strength and observed home advantage.
     for(const game of remaining){
-      const result=draw(game.h,game.a);
+      const result=draw(game.h,game.a,game.id);
       applyResult(rec[game.a],rec[game.h],result.awayScore,result.homeScore,result.ot);
     }
     const ranks=teams.map((_,i)=>i).sort((a,b)=>compare(a,b,rec,teams));
@@ -173,9 +228,21 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
     indicator(counts.cup,series(champions[0],champions[1],7,draw,finalHome));
   }
   return {
-    version:"season-futures-statistical-v2",method:SEASON_METHOD,runs,
+    version:hybrid?"season-futures-hybrid-v1":"season-futures-statistical-v2",
+    method:hybrid?HYBRID_FUTURES_METHOD:SEASON_METHOD,runs,
     completedGames:fingerprint.length,remainingGames:remaining.length,
-    modelNote:"Every future game result is drawn from actual V7 engine simulations: 50 with each team at home in all 780 matchups. The season itself resamples stored V7 results, not the spatial engine.",
+    modelNote:hybrid?
+      "Hybrid probabilities combine opponent-adjusted official AVHL results with V7 outcomes; V7 score/OT shapes are retained while win outcomes are recalibrated for injury return dates and expected goalie rotation. Future injuries and owner lineup choices cannot be known.":
+      "Every future game result is drawn from actual V7 engine simulations: 50 with each team at home in all 780 matchups. The season itself resamples stored V7 results, not the spatial engine.",
+    ...(hybrid?{hybridDetails:{
+      empiricalGames:empirical.games,empiricalHomeAdvantage:empirical.homeAdvantage,
+      v7LogitWeight:HYBRID_V7_LOGIT_WEIGHT,
+      empiricalLogitWeight:1-HYBRID_V7_LOGIT_WEIGHT,
+      activeInjuriesModeled:hybrid.activeInjuriesModeled,
+      goalieStartCap:MAX_GOALIE_STARTS,
+      outcomeAdjustment:"Reweight V7 game winner while preserving sampled score margins and overtime type",
+      caveat:"Weights and V7 goalkeeper strength remain provisional until independently backtested against future completed games."
+    }}:{}),
     sourceDigest,matchedPairs:TOTAL_PAIRS,engineSamples:TOTAL_PAIRS*100,
     teams:teams.map((team,i)=>({
       ...team,record:{...base[i]},projectedWins:totalW[i]/runs,
