@@ -3,6 +3,9 @@
 // V7 final score shapes are reused; winner probabilities are statistically adjusted.
 export const HYBRID_FUTURES_METHOD = "hybrid-V7-empirical-injury-goalie-v1";
 export const HYBRID_V7_LOGIT_WEIGHT = 0.45;
+// Walk-forward AVHL game results (first 160 train, next 256 test) favored
+// roughly 0.4x empirical rating strength over a raw, overconfident 1.0x fit.
+export const EMPIRICAL_FORM_CALIBRATION = 0.4;
 export const MAX_GOALIE_STARTS = 60;
 const GOALIE_LOGIT_PER_OVERALL = 0.075;
 const MIN_P = 0.005;
@@ -64,8 +67,9 @@ export function fitEmpiricalStrength(schedule,teams) {
   const center=strengths.reduce((sum,x)=>sum+x,0)/40;
   return {
     games:games.length,
-    homeAdvantage:homeAdv,
-    byCode:Object.fromEntries(teams.map((t,i)=>[t.abbreviation,strengths[i]-center])),
+    homeAdvantage:homeAdv*EMPIRICAL_FORM_CALIBRATION,
+    byCode:Object.fromEntries(teams.map((t,i)=>[t.abbreviation,(strengths[i]-center)*EMPIRICAL_FORM_CALIBRATION])),
+    formCalibration:EMPIRICAL_FORM_CALIBRATION,
     goalDifferentialPriorGames:10,
     teamRidge,
   };
