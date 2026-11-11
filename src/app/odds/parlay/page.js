@@ -48,6 +48,11 @@ export default async function ParlayPage(){
          result.summary.count===result.count&&
          result.summary.home===home&&result.summary.away===away)
         return [String(game.id),result];
+      if(result.ok&&result.ready===false&&result.fallback?.count>=1000&&
+         result.fallback.summary?.source==="v7-complete-games"&&
+         result.fallback.summary.count===result.fallback.count&&
+         result.fallback.summary.home===home&&result.fallback.summary.away===away)
+        return [String(game.id),result];
     }catch(e){
       console.error("Parlay preview could not verify official V7 game",{
         gameId:game.id,error:e instanceof Error?e.message:String(e)
