@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {GET} from "../src/app/api/odds/v7-cache/route.js";
+import {lastVerifiedGameOdds} from "../src/lib/v7LastVerifiedOdds.js";
 const oldFetch=globalThis.fetch;
 const savedUrl=process.env.UPSTASH_REDIS_REST_URL;
 const savedToken=process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -10,17 +11,20 @@ process.env.UPSTASH_REDIS_REST_TOKEN="test-only-token";
 const key="v7:3:1234abcd:ARI:ATL:abcdef12";
 let cached=[];
 let compact=null;
+let pointer=null;
 let remoteReads=0;
 let sampleReads=0;
 globalThis.fetch=async (_url,options)=>{
   const cmd=JSON.parse(options.body);
   assert.equal(cmd[0],"GET");
-  assert([ "avhl:odds:exact:sample:"+key, "avhl:odds:exact:summary:"+key ].includes(cmd[1]));
+  assert([ "avhl:odds:exact:sample:"+key, "avhl:odds:exact:summary:"+key,
+    "avhl:odds:exact:latest:ARI:ATL" ].includes(cmd[1]));
   remoteReads++;
   if(cmd[1].includes(":sample:"))sampleReads++;
-  const value=cmd[1].includes(":summary:")?compact:{samples:cached};
+  const value=cmd[1].includes(":latest:")?pointer:
+    cmd[1].includes(":summary:")?compact:{samples:cached};
   return {ok:true,status:200,json:async()=>({
-    result:value==null?null:JSON.stringify(value)
+    result:value==null?null:typeof value==="string"?value:JSON.stringify(value)
   })};
 };
 try {
@@ -49,7 +53,23 @@ try {
   assert.equal(summaryResult.summary.homeWin,0.62);
   assert.equal(summaryResult.samples,undefined);
   assert.equal(sampleReads,readsBefore,"Summary lookup must avoid reading heavy game samples.");
-  console.log("Exact V7 shared cache: PASS (restricted keys, 1k gate, instant compact summary lookup).");
+  // Signed historical odds are reference-only and require both a trusted
+  // publisher and a bounded, matching 1,000-game summary.
+  pointer=key;
+  compact={count:1000,summary:{
+    count:1000,source:"v7-complete-games",home:"ARI",away:"ATL",
+    homeWin:0.62,awayWin:0.38
+  },publisher:"trusted-github-actions",generatedAt:new Date().toISOString()};
+  const historical=await lastVerifiedGameOdds("ARI","ATL");
+  assert.equal(historical.key,key);
+  assert.equal(historical.summary.homeWin,0.62);
+  assert.equal(await lastVerifiedGameOdds("ARI","ATL",key),null,"Current key cannot be its own stale fallback.");
+  compact.publisher="untrusted";
+  assert.equal(await lastVerifiedGameOdds("ARI","ATL"),null,"Never display unsigned historical markets.");
+  compact.publisher="trusted-github-actions";
+  compact.generatedAt=new Date(Date.now()-32*24*60*60*1000).toISOString();
+  assert.equal(await lastVerifiedGameOdds("ARI","ATL"),null,"Expired markets must not be shown.");
+  console.log("Exact V7 shared cache: PASS (1k gate, signed last-good matchup reference, no stale price as current).");
 } finally {
   globalThis.fetch=oldFetch;
   for (const [key,value] of Object.entries({
