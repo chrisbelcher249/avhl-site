@@ -36,4 +36,15 @@ export function makeAllPairEntries(codes, engineSource, matchupBuilder){
   if(entries.length!==TOTAL_PAIRS)throw Error("AVHL requires 780 pairings.");
   return entries;
 }
-export function drawV7Score(pools,homeCode,awa...[truncated]
+export function drawV7Score(pools,homeCode,awayCode,random){
+  const [a,b]=pairNames(homeCode,awayCode);
+  const key=a+":"+b,pool=pools[key];
+  if(!pool||!Array.isArray(pool.firstHome)||!Array.isArray(pool.secondHome))throw Error("Missing genuine V7 outcome pool for "+key);
+  const arr=homeCode===a?pool.firstHome:pool.secondHome;
+  const result=arr[Math.floor(random()*arr.length)];
+  return {
+    homeScore:homeCode===a?result[0]:result[1],
+    awayScore:homeCode===a?result[1]:result[0],
+    ot:Boolean(result[2])
+  };
+}
