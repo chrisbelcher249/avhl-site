@@ -95,7 +95,10 @@ export async function POST(request){
        generatedAt:new Date().toISOString(),pairedGameSamples:TOTAL_PAIRS*100,
        perPairHomeSamples:50,perPairAwaySamples:50};
      // Publish after the *entire* snapshot and official schedule have passed.
-     await redisCommand(["SET",futuresRedisKey("forecast:"+snapshot),JSON.stringify(published),"EX",21600]);
+     // Seven-day bounded retention ensures a delayed GitHub Actions schedule
+     // cannot hide a valid, fully-sampled current-lineup forecast after 6h.
+     // Publication still requires all 780 canonical live V7 matchup pools.
+     await redisCommand(["SET",futuresRedisKey("forecast:"+snapshot),JSON.stringify(published),"EX",604800]);
      await redisCommand(["SET",futuresRedisKey("progress:"+snapshot),String(TOTAL_PAIRS),"EX",604800]);
      return response({ok:true,published:true,snapshot,pairedGameSamples:78000,
        completedGames:outlook.completedGames,runs:outlook.runs});

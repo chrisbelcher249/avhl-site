@@ -17,6 +17,9 @@ export async function GET(){
      return reply({ok:false,status:"building",completedPairs:0,requiredPairs:780,
        error:"The 780-pair exact V7 matchup database has not been prepared yet."},503);
    }
+   // A complete forecast remains valid for its canonical V7 lineup snapshot.
+   // Do not pretend the 780-pair database is still building solely because
+   // a GitHub scheduled refresh has been delayed beyond two hours.
    const saved=await redisCommand(["GET",futuresRedisKey("forecast:"+snapshot)]);
    if(saved){
      const forecast=JSON.parse(saved);
@@ -24,7 +27,7 @@ export async function GET(){
      if(forecast.method==="exact-V7-game-outcome-resampling"&&
         forecast.sourceDigest===snapshot&&forecast.matchedPairs===780&&
         forecast.engineSamples===78000&&
-        Number.isFinite(recent)&&Date.now()-recent<2*60*60*1000){
+        Number.isFinite(recent)&&recent<=Date.now()+5*60*1000){
        return reply({ok:true,...forecast});
      }
    }
