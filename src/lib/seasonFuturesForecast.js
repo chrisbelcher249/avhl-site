@@ -53,13 +53,15 @@ function seedsFor(conference,teams,records){
   return [...tiers.map(t=>t.sort((a,b)=>compare(a,b,records,teams))).flat(),...wild];
 }
 function indicator(array,index){array[index]++;}
-function series(a,b,length,quality,random,homeAdv,scoreSamples){
+function series(a,b,length,quality,random,homeAdv,higherSeed){
   const needed=(length+1)/2;
   let aw=0,bw=0;
   for(let i=0;aw<needed&&bw<needed;i++){
-    // Higher seed receives the opening two home games; subsequent home
-    // assignments follow a 2-2-1 or 2-2-1-1-1 pattern.
-    const aHome=i<2 || (i>=4&&i%2===0);
+    // True 2-2-1 (qualifier) or 2-2-1-1-1 (best-of-seven) structure.
+    // The team with higher remaining seed gets the first two home games,
+    // regardless of which side of the fixed bracket it originally occupied.
+    const higherHome=i<2 || (i>=4&&i%2===0);
+    const aHome=higherHome?(higherSeed===a):(higherSeed!==a);
     const home=aHome?a:b,away=aHome?b:a;
     const p=homeProbability(home,away,quality,homeAdv);
     if(random()<p){if(aHome)aw++;else bw++;}
@@ -158,28 +160,32 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS){
     const champions=[];
     for(const conf of conferences){
       const seeds=seedsFor(conf,teams,rec);
+      const rank=Object.fromEntries(seeds.map((id,i)=>[id,i]));
+      const higher=(a,b)=>rank[a]<rank[b]?a:b;
+      const playoff=(a,b,bestOf)=>series(a,b,bestOf,quality,random,homeAdv,higher(a,b));
       for(const seed of seeds)indicator(counts.playoffs,seed);
-      const play89=series(seeds[7],seeds[8],5,quality,random,homeAdv,observed);
-      const play710=series(seeds[6],seeds[9],5,quality,random,homeAdv,observed);
+      const play89=playoff(seeds[7],seeds[8],5);
+      const play710=playoff(seeds[6],seeds[9],5);
       const r1=[seeds[0],seeds[1],seeds[2],seeds[3],seeds[4],seeds[5],play89,play710];
       for(const id of r1)indicator(counts.round1,id);
       const q1=[
-        series(seeds[0],play89,7,quality,random,homeAdv,observed),
-        series(seeds[3],seeds[4],7,quality,random,homeAdv,observed),
-        series(seeds[1],play710,7,quality,random,homeAdv,observed),
-        series(seeds[2],seeds[5],7,quality,random,homeAdv,observed)
+        playoff(seeds[0],play89,7),
+        playoff(seeds[3],seeds[4],7),
+        playoff(seeds[1],play710,7),
+        playoff(seeds[2],seeds[5],7)
       ];
       for(const id of q1)indicator(counts.round2,id);
       const semi=[
-        series(q1[0],q1[1],7,quality,random,homeAdv,observed),
-        series(q1[2],q1[3],7,quality,random,homeAdv,observed)
+        playoff(q1[0],q1[1],7),
+        playoff(q1[2],q1[3],7)
       ];
       for(const id of semi)indicator(counts.conferenceFinal,id);
-      const champion=series(semi[0],semi[1],7,quality,random,homeAdv,observed);
+      const champion=playoff(semi[0],semi[1],7);
       indicator(counts.cupFinal,champion);
       champions.push(champion);
     }
-    indicator(counts.cup,series(champions[0],champions[1],7,quality,random,homeAdv,observed));
+    const finalHome=compare(champions[0],champions[1],rec,teams)<=0?champions[0]:champions[1];
+    indicator(counts.cup,series(champions[0],champions[1],7,quality,random,homeAdv,finalHome));
   }
   return {
     version:"season-futures-statistical-v2",method:SEASON_METHOD,runs,
