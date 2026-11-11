@@ -2,7 +2,7 @@ name: Refresh AVHL exact V7 odds (every 30 minutes)
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "7,37 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -40,14 +40,14 @@ jobs:
         id: fixtures
         env:
           AVHL_ODDS_SITE_URL: "https://www.avhl.org"
-          AVHL_ODDS_MAX_MATCHUPS: "16"
+          AVHL_ODDS_MAX_MATCHUPS: "32"
         run: node scripts/plan-v7-odds-refresh.mjs
 
   refresh:
     needs: plan
     if: needs.plan.outputs.count != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 110
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       max-parallel: 8
