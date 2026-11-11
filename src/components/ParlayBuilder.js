@@ -30,7 +30,7 @@ function Control({label,value,onChange,options,disabled=false}){
     </select>
   </label>;
 }
-function FuturePicker({forecast,onAdd,selectedTeams=[],atCapacity=false}){
+function FuturePicker({forecast,onAdd,selectedTeams=[],atCapacity=false,stale=false}){
   const [selectedTeam,setSelectedTeam]=useState("");
   const [market,setMarket]=useState("cup");
   const [line,setLine]=useState("40.5");
@@ -85,7 +85,7 @@ function FuturePicker({forecast,onAdd,selectedTeams=[],atCapacity=false}){
       </div>
       <div className="shrink-0 text-right">
         <p className="text-2xl font-black tabular-nums text-[#000B36]">{sample.price}</p>
-        <button type="button" disabled={atCapacity||alreadyPicked||!available}
+        <button type="button" disabled={stale||atCapacity||alreadyPicked||!available}
           onClick={()=>onAdd({
             id:"future:"+team.abbreviation+":"+market+":"+line+":"+side,type:"future",
             label,context:"2026–27 AVHL hybrid season futures",
@@ -93,10 +93,13 @@ function FuturePicker({forecast,onAdd,selectedTeams=[],atCapacity=false}){
             teamCodes:[team.abbreviation],market,division:team.division,conference:team.conference
           })}
           className="mt-2 rounded-xl bg-[#000B36] px-4 py-2.5 text-xs font-black text-white hover:bg-[#143159] disabled:cursor-not-allowed disabled:opacity-45">
-          {atCapacity?"8-leg limit":alreadyPicked?"Team already chosen":available?"Add selection +":"Not available"}
+          {stale?"Updating odds":atCapacity?"8-leg limit":alreadyPicked?"Team already chosen":available?"Add selection +":"Not available"}
         </button>
       </div>
     </div>:null}
+    {stale?<p role="status" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
+      Previous verified futures are shown for reference during the refresh. New picks are disabled until the forecast is current.
+    </p>:null}
     <p className="mt-3 text-xs leading-5 text-[#687992]">
       Choose up to eight different teams (one pick per team). Futures are correlated;
       the combined price is illustrative, not a joint-simulation result.
@@ -109,6 +112,7 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
   const [selectedDate,setSelectedDate]=useState(dates[0]||"");
   const [gameQuotes,setGameQuotes]=useState(initialSnapshots);
   const [season,setSeason]=useState(null);
+  const [seasonStale,setSeasonStale]=useState(false);
   const [legs,setLegs]=useState([]);
   const [notice,setNotice]=useState("");
   const [virtualPoints,setVirtualPoints]=useState(100);
@@ -154,10 +158,16 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
           const result=await fetch("/api/odds/v7-current?home="+encodeURIComponent(h)+
             "&away="+encodeURIComponent(a),{cache:"no-store"});
           const q=await result.json();
-          if(!result.ok||!q.ok||!q.ready||q.count<1000||
-             q.summary?.source!=="v7-complete-games"||q.summary.count!==q.count||
-             q.summary.home!==h||q.summary.away!==a)return [g.id,null];
-          return [g.id,q];
+          if(!result.ok||!q.ok)return [g.id,null];
+          if(q.ready&&q.count>=1000&&q.summary?.source==="v7-complete-games"&&
+             q.summary.count===q.count&&q.summary.home===h&&q.summary.away===a)
+            return [g.id,q];
+          if(q.ready===false&&q.fallback?.count>=1000&&
+             q.fallback.summary?.source==="v7-complete-games"&&
+             q.fallback.summary.count===q.fallback.count&&
+             q.fallback.summary.home===h&&q.fallback.summary.away===a)
+            return [g.id,q];
+          return [g.id,null];
         }catch{return [g.id,null];}
       }));
       if(cancelled)return;
@@ -166,14 +176,19 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
         const next={...prev};
         for(const [id,value] of values){
           if(value)next[String(id)]=value;
-          else delete next[String(id)];
+          else if(prev[String(id)]?.ready&&prev[String(id)]?.summary){
+            const former=prev[String(id)];
+            next[String(id)]={ok:true,ready:false,status:"updating",
+              fallback:{key:former.key,count:former.count,summary:former.summary,
+                generatedAt:former.generatedAt||null}};
+          }else if(!prev[String(id)]?.fallback)delete next[String(id)];
         }
         return next;
       });
       setLegs(prev=>prev.map(l=>{
         if(l.type!=="game"||!latest.has(l.gameId))return l;
         const q=latest.get(l.gameId);
-        return {...l,stale:!q||l.source!==q.key};
+        return {...l,stale:!q||q.ready!==true||l.source!==q.key};
       }));
     }
     refresh();
@@ -189,15 +204,20 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
         if(cancelled)return;
         const valid=response.ok&&data?.ok&&data.method==="hybrid-V7-empirical-injury-goalie-v1"&&
           data.matchedPairs===780&&data.runs>=10000&&data.teams?.length===40;
-        if(!valid){setSeason(null);
+        if(!valid){
+          if(data.fallback?.method==="hybrid-V7-empirical-injury-goalie-v1"&&
+             data.fallback?.matchedPairs===780&&data.fallback?.runs>=10000&&
+             data.fallback?.teams?.length===40)setSeason(data.fallback);
+          setSeasonStale(true);
           setLegs(prev=>prev.map(l=>l.type==="future"?{...l,stale:true}:l));
           return;
         }
         setSeason(data);
+        setSeasonStale(false);
         const current=data.sourceDigest+":"+data.generatedAt;
         setLegs(prev=>prev.map(l=>l.type==="future"?{...l,stale:l.source!==current}:l));
       }catch{
-        if(!cancelled){setSeason(null);setLegs(prev=>prev.map(l=>
+        if(!cancelled){setSeasonStale(true);setLegs(prev=>prev.map(l=>
           l.type==="future"?{...l,stale:true}:l));}
       }
     }
@@ -352,7 +372,7 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
                     {directory[g.away]?.abbreviation||"?"} @ {directory[g.home]?.abbreviation||"?"}
                   </span>
                   <span className="block text-[11px] text-[#64748B]">
-                    Game {g.id} · {gameQuotes[String(g.id)]?.ready?"V7 ready":"Odds pending"}
+                    Game {g.id} · {gameQuotes[String(g.id)]?.ready?"V7 ready":gameQuotes[String(g.id)]?.fallback?"Previous odds · Updating":"Odds pending"}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs font-black text-[#007DA0]">
@@ -376,7 +396,7 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
               Win totals, playoffs, Cup, relegation and advancement markets for all 40 teams.
             </p>
           </div>
-          <FuturePicker forecast={season} onAdd={add} selectedTeams={legs.map(l=>l.teamCodes?.[0])} atCapacity={legs.length>=8}/>
+          <FuturePicker forecast={season} stale={seasonStale} onAdd={add} selectedTeams={legs.map(l=>l.teamCodes?.[0])} atCapacity={legs.length>=8}/>
         </>}
       </div>
       <aside className="min-w-0 space-y-4">

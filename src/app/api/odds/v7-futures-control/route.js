@@ -125,6 +125,9 @@ export async function POST(request){
      // cannot hide a valid, fully-sampled current-lineup forecast after 6h.
      // Publication still requires all 780 canonical live V7 matchup pools.
      await redisCommand(["SET",futuresRedisKey("forecast:"+snapshot),JSON.stringify(published),"EX",604800]);
+     // Keep the last fully verified snapshot discoverable while new lineups
+     // are rebuilding. This pointer never makes older prices current.
+     await redisCommand(["SET",futuresRedisKey("last-verified"),snapshot,"EX",604800]);
      await redisCommand(["SET",futuresRedisKey("progress:"+snapshot),String(TOTAL_PAIRS),"EX",604800]);
      return response({ok:true,published:true,snapshot,pairedGameSamples:78000,
        completedGames:outlook.completedGames,runs:outlook.runs});

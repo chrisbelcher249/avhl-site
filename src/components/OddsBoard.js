@@ -101,6 +101,18 @@ function verifiedJobFor(game,directory,verifiedGameOdds){
   return {status:"ready",samples:[],summary:value.summary,completed:value.count,
     target:value.count,error:"",key:value.key||"",gameId:game.id};
 }
+function historicalJobFor(game,directory,value){
+  if(!game||value?.ready===true)return null;
+  const away=directory[game.away]?.abbreviation;
+  const home=directory[game.home]?.abbreviation;
+  const last=value?.fallback;
+  if(value?.ok!==true||!Number.isInteger(last?.count)||last.count<INITIAL_V7_SAMPLES||
+     last.summary?.source!=="v7-complete-games"||last.summary?.count!==last.count||
+     last.summary.away!==away||last.summary.home!==home)return null;
+  return {status:"updating",samples:[],summary:last.summary,
+    completed:last.count,target:last.count,error:"",gameId:game.id,
+    key:last.key||"",generatedAt:last.generatedAt||null};
+}
 const emptyVerifiedJob=()=>({
   status:"loading",samples:[],summary:null,completed:0,target:INITIAL_V7_SAMPLES,error:""
 });
@@ -122,7 +134,7 @@ export default function OddsBoard({
   const [job,setJob]=useState(()=>{
     const chosen=games.find(g=>g.date===initialDate && String(g.id)===String(initialSelectedGameId))||
       games.find(g=>g.date===initialDate);
-    return verifiedJobFor(chosen,teamDirectory,verifiedGameOdds)||emptyVerifiedJob();
+    return verifiedJobFor(chosen,teamDirectory,verifiedGameOdds)||historicalJobFor(chosen,teamDirectory,verifiedGameOdds?.[String(chosen?.id)])||emptyVerifiedJob();
   });
   const [demo,setDemo]=useState({status:"idle",completed:0,samples:[],error:""});
   const demoWorker=useRef(null);
@@ -144,7 +156,7 @@ export default function OddsBoard({
     const homeCode=home.abbreviation,awayCode=away.abbreviation;
     if(demoWorker.current){demoWorker.current.terminate();demoWorker.current=null;}
     setDemo({status:"idle",completed:0,samples:[],error:""});
-    setJob(verifiedJobFor(selected,teamDirectory,verifiedGameOdds)||emptyVerifiedJob());
+    setJob(verifiedJobFor(selected,teamDirectory,verifiedGameOdds)||historicalJobFor(selected,teamDirectory,verifiedGameOdds?.[String(selected.id)])||emptyVerifiedJob());
 
     async function checkVerifiedOdds(){
       activeController=new AbortController();
@@ -166,13 +178,17 @@ export default function OddsBoard({
         }else{
           // Invalidate displayed prices as soon as a new owner lineup changes
           // the canonical matchup key, never silently retain stale odds.
-          setJob({status:"pending",samples:[],summary:null,completed:0,
-            target:INITIAL_V7_SAMPLES,error:"",gameId,key:data.key||""});
+          setJob(historicalJobFor(selected,teamDirectory,data)||{
+            status:"pending",samples:[],summary:null,completed:0,
+            target:INITIAL_V7_SAMPLES,error:"",gameId,key:data.key||""
+          });
         }
       }catch(error){
         if(cancelled||controller.signal.aborted)return;
-        setJob({status:"error",samples:[],summary:null,completed:0,
-          target:INITIAL_V7_SAMPLES,error:error instanceof Error?error.message:String(error),gameId});
+        setJob(previous=>previous?.gameId===gameId&&previous?.summary?
+          {...previous,status:"updating"}:
+          {status:"error",samples:[],summary:null,completed:0,
+           target:INITIAL_V7_SAMPLES,error:error instanceof Error?error.message:String(error),gameId});
       }finally{
         if(activeController===controller)activeController=null;
         if(!cancelled)timer=setTimeout(checkVerifiedOdds,30000);
@@ -258,6 +274,12 @@ export default function OddsBoard({
       </div>
     </div>
     {selected&&away&&home?<div className="space-y-5">
+      {job.status==="updating"&&odds?<div role="status" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+        <strong>Previous verified odds · Updating</strong>
+        <p className="mt-1">Showing the last fully simulated prices for this matchup
+          {job.generatedAt?" (published "+new Date(job.generatedAt).toLocaleString("en-US",{timeZone:"America/New_York",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+" ET)":""}.
+          Lineups or model conditions may have changed. These prices are reference-only until new V7 simulations finish.</p>
+      </div>:null}
       <div className="overflow-hidden rounded-[1.8rem] bg-[#000B36] p-5 text-white shadow-sm sm:p-7">
         <div className="mb-4 flex items-center justify-between gap-3 text-xs">
           <span className="font-black uppercase tracking-[0.16em] text-cyan-200">Matchup moneyline</span>
