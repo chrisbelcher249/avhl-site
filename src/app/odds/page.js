@@ -80,6 +80,11 @@ export default async function OddsPage({searchParams}) {
         value.summary.away===away&&value.summary.home===home){
         return [String(game.id),value];
       }
+      if(value.ok===true&&value.ready===false&&value.fallback?.count>=1000&&
+         value.fallback.summary?.source==="v7-complete-games"&&
+         value.fallback.summary.count===value.fallback.count&&
+         value.fallback.summary.away===away&&value.fallback.summary.home===home)
+        return [String(game.id),value];
     }catch(error){
       console.error("Could not prefetch verified AVHL game odds",{
         gameId:game.id,reason:error instanceof Error?error.message:String(error)
@@ -90,7 +95,8 @@ export default async function OddsPage({searchParams}) {
   const verifiedGameOdds=Object.fromEntries(fetchedOdds.filter(([,value])=>value));
   // Lead with a valid V7-priced game when possible instead of a pending one.
   const initialSelectedGameId=requestedGame?.id||
-    initialSlate.find(game=>verifiedGameOdds[String(game.id)])?.id||
+    initialSlate.find(game=>verifiedGameOdds[String(game.id)]?.ready)?.id||
+    initialSlate.find(game=>verifiedGameOdds[String(game.id)]?.fallback)?.id||
     initialSlate[0]?.id||null;
 
   return (
