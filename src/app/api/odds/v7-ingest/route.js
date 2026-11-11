@@ -87,6 +87,18 @@ export async function POST(request){
     if(!response.ok)throw new Error("Persistent cache write failed.");
     const result=await response.json();
     if(result?.error)throw new Error("Persistent cache rejected the V7 odds summary.");
+    // Keep one tiny pointer per ordered matchup. Historical prices are
+    // reference-only until the current fingerprint has its own 1,000 games.
+    // Never store an unsigned/browser-computed summary as a fallback.
+    const pointer=await fetch(redis.url,{
+      method:"POST",headers:{
+        Authorization:`Bearer ${redis.token}`,"Content-Type":"application/json"
+      },body:JSON.stringify(["SET","avhl:odds:exact:latest:"+home+":"+away,
+        key,"EX",V7_ODDS_CACHE_TTL_SECONDS]),
+      cache:"no-store",signal:AbortSignal.timeout(10000)
+    });
+    if(!pointer.ok||(await pointer.json())?.error)
+      throw new Error("Persistent verified-odds reference pointer write failed.");
     return Response.json({ok:true,published:true,count:summary.count,generatedAt},{
       headers:{"Cache-Control":"no-store"}
     });
