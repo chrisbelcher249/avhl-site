@@ -1,3 +1,4 @@
+import Link from "next/link";
 import OddsBoard from "@/components/OddsBoard";
 import OddsNav from "@/components/OddsNav";
 import { getSchedule } from "@/lib/schedule";
@@ -66,6 +67,16 @@ export default async function OddsPage() {
 
       <div className="mx-auto max-w-7xl space-y-6 px-5 py-8 md:px-8 md:py-10">
         <OddsNav />
+        <Link href="/odds/season" className="group block rounded-3xl border border-[#000B36]/10 bg-white p-5 shadow-sm transition hover:border-[#18BDFC] hover:shadow-md md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#A90117]">Full-season futures</p>
+              <h2 className="mt-1 text-xl font-black text-[#000B36]">Win totals, playoffs, divisions, Cup and relegation</h2>
+              <p className="mt-2 text-sm text-[#65748B]">All 40 teams, 10,000 season scenarios, 20 playoff spots and three relegation places.</p>
+            </div>
+            <span className="rounded-xl bg-[#000B36] px-4 py-3 text-xs font-black text-white transition group-hover:bg-[#A90117]">Explore season markets →</span>
+          </div>
+        </Link>
         {scheduleError ? (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scheduleError}</div>
         ) : null}
