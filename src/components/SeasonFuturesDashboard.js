@@ -36,11 +36,13 @@ function TeamLogo({team,size=43}){
 }
 function Price({p,hero=false,possible=true,guaranteed=false,runs=10000}){
   const displayed=seasonFuturesPrice(p,{possible,guaranteed,runs});
-  return <div className="text-right tabular-nums">
-    <p className={hero?"text-3xl font-black leading-tight tracking-tight text-[#000B36] sm:text-4xl":"text-2xl font-black tracking-tight text-[#000B36]"}>
+  return <div className="min-w-0 text-right tabular-nums">
+    <p className={hero?
+      "text-[clamp(1.65rem,2.65vw,2.25rem)] font-black leading-tight tracking-tight text-[#000B36]":
+      "text-[clamp(1.45rem,2.3vw,1.85rem)] font-black leading-tight tracking-tight text-[#000B36]"}>
       {displayed.price}
     </p>
-    <p className="mt-1 text-[11px] font-bold text-[#65748A]">{displayed.detail}</p>
+    <p className="mt-1 text-xs font-bold leading-4 text-[#65748A]">{displayed.detail}</p>
   </div>;
 }
 function Select({label,value,onChange,options}){
@@ -53,15 +55,18 @@ function Select({label,value,onChange,options}){
   </label>;
 }
 function MetricRow({team,value,detail,big=false,possible=true,guaranteed=false,runs=10000}){
-  return <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-[#000B36]/8 bg-white p-4 shadow-sm md:p-5">
+  return <div className="flex min-w-0 flex-col justify-between gap-4 rounded-2xl border border-[#000B36]/8 bg-white p-4 shadow-sm md:p-5">
     <div className="flex min-w-0 items-center gap-3">
-      <TeamLogo team={team} size={big?52:43}/>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-black text-[#000B36] md:text-base">{team.name}</p>
-        <p className="mt-1 text-xs font-semibold text-[#68798E]">{detail||team.abbreviation}</p>
+      <TeamLogo team={team} size={big?48:43}/>
+      <div className="min-w-0 flex-1">
+        <p className="line-clamp-2 text-sm font-black leading-5 text-[#000B36] md:text-base"
+           title={team.name}>{team.name}</p>
+        <p className="mt-1 text-xs font-semibold leading-4 text-[#68798E]">{detail||team.abbreviation}</p>
       </div>
     </div>
-    <Price p={value} hero={big} possible={possible} guaranteed={guaranteed} runs={runs}/>
+    <div className="w-full border-t border-[#000B36]/6 pt-2">
+      <Price p={value} hero={big} possible={possible} guaranteed={guaranteed} runs={runs}/>
+    </div>
   </div>;
 }
 function marketChance(team,market,line,side,secondary){
