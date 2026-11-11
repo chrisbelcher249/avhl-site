@@ -164,15 +164,20 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
     <section className="rounded-[1.75rem] border border-[#000B36]/10 bg-white p-5 shadow-sm md:p-7">
       <p className="text-[11px] font-black uppercase tracking-[0.19em] text-[#A90117]">2026–27 AVHL · Season Markets</p>
       <h2 className="mt-2 text-2xl font-black tracking-tight text-[#000B36] md:text-3xl">Every race. Every team. One season.</h2>
-      <p className="mt-3 max-w-4xl text-sm leading-6 text-[#54647A]">
-        Projected wins, division titles, playoff spots, postseason advancement, Cup odds and relegation.
-        Our hybrid outlook combines <strong>actual AVHL results and opponent strength</strong>
-        with <strong>78,000 real V7 matchup simulations</strong>. Its 10,000 season
-        scenarios also account for scheduled injury returns and rotating goalies
-        under the 60-start limit. V7 scorelines are adjusted to the hybrid win
-        probabilities; they're not 10,000 additional physics simulations.
-        These are model estimates, not guaranteed outcomes.
-      </p>
+      {data?.method==="exact-V7-game-outcome-resampling"?
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-[#54647A]">
+          The <strong>unadjusted V7 baseline</strong> is currently displayed while the
+          first injury-aware hybrid forecast publishes. It reuses all 78,000
+          V7 games, but does not yet account for goalie rotation or scheduled returns.
+        </p>:
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-[#54647A]">
+          Projected wins, division titles, playoffs, Cup odds and relegation use
+          <strong> official AVHL results and opponent strength</strong> alongside
+          <strong> 78,000 genuine V7 matchup simulations</strong>.
+          The 10,000 hybrid season scenarios model scheduled injury returns and
+          rotating goalies under the 60-start limit. V7 scoreline winners are
+          statistically recalibrated; these are estimates, not guarantees.
+        </p>}
       {data?<div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-[#5A6880]">
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">{data.runs.toLocaleString()} season draws</span>
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">780 V7 matchups · 50/50 home split</span>
