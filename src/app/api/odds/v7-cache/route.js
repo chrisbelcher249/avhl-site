@@ -22,7 +22,7 @@ export async function GET(request) {
     status:503,headers:{"Cache-Control":"no-store"}
   });
   try {
-    async function readRedis(redisKey) {
+    async function readRedis(redisKey,raw=false) {
       const response=await fetch(redis.url,{
         method:"POST",headers:{"Authorization":`Bearer ${redis.token}`,"Content-Type":"application/json"},
         body:JSON.stringify(["GET",redisKey]),cache:"no-store"
@@ -30,14 +30,21 @@ export async function GET(request) {
       if(!response.ok)throw new Error("Shared cache is temporarily unavailable.");
       const body=await response.json();
       if(body?.error)throw new Error("Shared cache read failed.");
-      return typeof body?.result==="string"?JSON.parse(body.result):null;
+      return typeof body?.result==="string"?(raw?body.result:JSON.parse(body.result)):null;
     }
     // The summary is tiny: visitor browsers do not need 1,000 complete
     // 36-skater box-score objects just to render the odds board.
     const compact=await readRedis(SUMMARY_NAMESPACE+key);
     if(compact?.count>=1000 && compact.summary?.count===compact.count &&
        compact.summary.source==="v7-complete-games"){
-      return Response.json({ok:true,ready:true,count:compact.count,summary:compact.summary,generatedAt:compact.generatedAt||null},{
+      // Only the signed scheduled precompute job requests this extra pointer
+      // check to bootstrap the fallback for an already-cached matchup.
+      const checkLatest=new URL(request.url).searchParams.get("checkLatest")==="1";
+      const [, , ,home,away]=key.split(":");
+      const latest=checkLatest?await readRedis("avhl:odds:exact:latest:"+home+":"+away,true):null;
+      return Response.json({ok:true,ready:true,count:compact.count,summary:compact.summary,
+        generatedAt:compact.generatedAt||null,publisher:compact.publisher||null,
+        ...(checkLatest?{referenceReady:latest===key}:{})},{
         headers:{"Cache-Control":"no-store"}
       });
     }
