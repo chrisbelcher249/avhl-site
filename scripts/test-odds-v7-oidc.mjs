@@ -37,7 +37,8 @@ globalThis.fetch=async (url,options)=>{
  if(String(url)==="https://fake-redis.invalid"){
    const body=JSON.parse(options.body);
    assert.equal(body[0],"SET");
-   assert.equal(body[1],"avhl:odds:exact:summary:"+key);
+   assert(["avhl:odds:exact:summary:"+key,"avhl:odds:exact:latest:ATL:ARI"].includes(body[1]));
+   if(body[1].includes(":latest:"))assert.equal(body[2],key);
    assert.equal(body[3],"EX","Published odds must have bounded Redis lifetime");
    assert.equal(body[4],30*24*60*60);
    writes++;
@@ -61,7 +62,7 @@ try{
  const data=await approved.json();
  assert.equal(data.published,true);
  assert.equal(data.count,1000);
- assert.equal(writes,1,"Untrusted requests must never write to the shared cache");
+ assert.equal(writes,2,"Only signed complete samples may write the summary and last-good pointer.");
  console.log("AVHL V7 OIDC publish: PASS (RSA signature, workflow identity, v7 key, 1000 gate and no secret-sharing).");
 }finally{
  globalThis.fetch=oldFetch;
