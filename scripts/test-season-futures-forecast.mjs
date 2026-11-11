@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {schedule as officialSchedule} from "../data/schedule.js";
 import {teams} from "../data/teams.js";
 import {forecastSeasonFutures,SEASON_METHOD,SEASON_SCENARIOS} from "../src/lib/seasonFuturesForecast.js";
-import {drawV7Score,validatePairPool,snapshotDigest,TOTAL_PAIRS} from "../src/lib/v7FuturesPairs.js";
+import {drawV7Score,validatePairPool,snapshotDigest,makeAllPairEntries,TOTAL_PAIRS} from "../src/lib/v7FuturesPairs.js";
 
 // STRUCTURAL FIXTURES ONLY. These are deliberate artificial test scores and
 // cannot be published as V7 engine samples by the signed production publisher.
@@ -71,4 +71,21 @@ for(const team of result.teams){
 assert.throws(()=>forecastSeasonFutures(schedule,league,5,null),/780/);
 assert.throws(()=>forecastSeasonFutures(schedule,league,5,{"ARI:ATL":pairs["ARI:ATL"]}),/780/);
 assert.throws(()=>forecastSeasonFutures(schedule.slice(0,1000),league,1,pairs),/1,640/);
+// Owner changes to one club must invalidate only its 39 pairings, not
+// prevent the other 741 current-lineup V7 pairing pools from being reused.
+const rosterVersion={};
+const makeEntries=()=>makeAllPairEntries(ids,"official-test-v7-engine",
+  (home,away)=>({home,away,homeRosterRev:rosterVersion[home]||0,
+    awayRosterRev:rosterVersion[away]||0}));
+const before=makeEntries();
+rosterVersion[ids[0]]=1;
+const after=makeEntries();
+assert.notEqual(snapshotDigest(before),snapshotDigest(after));
+let invalidated=0;
+for(let i=0;i<before.length;i++){
+  assert.equal(before[i].a,after[i].a);
+  assert.equal(before[i].b,after[i].b);
+  if(before[i].key!==after[i].key)invalidated++;
+}
+assert.equal(invalidated,39,"One owner lineup edit must preserve 741 unrelated pairs.");
 console.log("AVHL exact V7 futures rules: PASS (780 50/50 pair pools, no fallback, 20 playoffs, 3 relegations, official result invariants).");
