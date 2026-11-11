@@ -18,15 +18,68 @@ function completeForecast(forecast,snapshot){
     forecast?.engineSamples===78000&&
     Number.isFinite(generated)&&generated<=Date.now()+5*60*1000;
 }
+const FRESHNESS_WINDOW=7*24*60*60*1000;
+function validArchive(value){
+  return DIGEST.test(value?.sourceDigest||"")&&
+    completeForecast(value,value.sourceDigest)&&
+    Date.now()-Date.parse(value.generatedAt)<=FRESHNESS_WINDOW;
+}
 async function lastCompleteForecast(current){
+  // Stable archive survives an incomplete current pointer, whether caused
+  // by an older deployment or a mid-refresh roster change.
+  const archived=await redisCommand(["GET",futuresRedisKey("last-complete-forecast")]);
+  if(archived){
+    const parsed=JSON.parse(archived);
+    if(validArchive(parsed))return parsed;
+  }
   const previous=await redisCommand(["GET",futuresRedisKey("last-verified")]);
-  if(!DIGEST.test(previous||"")||previous===current)return null;
-  const raw=await redisCommand(["GET",futuresRedisKey("forecast:"+previous)]);
-  if(!raw)return null;
-  const forecast=JSON.parse(raw);
-  if(!completeForecast(forecast,previous)||Date.now()-Date.parse(forecast.generatedAt)>7*24*60*60*1000)
-    return null;
-  return forecast;
+  if(DIGEST.test(previous||"")){
+    const raw=await redisCommand(["GET",futuresRedisKey("forecast:"+previous)]);
+    if(raw){
+      const value=JSON.parse(raw);
+      if(validArchive(value)){
+        await redisCommand(["SET",futuresRedisKey("last-complete-forecast"),raw,
+          "EX",604800,"NX"]);
+        return value;
+      }
+    }
+  }
+
+  // One-time recovery from the old workflow, which moved "current" BEFORE
+  // publishing and sometimes left the last-verified index unset. The old
+  // full-season forecast still exists under forecast:<digest> for 7 days.
+  // Only completed, verified 780-pair forecasts can be recovered.
+  let cursor="0",best=null,read=0;
+  try{
+    for(let page=0;page<8;page++){
+      const res=await redisCommand(["SCAN",cursor,"MATCH",
+        futuresRedisKey("forecast:*"),"COUNT",100]);
+      if(!Array.isArray(res)||res.length!==2||!Array.isArray(res[1]))break;
+      const [next,keys]=res;
+      for(const key of keys){
+        if(read>=40)break;
+        const digest=String(key).slice(futuresRedisKey("forecast:").length);
+        if(!DIGEST.test(digest)||digest===current)continue;
+        read++;
+        const raw=await redisCommand(["GET",key]);
+        if(!raw)continue;
+        const candidate=JSON.parse(raw);
+        if(validArchive(candidate)&&candidate.sourceDigest===digest&&
+          (!best||Date.parse(candidate.generatedAt)>Date.parse(best.generatedAt)))
+          best=candidate;
+      }
+      cursor=String(next);
+      if(cursor==="0"||read>=40)break;
+    }
+  }catch(error){
+    console.error("Unable to recover previous complete AVHL futures snapshot",
+      error instanceof Error?error.message:String(error));
+  }
+  if(best){
+    await redisCommand(["SET",futuresRedisKey("last-complete-forecast"),
+      JSON.stringify(best),"EX",604800,"NX"]);
+  }
+  return best;
 }
 export async function GET(){
  try{
