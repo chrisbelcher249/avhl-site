@@ -65,6 +65,8 @@ try{
  const initial=await inspected.json();
  assert.equal(initial.missing.length,780);
  assert.equal(initial.completed,0);
+ assert.equal(mem.get("avhl:odds:futures:pending"),snapshot);
+ assert(!mem.has("avhl:odds:futures:current"),"Planning must not publish an incomplete current snapshot.");
  let publicResult=await GET();
  assert.equal(publicResult.status,503);
  assert.equal((await publicResult.json()).status,"building");
@@ -83,7 +85,38 @@ try{
  assert.equal(premature.status,409);
  assert.equal((await premature.json()).completed,1);
  assert(!mem.has("avhl:odds:futures:forecast:"+snapshot));
- console.log("AVHL exact V7 futures control: PASS (signed OIDC, 780 coverage, 50/50, partial-cache fail-closed).");
+ // Regression: when a new lineup arrives, inspect MUST preserve the already
+ // published complete market while calculating the replacement.
+ const oldDigest="aaaaaaaabbbbbbbbcccccccc";
+ const oldForecast={method:"hybrid-V7-empirical-injury-goalie-v1",
+   sourceDigest:oldDigest,matchedPairs:780,engineSamples:78000,runs:10000,
+   generatedAt:new Date().toISOString(),
+   teams:[{abbreviation:"COL",probabilities:{cup:0.034}}]};
+ mem.set("avhl:odds:futures:current",oldDigest);
+ mem.set("avhl:odds:futures:forecast:"+oldDigest,JSON.stringify(oldForecast));
+ const inspectingAgain=await post(jwt(),{action:"inspect",entries,snapshot});
+ assert.equal(inspectingAgain.status,200);
+ assert.equal(mem.get("avhl:odds:futures:current"),oldDigest,
+   "A pending goalie/lineup change may NOT invalidate the public completed forecast.");
+ assert.equal(mem.get("avhl:odds:futures:pending"),snapshot);
+ assert.equal(mem.get("avhl:odds:futures:last-verified"),oldDigest);
+ publicResult=await GET();
+ assert.equal(publicResult.status,200);
+ const whileUpdating=await publicResult.json();
+ assert.equal(whileUpdating.status,"updating");
+ assert.equal(whileUpdating.fallback.sourceDigest,oldDigest);
+ assert.equal(whileUpdating.fallback.teams[0].probabilities.cup,0.034);
+ // Simulate the final atomic commit: finished forecast stored first, then
+ // the current pointer moves, replacing the previous prices in one read.
+ const replacement={...oldForecast,sourceDigest:snapshot};
+ mem.set("avhl:odds:futures:forecast:"+snapshot,JSON.stringify(replacement));
+ mem.set("avhl:odds:futures:current",snapshot);
+ publicResult=await GET();
+ assert.equal(publicResult.status,200);
+ const afterSwap=await publicResult.json();
+ assert.equal(afterSwap.ok,true);
+ assert.equal(afterSwap.sourceDigest,snapshot);
+ console.log("AVHL exact V7 futures control: PASS (atomic publish, old odds remain during goalie change, 780-pair gate, signed OIDC).");
 }finally{
  globalThis.fetch=oldFetch;
  for(const [k,v] of Object.entries(envs))if(v===undefined)delete process.env[k];else process.env[k]=v;
