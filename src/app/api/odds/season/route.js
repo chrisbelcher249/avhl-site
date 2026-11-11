@@ -1,4 +1,4 @@
-import {redisCommand,futuresRedisKey} from "@/lib/v7FuturesRedis";
+import {redisCommand,futuresRedisKey} from "../../../../lib/v7FuturesRedis.js";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
