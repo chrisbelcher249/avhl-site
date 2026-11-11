@@ -168,6 +168,8 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
   const counts=Object.fromEntries(labels.map(k=>[k,teams.map(()=>0)]));
   const hist=teams.map(()=>Array(83).fill(0)),totalW=teams.map(()=>0),
     totalPts=teams.map(()=>0),totalRank=teams.map(()=>0);
+  const goalieStartSums=hybrid?teams.map(t=>new Map(
+    hybrid.byTeam[t.abbreviation].goalies.map(g=>[g.id,0]))):null;
   const divisions=[...new Set(teams.map(t=>t.division))];
   if(divisions.length!==4)throw Error("AVHL requires four divisions.");
   const divisionMembers=divisions.map(d=>teams.map((t,i)=>t.division===d?i:-1).filter(i=>i>=0));
@@ -180,6 +182,16 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
     for(const game of remaining){
       const result=draw(game.h,game.a,game.id);
       applyResult(rec[game.a],rec[game.h],result.awayScore,result.homeScore,result.ot);
+    }
+    // Keep projected start allocations auditable. A hypothetical regular-season
+    // goalie must never exceed 60 starts, including official games already played.
+    if(hybrid)for(let ti=0;ti<teams.length;ti++){
+      const goalies=hybrid.byTeam[teams[ti].abbreviation].goalies;
+      for(const goalie of goalies){
+        const used=scenarioGoalieStarts[ti].get(goalie.id)||0;
+        if(used>MAX_GOALIE_STARTS)throw Error("Futures exceeded 60 goalie starts: "+goalie.name);
+        goalieStartSums[ti].set(goalie.id,goalieStartSums[ti].get(goalie.id)+used-goalie.starts);
+      }
     }
     const ranks=teams.map((_,i)=>i).sort((a,b)=>compare(a,b,rec,teams));
     indicator(counts.presidents,ranks[0]);
@@ -252,7 +264,18 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
       projectedPoints:totalPts[i]/runs,projectedRank:totalRank[i]/runs,
       winsP10:quantile(hist[i],0.1),winsP50:quantile(hist[i],0.5),
       winsP90:quantile(hist[i],0.9),winsHistogram:hist[i],
-      probabilities:Object.fromEntries(labels.map(k=>[k,counts[k][i]/runs]))
+      probabilities:Object.fromEntries(labels.map(k=>[k,counts[k][i]/runs])),
+      ...(hybrid?{
+        goalieOutlook:hybrid.byTeam[team.abbreviation].goalies.map(g=>({
+          playerId:g.id,name:g.name,overall:g.overall,
+          currentStarts:g.starts,projectedFutureStarts:goalieStartSums[i].get(g.id)/runs,
+          projectedSeasonStarts:g.starts+goalieStartSums[i].get(g.id)/runs
+        })),
+        injuryReturns:hybrid.byTeam[team.abbreviation].skaterReturns.map(injury=>({
+          playerId:injury.playerId,name:injury.playerName,
+          expectedReturnGameId:injury.returnGameId
+        }))
+      }:{})
     }))
   };
 }
