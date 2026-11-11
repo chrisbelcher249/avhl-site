@@ -38,7 +38,8 @@ const c={
   fetch:async uri=>{
     if(String(uri).startsWith("/api/sim-rosters"))return {ok:true,status:200,json:async()=>payload};
     if(uri==="/sim/simulator.js")return {ok:true,text:async()=>fs.readFileSync("public/sim/simulator.js","utf8")};
-    if(String(uri).startsWith("/api/odds/v7-cache"))return {ok:true,json:async()=>sharedReady||{ok:true,ready:false,count:0}};
+    if(String(uri).startsWith("/api/odds/v7-current"))return {ok:true,json:async()=>sharedReady||{ok:true,ready:false,count:0}};
+    if(String(uri).startsWith("/api/odds/v7-cache"))return {ok:true,json:async()=>({ok:false,ready:false,error:"Legacy client-computed cache route must never be used for read-only odds"})};
     throw new Error("Unrecognized endpoint: "+uri);
   }
 };
@@ -99,7 +100,7 @@ if(process.env.AVHL_TEST_ODDS_DESIGN_PREVIEW==="1"){
   assert(deliveries.filter(m=>m.type==="demoProgress").length>=12);
 }
 
-// Public cache-only mode must deliver a 1,000-game summary without running any
+// Server-canonical read-only mode must deliver a 1,000-game summary without running any
 // V7 games on a visitor's device (the entire motive for 30-minute prewarming).
 sharedReady={ok:true,ready:true,count:1000,summary:{...result,count:1000}};
 const cachedOnly=await new Promise((resolve,reject)=>{
@@ -118,4 +119,4 @@ resolveDone=()=>{};
 c.onmessage({data:{type:"start",gameId:124,away:"ARI",home:"ATL",target:1}});
 await new Promise(resolve=>setTimeout(resolve,100));
 assert(rejects.length>0,"invalid lineup must prevent odds calculation");
-console.log("Exact V7 odds worker: PASS (headless V7 games, zero-CPU read-only summary, deterministic seeds, 1k gate, lineup fail-closed).");
+console.log("Exact V7 odds worker: PASS (headless V7 games, server-canonical zero-CPU read-only summary, deterministic seeds, 1k gate, lineup fail-closed).");
