@@ -81,9 +81,13 @@ export async function lastVerifiedGameOdds(home,away,excludeKey=""){
   if(!redis)return null;
   const pointer=await get(redis,PREFIX+"latest:"+home+":"+away);
   if(pointer&&KEY.test(pointer)&&pointer!==excludeKey){
-    const result=validatedSummary(await get(redis,PREFIX+"summary:"+pointer),
-      pointer,home,away);
-    if(result)return result;
+    try{
+      const result=validatedSummary(await get(redis,PREFIX+"summary:"+pointer),
+        pointer,home,away);
+      if(result)return result;
+    }catch{
+      // A damaged legacy pointer cannot suppress recovery of a valid archive.
+    }
   }
   return findLegacyVerified(redis,home,away,excludeKey);
 }
