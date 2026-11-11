@@ -110,10 +110,16 @@ function seedFor(key,homeDesignation,index){
 }
 function sampleMatchup(ctx,match,key,homeIsA,count){
  const rows=[];
+ const started=Date.now();
  for(let i=0;i<count;i++){
    const sim=new ctx.AVHLGameSimulator(structuredClone(match),
      seedFor(key,homeIsA?"A":"B",i),{headless:true});
    rows.push(resultTuple(sim.simulateScoreOnly(),homeIsA));
+   if((i+1)%10===0){
+     console.log("V7 pairing "+key.slice(0,34)+" · "+(homeIsA?"first":"second")+
+       " team home: "+(i+1)+"/"+count+" games ("+
+       ((Date.now()-started)/1000).toFixed(1)+" s)");
+   }
  }
  return rows;
 }
