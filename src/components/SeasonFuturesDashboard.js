@@ -116,17 +116,32 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
           setSelectedTeam(current=>current||data.teams?.[0]?.abbreviation||"");
           setState({status:"ready",error:""});
           delay=1800000;
+        }else if(data.fallback?.matchedPairs===780&&data.fallback?.engineSamples===78000&&
+          data.fallback?.sourceDigest&&data.fallback?.teams?.length===40){
+          // Previously verified odds are visible for reference, not labeled live.
+          setSnapshot(data.fallback);
+          setSelectedTeam(current=>current||data.fallback.teams[0]?.abbreviation||"");
+          setState({status:"updating",error:data.error||"Rebuilding the current futures forecast.",
+            done:data.completedPairs||0,total:data.requiredPairs||780});
+          delay=60000;
+        }else if(data.status==="building"||data.status==="updating"){
+          setSnapshot(previous=>previous);
+          setState(previous=>({
+            status:previous.status==="ready"||previous.status==="updating"?"updating":"building",
+            error:data.error||"Current futures updating.",
+            done:data.completedPairs||0,total:data.requiredPairs||780
+          }));
         }else{
-          setSnapshot(null); // NEVER keep displaying prices for an invalidated lineup.
-          if(data.status==="building"){
-            setState({status:"building",error:data.error||"",
-              done:data.completedPairs||0,total:data.requiredPairs||780});
-          }else{
-            setState({status:"error",error:data.error||"V7 futures temporarily unavailable."});
-          }
+          setState(previous=>({
+            status:previous.status==="ready"||previous.status==="updating"?"updating":"error",
+            error:data.error||"V7 futures temporarily unavailable."
+          }));
         }
       }catch(error){
-        if(!cancelled){setSnapshot(null);setState({status:"error",error:error.message||String(error)});}
+        if(!cancelled)setState(previous=>({
+          status:previous.status==="ready"||previous.status==="updating"?"updating":"error",
+          error:error.message||String(error)
+        }));
       }
       if(!cancelled)next=setTimeout(refresh,delay);
     }
@@ -219,6 +234,13 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
     </nav>
     {state.status==="loading"?<section aria-live="polite" className="rounded-2xl border border-[#000B36]/10 bg-white p-7 text-sm font-semibold text-[#62718A]">
       Loading the latest official results and cached 10,000-season projection…
+    </section>:null}
+    {state.status==="updating"&&data?<section role="status"
+      className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
+      <strong>Previous verified season futures · Updating</strong>
+      <p className="mt-1">Displaying the last complete V7 forecast from {date(data.generatedAt)} ET
+        while the current lineups and results are being recalculated.
+        These are reference-only prices and may change once the new 10,000-season forecast is published.</p>
     </section>:null}
     {state.status==="building"?<section role="status" aria-live="polite" className="rounded-2xl border border-[#18BDFC]/30 bg-white p-6 shadow-sm">
       <h3 className="text-lg font-black text-[#000B36]">Building real V7 season odds</h3>
