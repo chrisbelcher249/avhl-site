@@ -100,7 +100,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate,preview
   const [firstGoalTeam,setFirstGoalTeam]=useState("home");
   const [job,setJob]=useState({status:"loading",samples:[],summary:null,completed:0,target:INITIAL_V7_SAMPLES,error:""});
   const [demo,setDemo]=useState({status:"idle",completed:0,samples:[],error:""});
-  const jobWorker=useRef(null),demoWorker=useRef(null);
+  const demoWorker=useRef(null);
   const slate=useMemo(()=>games.filter(g=>g.date===selectedDate),[games,selectedDate]);
   const selected=slate.find(g=>g.id===selectedGameId)||slate[0]||null;
   const away=selected?teamDirectory[selected.away]:null;
@@ -108,30 +108,58 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate,preview
 
   useEffect(()=>{
     if(!selected||!away||!home)return;
-    if(jobWorker.current)jobWorker.current.terminate();
-    if(demoWorker.current)demoWorker.current.terminate();
+    // Read the official live, V7-verified server cache directly from React.
+    // Browser Web Workers are used ONLY for the optional design preview:
+    // the live odds page must never depend on importScripts/IndexedDB, which
+    // can silently hide 1,000 already-finished games on individual devices.
+    let cancelled=false;
+    let activeController=null;
+    let timer=null;
+    const gameId=selected.id;
+    const homeCode=home.abbreviation,awayCode=away.abbreviation;
+    if(demoWorker.current){demoWorker.current.terminate();demoWorker.current=null;}
     setDemo({status:"idle",completed:0,samples:[],error:""});
     setJob({status:"loading",samples:[],summary:null,completed:0,target:INITIAL_V7_SAMPLES,error:""});
-    const worker=new Worker("/odds/v7-worker.js?rev=server-canonical-v7-20261110");
-    jobWorker.current=worker;
-    worker.onmessage=event=>{
-      const data=event.data||{};
-      if(String(data.gameId)!==String(selected.id))return;
-      if(data.type==="error")setJob(cur=>({...cur,status:"error",error:data.error||"Unable to load exact V7 odds."}));
-      if(["progress","done","pending"].includes(data.type)){
-        setJob(cur=>({
-          status:data.type==="done"?"ready":data.type==="pending"?"pending":"loading",
-          samples:Array.isArray(data.samples)?data.samples:
-            Array.isArray(data.newSamples)?cur.samples.concat(data.newSamples):cur.samples,
-          summary:data.summary||cur.summary,
-          completed:data.completed||0,target:data.target||cur.target,error:""
-        }));
+
+    async function checkVerifiedOdds(){
+      activeController=new AbortController();
+      const controller=activeController;
+      try{
+        const url="/api/odds/v7-current?away="+encodeURIComponent(awayCode)+
+          "&home="+encodeURIComponent(homeCode);
+        const response=await fetch(url,{cache:"no-store",signal:controller.signal});
+        const data=await response.json();
+        if(cancelled)return;
+        if(!response.ok||data?.ok!==true)
+          throw new Error(data?.error||"Official V7 odds lookup is temporarily unavailable.");
+        const valid=data.ready===true&&Number.isInteger(data.count)&&data.count>=INITIAL_V7_SAMPLES&&
+          data.summary?.source==="v7-complete-games"&&data.summary.count===data.count&&
+          data.summary.away===awayCode&&data.summary.home===homeCode;
+        if(valid){
+          setJob({status:"ready",samples:[],summary:data.summary,completed:data.count,
+            target:data.count,error:"",gameId,key:data.key||""});
+        }else{
+          // Invalidate displayed prices as soon as a new owner lineup changes
+          // the canonical matchup key, never silently retain stale odds.
+          setJob({status:"pending",samples:[],summary:null,completed:0,
+            target:INITIAL_V7_SAMPLES,error:"",gameId,key:data.key||""});
+        }
+      }catch(error){
+        if(cancelled||controller.signal.aborted)return;
+        setJob({status:"error",samples:[],summary:null,completed:0,
+          target:INITIAL_V7_SAMPLES,error:error instanceof Error?error.message:String(error),gameId});
+      }finally{
+        if(activeController===controller)activeController=null;
+        if(!cancelled)timer=setTimeout(checkVerifiedOdds,30000);
       }
+    }
+    checkVerifiedOdds();
+    return ()=>{
+      cancelled=true;
+      if(timer)clearTimeout(timer);
+      activeController?.abort();
+      if(demoWorker.current){demoWorker.current.terminate();demoWorker.current=null;}
     };
-    worker.onerror=()=>setJob(cur=>({...cur,status:"error",error:"Unable to start V7 odds reader."}));
-    worker.postMessage({type:"start",mode:"readOnly",gameId:selected.id,away:away.abbreviation,home:home.abbreviation,target:INITIAL_V7_SAMPLES});
-    return ()=>{worker.terminate();if(jobWorker.current===worker)jobWorker.current=null;
-      if(demoWorker.current){demoWorker.current.terminate();demoWorker.current=null;}};
   },[selected?.id,away?.abbreviation,home?.abbreviation]);
 
   function startPreview(){
