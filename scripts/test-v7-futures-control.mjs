@@ -1,4 +1,13 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+const futuresWorkflow=fs.readFileSync(".github/workflows/refresh-v7-futures.yml","utf8");
+for(const key of ["name","on","permissions","concurrency","jobs"]){
+  const hits=futuresWorkflow.match(new RegExp("^"+key+":","gm"))||[];
+  assert.equal(hits.length,1,"GitHub futures workflow requires exactly one root "+key+" key");
+}
+assert.match(futuresWorkflow,/cron: "7,37 \* \* \* \*"/,
+  "Futures refresh must remain scheduled twice per hour");
+
 import {generateKeyPairSync,sign} from "node:crypto";
 import {POST} from "../src/app/api/odds/v7-futures-control/route.js";
 import {GET} from "../src/app/api/odds/season/route.js";
