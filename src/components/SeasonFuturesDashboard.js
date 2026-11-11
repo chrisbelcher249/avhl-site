@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import {useEffect,useMemo,useState} from "react";
-import {fairMoneyline} from "@/lib/v7OddsSamples";
+import {seasonFuturesPrice,winTotalOutcomeStatus} from "@/lib/seasonFuturesPrices";
 
 const TABS=[
   {key:"wins",label:"Win totals",subtitle:"Over/under projected season wins"},
@@ -34,12 +34,13 @@ function TeamLogo({team,size=43}){
     <Image src={team.logo} alt={team.name+" logo"} fill sizes={size+"px"} className="object-contain p-1.5"/>
   </span>;
 }
-function Price({p,hero=false}){
+function Price({p,hero=false,possible=true,guaranteed=false,runs=10000}){
+  const displayed=seasonFuturesPrice(p,{possible,guaranteed,runs});
   return <div className="text-right tabular-nums">
     <p className={hero?"text-3xl font-black leading-tight tracking-tight text-[#000B36] sm:text-4xl":"text-2xl font-black tracking-tight text-[#000B36]"}>
-      {fairMoneyline(p)}
+      {displayed.price}
     </p>
-    <p className="mt-1 text-[11px] font-bold text-[#65748A]">{fmt(p)} likelihood</p>
+    <p className="mt-1 text-[11px] font-bold text-[#65748A]">{displayed.detail}</p>
   </div>;
 }
 function Select({label,value,onChange,options}){
@@ -51,7 +52,7 @@ function Select({label,value,onChange,options}){
     </select>
   </label>;
 }
-function MetricRow({team,value,detail,big=false}){
+function MetricRow({team,value,detail,big=false,possible=true,guaranteed=false,runs=10000}){
   return <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-[#000B36]/8 bg-white p-4 shadow-sm md:p-5">
     <div className="flex min-w-0 items-center gap-3">
       <TeamLogo team={team} size={big?52:43}/>
@@ -60,7 +61,7 @@ function MetricRow({team,value,detail,big=false}){
         <p className="mt-1 text-xs font-semibold text-[#68798E]">{detail||team.abbreviation}</p>
       </div>
     </div>
-    <Price p={value} hero={big}/>
+    <Price p={value} hero={big} possible={possible} guaranteed={guaranteed} runs={runs}/>
   </div>;
 }
 function marketChance(team,market,line,side,secondary){
@@ -137,8 +138,11 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
     ...divisions.map(x=>({value:x,label:x+" Division"}))];
   const matching=teams.filter(t=>filter==="all"||t.conference===filter||t.division===filter);
   const ranked=useMemo(()=>matching.map(team=>({
-    team,value:marketChance(team,market,line,side,market==="playoffs"?playoffMarket:confMarket)
-  })).sort((a,b)=>b.value-a.value||a.team.name.localeCompare(b.team.name)),[teams,filter,market,line,side,playoffMarket,confMarket]);
+    team,value:marketChance(team,market,line,side,market==="playoffs"?playoffMarket:confMarket),
+    ...((market==="wins")?winTotalOutcomeStatus(team,line,side):
+       {possible:true,guaranteed:false})
+  })).sort((a,b)=>b.value-a.value||Number(b.possible)-Number(a.possible)||
+     a.team.name.localeCompare(b.team.name)),[teams,filter,market,line,side,playoffMarket,confMarket]);
   const featured=ranked.slice(0,4);
   const explorer=teams.find(t=>t.abbreviation===selectedTeam)||teams[0];
   const chooseMarket=(value)=>{
@@ -252,7 +256,8 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
       </section>
       {market!=="team"?<>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {featured.map(({team,value})=><MetricRow key={team.abbreviation} team={team} value={value}
+          {featured.map(({team,value,possible,guaranteed})=><MetricRow key={team.abbreviation} team={team} value={value}
+            possible={possible} guaranteed={guaranteed} runs={data.runs}
             detail={market==="wins"?"Projected "+team.projectedWins.toFixed(1)+" wins":
               market==="relegation"?"Projected rank #"+team.projectedRank.toFixed(1):
               team.division+" · "+team.conference} big/>)}
@@ -268,7 +273,8 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
             </p>
           </div>
           <div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
-            {ranked.map(({team,value})=><MetricRow key={team.abbreviation} team={team} value={value}
+            {ranked.map(({team,value,possible,guaranteed})=><MetricRow key={team.abbreviation} team={team} value={value}
+              possible={possible} guaranteed={guaranteed} runs={data.runs}
               detail={market==="wins"?"Current "+team.record.wins+" W · Forecast "+team.projectedWins.toFixed(1)+" W":
                 market==="relegation"?"Projected rank #"+team.projectedRank.toFixed(1):
                 team.division+" · "+team.conference}/>)}
@@ -295,7 +301,7 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {explorerRows.map(([label,key])=><div key={key} className="flex items-center justify-between gap-3 rounded-2xl border border-[#000B36]/10 bg-white p-4">
             <p className="max-w-[55%] text-sm font-black text-[#000B36]">{label}</p>
-            <Price p={explorer?.probabilities?.[key]||0}/>
+            <Price p={explorer?.probabilities?.[key]||0} runs={data.runs}/>
           </div>)}
         </div>
         {explorer?.goalieOutlook?.length?<section className="rounded-2xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
@@ -335,9 +341,11 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
         </section>:null}
       </div>}
       <p className="text-xs leading-5 text-[#6B7A90]">
-        Odds are mathematically fair model-implied American prices, with no sportsbook margin.
-        A dash indicates an event observed in none or all sampled seasons. Pure V7 uses unmodified
-        simulator outcomes; hybrid reweights the winner of sampled V7 scorelines using actual AVHL form,
+        Prices are model-implied American odds with no sportsbook margin. When a reachable event
+        occurs zero times in 10,000 season draws, +1,000,000 is a display floor, NOT a measured
+        probability. An event appearing in every draw has a -1,000,000 display cap.
+        Mathematically impossible or guaranteed win-total outcomes show a dash.
+        Pure V7 uses unmodified simulator outcomes; hybrid reweights the winner of sampled V7 scorelines using actual AVHL form,
         expected injury returns and projected goalie rotation. Neither is a guarantee, and only
         50 samples per home orientation means long-shot futures remain uncertain.
         Game/player props separately require 1,000 complete V7 simulations for each scheduled matchup.
