@@ -1,9 +1,8 @@
-import {verifyActionsToken} from "@/app/api/odds/v7-ingest/route";
-import {snapshotDigest,TOTAL_PAIRS,validatePairPool} from "@/lib/v7FuturesPairs";
-import {futuresRedisKey,redisCommand,redisMultiGet} from "@/lib/v7FuturesRedis";
-import {forecastSeasonFutures,SEASON_SCENARIOS} from "@/lib/seasonFuturesForecast";
-import {getSchedule} from "@/lib/schedule";
-import {teams} from "../../../../../data/teams";
+import {verifyActionsToken} from "../v7-ingest/route.js";
+import {snapshotDigest,TOTAL_PAIRS,validatePairPool} from "../../../../lib/v7FuturesPairs.js";
+import {futuresRedisKey,redisCommand,redisMultiGet} from "../../../../lib/v7FuturesRedis.js";
+import {forecastSeasonFutures,SEASON_SCENARIOS} from "../../../../lib/seasonFuturesForecast.js";
+import {teams} from "../../../../../data/teams.js";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -83,6 +82,7 @@ export async function POST(request){
      if(incomplete)return response({ok:false,error:"V7 matchup sampling still incomplete.",
        completed:TOTAL_PAIRS-incomplete,required:TOTAL_PAIRS},409);
      const pools=Object.fromEntries(plan.entries.map((p,i)=>[p.a+":"+p.b,values[i]]));
+     const {getSchedule}=await import("@/lib/schedule");
      const {schedule,source,error}=await getSchedule();
      if(source!=="live"||error)throw Error("Official live AVHL results are unavailable.");
      const league=teams.map(t=>({
