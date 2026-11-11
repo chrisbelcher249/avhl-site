@@ -148,7 +148,7 @@ async function main(){
    const result=await postControl({action:"inspect",snapshot,entries:all});
    const missing=result.missing||[];
    const shards=[];
-   for(let i=0;i<missing.length;i+=20)shards.push({pairs:missing.slice(i,i+20)});
+   for(let i=0;i<missing.length;i+=10)shards.push({pairs:missing.slice(i,i+10)});
    const matrix={include:shards};
    if(process.env.GITHUB_OUTPUT)await fs.appendFile(process.env.GITHUB_OUTPUT,
      "snapshot="+snapshot+"\nmissing="+missing.length+"\nmatrix="+JSON.stringify(matrix)+"\n");
@@ -158,7 +158,7 @@ async function main(){
  }
  const requested=JSON.parse(process.env.V7_FUTURES_PAIRS_JSON||"null");
  const expected=arg("--snapshot");
- if(!Array.isArray(requested)||!requested.length||requested.length>20||
+ if(!Array.isArray(requested)||!requested.length||requested.length>10||
     expected!==snapshot)throw Error("Live V7 team lineup fingerprint changed since planning; retry at next 30-minute refresh.");
  for(const [i,p] of requested.entries()){
    const exact=all.find(e=>e.a===p.a&&e.b===p.b);
