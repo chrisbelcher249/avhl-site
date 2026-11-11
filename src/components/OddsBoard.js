@@ -225,8 +225,16 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate,preview
         <p className="mt-2 text-sm leading-6 text-[#000B36]/55">
           {job.status==="error"?job.error:previewOnly?
           "For layout review, generate 12 complete V7 games. This will reveal every market without changing the 1,000-game requirement for public odds.":
-          "Odds will be shown when the scheduled server process has finished 1,000 games with the current lineup and simulator version. No visitor-side simulation is required."}
+          "This matchup does not yet have 1,000 completed V7 games for its current lineup. Other games may already have odds: select another matchup above. This page checks the shared cache every 30 seconds; the server refresh job checks the upcoming slate every 30 minutes."}
         </p>
+        {!previewOnly && slate.length>1 && job.status!=="error"?<button
+          type="button" className="mt-4 rounded-xl bg-[#000B36] px-4 py-2.5 text-xs font-black text-white transition hover:bg-[#16315E]"
+          onClick={()=>{
+            const idx=slate.findIndex(g=>g.id===selected.id);
+            setSelectedGameId(slate[(idx+1)%slate.length].id);
+          }}>
+          Check next matchup
+        </button>:null}
         {previewOnly?<div className="mt-4">
           <button type="button" disabled={demo.status==="running"} onClick={startPreview}
             className="rounded-xl bg-[#000B36] px-5 py-3 text-sm font-black text-white disabled:opacity-60">
