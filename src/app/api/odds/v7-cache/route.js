@@ -37,7 +37,7 @@ export async function GET(request) {
     const compact=await readRedis(SUMMARY_NAMESPACE+key);
     if(compact?.count>=1000 && compact.summary?.count===compact.count &&
        compact.summary.source==="v7-complete-games"){
-      return Response.json({ok:true,ready:true,count:compact.count,summary:compact.summary},{
+      return Response.json({ok:true,ready:true,count:compact.count,summary:compact.summary,generatedAt:compact.generatedAt||null},{
         headers:{"Cache-Control":"no-store"}
       });
     }
