@@ -78,7 +78,7 @@ export function empiricalHomeWinProbability(model,home,away) {
 }
 
 function injuryEligible(injury,gameId) {
-  const returnId=Number(injury.expectedReturnGameId);
+  const returnId=Number(injury.expectedReturnGameId ?? injury.returnGameId);
   if(!Number.isInteger(returnId)||returnId<=0||gameId<returnId)return false;
   return !(injury.missedGameIds||[]).includes(gameId);
 }
