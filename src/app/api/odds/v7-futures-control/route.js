@@ -3,7 +3,7 @@ import {snapshotDigest,TOTAL_PAIRS,validatePairPool} from "@/lib/v7FuturesPairs"
 import {futuresRedisKey,redisCommand,redisMultiGet} from "@/lib/v7FuturesRedis";
 import {forecastSeasonFutures,SEASON_SCENARIOS} from "@/lib/seasonFuturesForecast";
 import {getSchedule} from "@/lib/schedule";
-import {teams} from "../../../../../../data/teams";
+import {teams} from "../../../../../data/teams";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
