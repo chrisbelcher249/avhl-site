@@ -12,6 +12,8 @@ const ISSUER="https://token.actions.githubusercontent.com";
 const WORKFLOW="chrisbelcher249/avhl-site/.github/workflows/refresh-v7-odds.yml@refs/heads/main";
 const REPO="chrisbelcher249/avhl-site";
 const CACHE_KEY=/^v7:3:[a-f0-9]{8}:[A-Z0-9]{2,4}:[A-Z0-9]{2,4}:[a-f0-9]{8}$/;
+// Old lineup versions should not occupy Redis for the entire season.
+export const V7_ODDS_CACHE_TTL_SECONDS=30*24*60*60;
 function redisConfig(){
   const url=process.env.UPSTASH_REDIS_REST_URL||process.env.KV_REST_API_URL||process.env.UPSTASH_REDIS_REST_KV_REST_API_URL;
   const token=process.env.UPSTASH_REDIS_REST_TOKEN||process.env.KV_REST_API_TOKEN||process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN;
@@ -78,7 +80,8 @@ export async function POST(request){
     const response=await fetch(redis.url,{
       method:"POST",headers:{
         Authorization:`Bearer ${redis.token}`,"Content-Type":"application/json"
-      },body:JSON.stringify(["SET","avhl:odds:exact:summary:"+key,JSON.stringify(value)]),
+      },body:JSON.stringify(["SET","avhl:odds:exact:summary:"+key,JSON.stringify(value),
+        "EX",V7_ODDS_CACHE_TTL_SECONDS]),
       cache:"no-store",signal:AbortSignal.timeout(10000)
     });
     if(!response.ok)throw new Error("Persistent cache write failed.");

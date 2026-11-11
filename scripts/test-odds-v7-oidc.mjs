@@ -38,6 +38,8 @@ globalThis.fetch=async (url,options)=>{
    const body=JSON.parse(options.body);
    assert.equal(body[0],"SET");
    assert.equal(body[1],"avhl:odds:exact:summary:"+key);
+   assert.equal(body[3],"EX","Published odds must have bounded Redis lifetime");
+   assert.equal(body[4],30*24*60*60);
    writes++;
    return {ok:true,json:async()=>({result:"OK"})};
  }
