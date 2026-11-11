@@ -20,7 +20,7 @@ function redisConfig(){
 function decodeBase64Url(value){
   return Buffer.from(value,"base64url");
 }
-export async function verifyActionsToken(token){
+export async function verifyActionsToken(token,{audience=AUDIENCE,workflowRef=WORKFLOW}={}){
   if(typeof token!=="string"||token.length>12000)throw new Error("Invalid authentication token.");
   const parts=token.split(".");
   if(parts.length!==3)throw new Error("Invalid token shape.");
@@ -28,9 +28,9 @@ export async function verifyActionsToken(token){
   const claims=JSON.parse(decodeBase64Url(parts[1]).toString("utf8"));
   if(header.alg!=="RS256"||!header.kid||typeof header.kid!=="string")throw new Error("Unsupported token algorithm.");
   const now=Math.floor(Date.now()/1000);
-  if(claims.iss!==ISSUER||claims.aud!==AUDIENCE ||
+  if(claims.iss!==ISSUER||claims.aud!==audience ||
      claims.repository!==REPO||claims.repository_owner!=="chrisbelcher249"||
-     claims.ref!=="refs/heads/main"||claims.workflow_ref!==WORKFLOW||
+     claims.ref!=="refs/heads/main"||claims.workflow_ref!==workflowRef||
      !["schedule","push","workflow_dispatch"].includes(claims.event_name)||
      typeof claims.exp!=="number"||typeof claims.iat!=="number"||
      claims.iat>now+60||claims.exp<=now||claims.exp-claims.iat>1200){
