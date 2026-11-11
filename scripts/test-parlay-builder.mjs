@@ -35,7 +35,7 @@ assert.equal(canAddParlayLeg([a],c,"same").ok,true,
 assert.match(canAddParlayLeg([a],b,"same").reason,/one matchup/i);
 assert.match(canAddParlayLeg([a],{...a,id:"game:1:ml:ATL",marketKey:"ml:ATL"},"same").reason,/moneyline/i);
 assert.match(canAddParlayLeg([c],{...c,id:"game:1:total:u:6.5",marketKey:"total:u:6.5"},"same").reason,/total/i);
-assert.match(canAddParlayLeg([a],{...a,id:"game:1:puck:a-:1.5",marketKey:"puck:a-:1.5"},"same").ok,true);
+assert.equal(canAddParlayLeg([a],{...a,id:"game:1:puck:a-:1.5",marketKey:"puck:a-:1.5"},"same").ok,true);
 assert.match(canAddParlayLeg([a],{...a,id:"game:1:puck:h-:1.5",marketKey:"puck:h-:1.5"},"same").reason,/cannot cover/i);
 assert.match(canAddParlayLeg([{...a,id:"game:1:other:both",marketKey:"other:both"}],
   {...a,id:"game:1:other:shutout",marketKey:"other:shutout"},"same").reason,/cannot happen/i);
@@ -44,7 +44,7 @@ assert.equal(canAddParlayLeg([a],b,"day").ok,true);
 assert.match(canAddParlayLeg([a],c,"day").reason,/one selection per game/i);
 assert.match(canAddParlayLeg([a],{...b,date:"2026-11-12"},"day").reason,/same calendar day/i);
 assert.match(canAddParlayLeg([a],future,"day").reason,/only accept/i);
-assert.match(canAddParlayLeg([future],a,"same").reason,/only accept/i);
+assert.match(canAddParlayLeg([future],a,"same").reason,/separate tickets/i);
 assert.match(canAddParlayLeg([a],a,"day").reason,/already on your slip/i);
 
 assert.equal(canAddParlayLeg([],future,"futures").ok,true);
