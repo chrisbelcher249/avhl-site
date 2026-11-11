@@ -61,12 +61,16 @@ function sameGameConflict(existing,candidate){
       return "Both teams scoring and a team shutout cannot happen together.";
   }
   // A team covering a negative puck line must win the game.
-  const ml=a[0]==="ml"?a:b[0]==="ml"?b:null;
-  const puck=a[0]==="puck"?a:b[0]==="puck"?b:null;
-  if(ml&&puck&&puck[1]?.endsWith("-")){
-    const puckTeam=puck[1].slice(0,-1);
-    if(puckTeam&&ml[1]!==puckTeam)
-      return "A team cannot cover a negative puck line if the other team wins.";
+  const mlLeg=a[0]==="ml"?existing:b[0]==="ml"?candidate:null;
+  const puckLeg=a[0]==="puck"?existing:b[0]==="puck"?candidate:null;
+  if(mlLeg&&puckLeg){
+    const ml=keyParts(mlLeg),puck=keyParts(puckLeg);
+    if(puck[1]?.endsWith("-")){
+      const puckTeam=puck[1]==="a-"?puckLeg.teamCodes?.[0]:
+        puck[1]==="h-"?puckLeg.teamCodes?.[1]:null;
+      if(puckTeam&&ml[1]!==puckTeam)
+        return "A team cannot cover a negative puck line if the other team wins.";
+    }
   }
   return "";
 }
