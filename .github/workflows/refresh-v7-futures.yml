@@ -22,13 +22,10 @@ permissions:
   contents: read
   id-token: write
 
-# Serialize work so two snapshot plans do not supersede each other mid-calculation.
+# Serialize refreshes so overlapping owner changes cannot supersede a
+# snapshot during calculation. Exactly one root-level concurrency key.
 concurrency:
   group: avhl-v7-futures-refresh
-  cancel-in-progress: false
-
-concurrency:
-  group: avhl-exact-v7-season-futures
   cancel-in-progress: false
 
 jobs:
