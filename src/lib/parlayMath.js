@@ -16,7 +16,7 @@ export function displayLegProbability(p,samples=1000){
 export function decimalToAmerican(decimal){
   if(!Number.isFinite(decimal)||decimal<1)return "—";
   const capped=clip(decimal,1+1e-10,MAX_DISPLAY_DECIMAL_ODDS);
-  const value=capped>=2?Math.round(100*(capped-1)):-Math.round(100/(capped-1));
+  const value=capped>2?Math.round(100*(capped-1)):-Math.round(100/(capped-1));
   return (value>0?"+":"")+Math.max(-1_000_000,Math.min(1_000_000,value)).toLocaleString("en-US");
 }
 export function probabilityToAmerican(p,samples=1000){
