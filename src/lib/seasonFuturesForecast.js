@@ -1,8 +1,7 @@
 import {drawV7Score,TOTAL_PAIRS,validatePairPool} from "./v7FuturesPairs.js";
-// Exploratory, standings-based season futures. This is NOT the V7 physics
-// simulator and is never used for single-game/model player odds. Exactly
-// completed AVHL results and official conference/qualifier/relegation rules
-// determine the starting state and ranking of every projected season.
+// Full-season futures resample observed results from 780 real V7 matchup
+// pools (50 games with each team at home). No statistical score model is used.
+// Official completed games, standings and playoff/relegation rules stay fixed.
 export const SEASON_SCENARIOS = 10000;
 export const SEASON_METHOD = "exact-V7-game-outcome-resampling";
 const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
@@ -175,7 +174,7 @@ export function forecastSeasonFutures(schedule,teams,runs=SEASON_SCENARIOS,pools
   }
   return {
     version:"season-futures-statistical-v2",method:SEASON_METHOD,runs,
-    completedGames:observed.length,remainingGames:remaining.length,
+    completedGames:fingerprint.length,remainingGames:remaining.length,
     modelNote:"Every future game result is drawn from actual V7 engine simulations: 50 with each team at home in all 780 matchups. The season itself resamples stored V7 results, not the spatial engine.",
     sourceDigest,matchedPairs:TOTAL_PAIRS,engineSamples:TOTAL_PAIRS*100,
     teams:teams.map((team,i)=>({
