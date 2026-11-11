@@ -87,9 +87,30 @@ const GOALIE_MARKETS=[
 ];
 const selectOptions=(values)=>values.map(v=>({value:String(v),label:String(v)}));
 
-export default function OddsBoard({games,dates,teamDirectory,initialDate,previewOnly=false}){
+// Accept only canonical, signed-publisher-backed server outcomes.
+function verifiedJobFor(game,directory,verifiedGameOdds){
+  if(!game)return null;
+  const home=directory[game.home]?.abbreviation;
+  const away=directory[game.away]?.abbreviation;
+  const value=verifiedGameOdds?.[String(game.id)];
+  if(!home||!away||value?.ok!==true||value?.ready!==true||
+    !Number.isInteger(value.count)||value.count<INITIAL_V7_SAMPLES||
+    value.summary?.source!=="v7-complete-games"||
+    value.summary.count!==value.count||
+    value.summary.home!==home||value.summary.away!==away)return null;
+  return {status:"ready",samples:[],summary:value.summary,completed:value.count,
+    target:value.count,error:"",key:value.key||"",gameId:game.id};
+}
+const emptyVerifiedJob=()=>({
+  status:"loading",samples:[],summary:null,completed:0,target:INITIAL_V7_SAMPLES,error:""
+});
+
+export default function OddsBoard({
+  games,dates,teamDirectory,initialDate,initialSelectedGameId=null,
+  verifiedGameOdds={},previewOnly=false
+}){
   const [selectedDate,setSelectedDate]=useState(initialDate||dates[0]||"");
-  const [selectedGameId,setSelectedGameId]=useState(null);
+  const [selectedGameId,setSelectedGameId]=useState(initialSelectedGameId);
   const [tab,setTab]=useState("game");
   const [totalLine,setTotalLine]=useState("6.5");
   const [puckLine,setPuckLine]=useState("1.5");
@@ -98,11 +119,15 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate,preview
   const [skaterTeam,setSkaterTeam]=useState("all");
   const [goalieMarket,setGoalieMarket]=useState("saves25");
   const [firstGoalTeam,setFirstGoalTeam]=useState("home");
-  const [job,setJob]=useState({status:"loading",samples:[],summary:null,completed:0,target:INITIAL_V7_SAMPLES,error:""});
+  const [job,setJob]=useState(()=>{
+    const chosen=games.find(g=>g.date===initialDate && String(g.id)===String(initialSelectedGameId))||
+      games.find(g=>g.date===initialDate);
+    return verifiedJobFor(chosen,teamDirectory,verifiedGameOdds)||emptyVerifiedJob();
+  });
   const [demo,setDemo]=useState({status:"idle",completed:0,samples:[],error:""});
   const demoWorker=useRef(null);
   const slate=useMemo(()=>games.filter(g=>g.date===selectedDate),[games,selectedDate]);
-  const selected=slate.find(g=>g.id===selectedGameId)||slate[0]||null;
+  const selected=slate.find(g=>String(g.id)===String(selectedGameId))||slate[0]||null;
   const away=selected?teamDirectory[selected.away]:null;
   const home=selected?teamDirectory[selected.home]:null;
 
@@ -119,7 +144,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate,preview
     const homeCode=home.abbreviation,awayCode=away.abbreviation;
     if(demoWorker.current){demoWorker.current.terminate();demoWorker.current=null;}
     setDemo({status:"idle",completed:0,samples:[],error:""});
-    setJob({status:"loading",samples:[],summary:null,completed:0,target:INITIAL_V7_SAMPLES,error:""});
+    setJob(verifiedJobFor(selected,teamDirectory,verifiedGameOdds)||emptyVerifiedJob());
 
     async function checkVerifiedOdds(){
       activeController=new AbortController();
@@ -185,9 +210,17 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate,preview
     worker.postMessage({type:"previewDemo",gameId:selected.id,away:away.abbreviation,home:home.abbreviation});
   }
   const liveOdds=useMemo(()=>{
-    if(!away||!home||!canPublishV7Odds(job.completed))return null;
-    return job.summary||summarizeV7Samples(job.samples,away.abbreviation,home.abbreviation);
-  },[job.samples,job.summary,job.completed,away?.abbreviation,home?.abbreviation]);
+    if(!selected||!away||!home||!canPublishV7Odds(job.completed)||
+       String(job.gameId)!==String(selected.id))return null;
+    if(job.summary){
+      if(job.summary.source!=="v7-complete-games"||
+         job.summary.count!==job.completed||
+         job.summary.away!==away.abbreviation||job.summary.home!==home.abbreviation)return null;
+      return job.summary;
+    }
+    return Array.isArray(job.samples)&&job.samples.length>=INITIAL_V7_SAMPLES?
+      summarizeV7Samples(job.samples,away.abbreviation,home.abbreviation):null;
+  },[job.samples,job.summary,job.completed,job.gameId,selected?.id,away?.abbreviation,home?.abbreviation]);
   const previewOdds=useMemo(()=>{
     if(!previewOnly||demo.status!=="done"||demo.samples.length!==12||!away||!home)return null;
     return summarizeV7Samples(demo.samples,away.abbreviation,home.abbreviation);

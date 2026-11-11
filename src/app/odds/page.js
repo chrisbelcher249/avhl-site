@@ -3,6 +3,7 @@ import OddsBoard from "@/components/OddsBoard";
 import OddsNav from "@/components/OddsNav";
 import { getSchedule } from "@/lib/schedule";
 import { getTeams } from "@/lib/teams";
+import { GET as getCurrentVerifiedV7Odds } from "@/app/api/odds/v7-current/route";
 
 export const metadata = {
   title: "Odds",
@@ -11,6 +12,7 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const maxDuration = 60;
 
 function easternDateKey() {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -23,7 +25,8 @@ function easternDateKey() {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-export default async function OddsPage() {
+export default async function OddsPage({searchParams}) {
+  const query=await searchParams;
   const [{ schedule, error: scheduleError }, { teams }] = await Promise.all([getSchedule(), getTeams()]);
   const today = easternDateKey();
   const futureUnplayed = schedule.filter((game) => game.awayScore == null && game.homeScore == null && game.date >= today);
@@ -52,6 +55,43 @@ export default async function OddsPage() {
       },
     ]),
   );
+
+  // Server-side verification: the initially selected matchup must arrive in
+  // rendered HTML with REAL prices when its 1,000-game cache already exists.
+  // Browser hydration, workers, IndexedDB and client network failures must
+  // never be necessary to display previously completed V7 results.
+  const requestedGame=games.find(game=>String(game.id)===String(query?.game??""));
+  const initialDate=requestedGame?.date||dates[0]||"";
+  const initialSlate=games.filter(game=>game.date===initialDate);
+  const fetchedOdds=await Promise.all(initialSlate.map(async game=>{
+    const away=teamDirectory[game.away]?.abbreviation;
+    const home=teamDirectory[game.home]?.abbreviation;
+    if(!away||!home)return [String(game.id),null];
+    try{
+      const request=new Request("https://avhl.org/api/odds/v7-current?away="+
+        encodeURIComponent(away)+"&home="+encodeURIComponent(home));
+      const response=await getCurrentVerifiedV7Odds(request);
+      if(!response.ok)return [String(game.id),null];
+      const value=await response.json();
+      if(value.ok===true&&value.ready===true&&
+        Number.isInteger(value.count)&&value.count>=1000&&
+        value.summary?.source==="v7-complete-games"&&
+        value.summary?.count===value.count&&
+        value.summary.away===away&&value.summary.home===home){
+        return [String(game.id),value];
+      }
+    }catch(error){
+      console.error("Could not prefetch verified AVHL game odds",{
+        gameId:game.id,reason:error instanceof Error?error.message:String(error)
+      });
+    }
+    return [String(game.id),null];
+  }));
+  const verifiedGameOdds=Object.fromEntries(fetchedOdds.filter(([,value])=>value));
+  // Lead with a valid V7-priced game when possible instead of a pending one.
+  const initialSelectedGameId=requestedGame?.id||
+    initialSlate.find(game=>verifiedGameOdds[String(game.id)])?.id||
+    initialSlate[0]?.id||null;
 
   return (
     <main className="min-h-screen bg-slate-50 text-[#000B36]">
@@ -86,7 +126,9 @@ export default async function OddsPage() {
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scheduleError}</div>
         ) : null}
         {games.length ? (
-          <OddsBoard games={games} dates={dates} teamDirectory={teamDirectory} initialDate={dates[0]} previewOnly={process.env.VERCEL_ENV === "preview" || process.env.NODE_ENV !== "production"} />
+          <OddsBoard games={games} dates={dates} teamDirectory={teamDirectory} initialDate={initialDate}
+            initialSelectedGameId={initialSelectedGameId} verifiedGameOdds={verifiedGameOdds}
+            previewOnly={process.env.VERCEL_ENV === "preview" || process.env.NODE_ENV !== "production"} />
         ) : (
           <div className="rounded-3xl border border-[#000B36]/10 bg-white p-8 text-center shadow-sm">
             <p className="text-xl font-black">No upcoming games are available to price.</p>
