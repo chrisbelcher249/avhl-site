@@ -60,7 +60,13 @@ export default function ParlayGameCard({game,home,away,quote,onAdd,locked=false}
   const valid=quote?.ok===true&&quote?.ready===true&&quote.count>=1000&&
     quote.summary?.source==="v7-complete-games"&&
     quote.summary.count===quote.count&&quote.summary.home===h&&quote.summary.away===a;
-  const odds=valid?quote.summary:null;
+  const prior=quote?.fallback;
+  const reference=!valid&&quote?.ok===true&&quote?.ready===false&&
+    Number.isInteger(prior?.count)&&prior.count>=1000&&
+    prior.summary?.source==="v7-complete-games"&&
+    prior.summary.count===prior.count&&prior.summary.home===h&&prior.summary.away===a;
+  const odds=valid?quote.summary:reference?prior.summary:null;
+  const sampleCount=valid?quote.count:reference?prior.count:0;
   const players=odds?.players||[];
   const startingGoalies=(odds?.goalies||[]).filter(g=>g.starts>0);
   const activeSkater=players.find(x=>String(x.id)===skater)||players[0];
@@ -126,12 +132,15 @@ export default function ParlayGameCard({game,home,away,quote,onAdd,locked=false}
       </div>
       <div className="text-right text-xs font-semibold text-[#72829A]">
         Game {game.id} · {date}
-        <div className="mt-0.5 text-[11px]">{valid?quote.count.toLocaleString()+" verified V7 games":"Awaiting verified V7 odds"}</div>
+        <div className="mt-0.5 text-[11px]">{valid?quote.count.toLocaleString()+" verified V7 games":reference?"Previous verified lines":"Awaiting verified V7 odds"}</div>
       </div>
     </div>
-    {!valid?<p className="py-5 text-sm leading-6 text-[#64748B]">
-      No published prices for this current lineup yet. Select another matchup or return after the official V7 cache is complete.
+    {!odds?<p className="py-5 text-sm leading-6 text-[#64748B]">
+      No previously verified prices for this matchup yet. New prices will appear when the official V7 cache is complete.
     </p>:<>
+      {reference?<p role="status" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs font-semibold leading-5 text-amber-950">
+        Previous verified odds · Updating for the current lineup. Prices are reference-only; adding these picks is disabled.
+      </p>:null}
       <div className="mt-3 flex flex-wrap gap-2">
         <Picker label="Market" value={market} onChange={setMarket} options={MARKETS}/>
         {market==="totals"?<Picker label="Goal line" value={line} onChange={setLine}
@@ -160,26 +169,26 @@ export default function ParlayGameCard({game,home,away,quote,onAdd,locked=false}
       </p>:null}
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {options.filter(x=>typeof x.p==="number"&&Number.isFinite(x.p)).map(x=>
-          <button type="button" key={x.key} disabled={locked}
-            aria-label={"Add "+x.label+" to parlay"}
+          <button type="button" key={x.key} disabled={locked||!valid}
+            aria-label={reference?"Previously verified "+x.label+" (updating)":"Add "+x.label+" to parlay"}
             onClick={()=>onAdd({
               id:"game:"+game.id+":"+x.key,type:"game",gameId:game.id,date:game.date,
               marketKey:x.key,label:x.label,context:a+" @ "+h+" · "+date,
-              probability:x.p,samples:quote.count,source:quote.key,
+              probability:x.p,samples:sampleCount,source:quote.key,
               teamCodes:[a,h]
             })}
             className="flex min-h-20 min-w-0 items-center justify-between gap-3 rounded-xl border border-[#D7DFEB] bg-[#F8FAFD] p-3 text-left transition hover:border-[#18BDFC] hover:bg-[#EFFBFF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500 disabled:cursor-not-allowed disabled:opacity-45">
             <span className="min-w-0 text-xs font-bold leading-5 text-[#000B36]">
               {x.label}
               <span className="mt-0.5 block text-[11px] font-medium text-[#72829A]">
-                {percent(x.p,quote.count)}
+                {percent(x.p,sampleCount)}
               </span>
             </span>
             <span className="shrink-0 text-right">
               <span className="block text-base font-black tabular-nums text-[#000B36]">
-                {probabilityToAmerican(x.p,quote.count)}
+                {probabilityToAmerican(x.p,sampleCount)}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[#007DA0]">Add +</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#007DA0]">{reference?"Updating":"Add +"}</span>
             </span>
           </button>
         )}
