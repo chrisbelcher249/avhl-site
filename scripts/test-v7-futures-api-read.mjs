@@ -14,6 +14,7 @@ process.env.UPSTASH_REDIS_REST_TOKEN="test-only-not-a-secret";
 const first="012f9ea40d459dfab579a961";
 const second="bbbbbbbbbbbbbbbbbbbbbbbb";
 let current=first,forecast=null,progress=780;
+let lastVerified=null,priorForecast=null;
 const source={
   method:"exact-V7-game-outcome-resampling",
   sourceDigest:first,matchedPairs:780,engineSamples:78000,runs:10000,
@@ -26,7 +27,9 @@ globalThis.fetch=async(url,options)=>{
   assert.equal(command[0],"GET");
   const key=command[1];
   const value=key==="avhl:odds:futures:current"?current:
+    key==="avhl:odds:futures:last-verified"?lastVerified:
     key==="avhl:odds:futures:forecast:"+current?forecast:
+    key==="avhl:odds:futures:forecast:"+first?priorForecast:
     key==="avhl:odds:futures:progress:"+current?String(progress):null;
   return {ok:true,json:async()=>({result:value})};
 };
@@ -41,9 +44,24 @@ try{
   assert.equal(full.runs,10000);
   assert.equal(full.engineSamples,78000);
 
-  // Never show an old lineup snapshot after the authoritative key rotates.
+  // A newly selected fingerprint must show older fully verified prices
+  // as REFERENCE ONLY, never as current prices.
   current=second;progress=600;
+  forecast=null;
+  lastVerified=first;
+  priorForecast=JSON.stringify(source);
   let pending=await GET();
+  assert.equal(pending.status,200);
+  const updating=await pending.json();
+  assert.equal(updating.ok,false);
+  assert.equal(updating.status,"updating");
+  assert.equal(updating.completedPairs,600);
+  assert.equal(updating.fallback.sourceDigest,first);
+  assert.equal(updating.fallback.teams[0].abbreviation,"ATL");
+
+  // No prior trusted publication means there are no fabricated lines.
+  lastVerified=null;
+  pending=await GET();
   assert.equal(pending.status,503);
   assert.equal((await pending.json()).completedPairs,600);
 
@@ -56,7 +74,7 @@ try{
   forecast=JSON.stringify({...source,sourceDigest:second});
   assert.equal((await GET()).status,503);
 
-  console.log("V7 futures API freshness regression: PASS (completed current-snapshot forecast remains visible after 2h; old/mismatched or incomplete snapshots withheld).");
+  console.log("V7 futures API freshness regression: PASS (latest verified remains current; previous full V7 forecast shown as updating-only; no invented prices).");
 }finally{
   globalThis.fetch=savedFetch;
   for(const [name,value] of Object.entries(savedEnv)){
