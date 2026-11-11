@@ -62,13 +62,25 @@ function topAverageOverall(players, limit) {
 
 export function buildTeamRosterAndCap(playerList, teamName, options = {}) {
   const allRosterPlayers = playerList.filter((player) => player.currentTeam === teamName);
+  const obligations = options.obligations || {};
   const ltirPlayerIds = new Set((options.ltirPlayerIds || []).map(String));
-  const rosterPlayers = allRosterPlayers.filter((player) => !ltirPlayerIds.has(String(player.id)));
+  // Expose each team's effective cap hit for roster displays, without changing
+  // the authoritative contract AAV or the persistent retained-salary ledger.
+  const rosterPlayers = allRosterPlayers
+    .filter((player) => !ltirPlayerIds.has(String(player.id)))
+    .map((player) => {
+      const retainedByOtherTeams = player.signedContract
+        ? 0 : (obligations.retainedByPlayer?.[player.id]?.total || 0);
+      return {
+        ...player,
+        capHit: player.aav == null ? null : Math.max(0, player.aav - retainedByOtherTeams),
+        retainedByOtherTeams,
+      };
+    });
   const skaters = rosterPlayers.filter((player) => player.role === "Skater");
   const goalies = rosterPlayers.filter((player) => player.role === "Goalie");
   const forwards = skaters.filter(isForward);
   const defensemen = skaters.filter(isDefenseman);
-  const obligations = options.obligations || {};
   const abbreviation = teams.find((team) => team.name === teamName)?.abbreviation;
   const salaryBeforeAdjustments = allRosterPlayers.reduce((total, player) => total + (player.aav || 0), 0);
   const previouslyRetained = allRosterPlayers.reduce(
