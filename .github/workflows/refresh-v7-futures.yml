@@ -11,6 +11,8 @@ on:
       - "public/sim/data.js"
       - "src/lib/v7FuturesPairs.js"
       - "src/lib/seasonFuturesForecast.js"
+      - "src/app/api/odds/season/route.js"
+      - "src/app/api/odds/v7-futures-control/route.js"
       - "scripts/precompute-v7-futures.mjs"
       - ".github/workflows/refresh-v7-futures.yml"
 
