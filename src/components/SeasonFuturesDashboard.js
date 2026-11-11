@@ -86,6 +86,7 @@ const marketDescription={
 };
 export default function SeasonFuturesDashboard({initialMarket="wins"}){
   const [snapshot,setSnapshot]=useState(null);
+  const [forecastMode,setForecastMode]=useState("hybrid");
   const [state,setState]=useState({status:"loading",error:""});
   const [market,setMarket]=useState(TABS.some(t=>t.key===initialMarket)?initialMarket:"wins");
   const [filter,setFilter]=useState("all");
@@ -104,7 +105,7 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
         const data=await response.json();
         if(cancelled)return;
         if(response.ok && data.ok && data.sourceDigest &&
-           data.method==="exact-V7-game-outcome-resampling" && data.matchedPairs===780){
+           (data.method==="exact-V7-game-outcome-resampling"||data.method==="hybrid-V7-empirical-injury-goalie-v1") && data.matchedPairs===780){
           setSnapshot(data);
           setSelectedTeam(current=>current||data.teams?.[0]?.abbreviation||"");
           setState({status:"ready",error:""});
@@ -126,7 +127,9 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
     refresh();
     return ()=>{cancelled=true;if(next)clearTimeout(next);};
   },[]);
-  const data=snapshot,teams=data?.teams||[];
+  const data=snapshot;
+  const showingPure=forecastMode==="pure"&&data?.pureV7?.teams;
+  const teams=(showingPure?data.pureV7.teams:data?.teams)||[];
   const tabs=TABS;
   const current=tabs.find(x=>x.key===market)||tabs[0];
   const divisions=[...new Set(teams.map(t=>t.division))];
@@ -163,10 +166,12 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
       <h2 className="mt-2 text-2xl font-black tracking-tight text-[#000B36] md:text-3xl">Every race. Every team. One season.</h2>
       <p className="mt-3 max-w-4xl text-sm leading-6 text-[#54647A]">
         Projected wins, division titles, playoff spots, postseason advancement, Cup odds and relegation.
-        Every remaining-game result is drawn from <strong>actual V7 hockey simulations</strong>:
-        780 team pairings, 50 with each team at home, for <strong>78,000 complete V7 games</strong>.
-        Then 10,000 full-season scenarios reuse those real results. They are not 10,000 new physics simulations;
-        100 games per pairing is an initial sample and rare-outcome odds remain uncertain.
+        Our hybrid outlook combines <strong>actual AVHL results and opponent strength</strong>
+        with <strong>78,000 real V7 matchup simulations</strong>. Its 10,000 season
+        scenarios also account for scheduled injury returns and rotating goalies
+        under the 60-start limit. V7 scorelines are adjusted to the hybrid win
+        probabilities; they're not 10,000 additional physics simulations.
+        These are model estimates, not guaranteed outcomes.
       </p>
       {data?<div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-[#5A6880]">
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">{data.runs.toLocaleString()} season draws</span>
@@ -176,6 +181,21 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">Updated {date(data.generatedAt)} ET</span>
       </div>:null}
     </section>
+    {data?.pureV7?.teams?<section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#000B36]/10 bg-white px-4 py-3 shadow-sm">
+      <div><p className="text-sm font-black text-[#000B36]">Forecast methodology</p>
+        <p className="mt-1 text-xs text-[#64748B]">{showingPure?
+          "Unadjusted V7 only: current starters and injury-depleted lineups carried across every remaining game.":
+          "Hybrid: current V7 skill, historical performance, injury returns and goalie rotation."}</p></div>
+      <div role="group" aria-label="Choose futures model" className="flex shrink-0 gap-1 rounded-xl bg-[#EFF3F8] p-1">
+        {[{id:"hybrid",label:"Hybrid (recommended)"},{id:"pure",label:"Pure V7"}].map(item=>
+          <button type="button" key={item.id} onClick={()=>setForecastMode(item.id)}
+            aria-pressed={forecastMode===item.id}
+            className={"rounded-lg px-3 py-2 text-xs font-black "+(forecastMode===item.id?"bg-[#000B36] text-white":"text-[#50617A] hover:bg-white")}>
+            {item.label}
+          </button>
+        )}
+      </div>
+    </section>:null}
     <nav aria-label="Season markets" className="grid grid-cols-2 gap-2 rounded-2xl border border-[#000B36]/10 bg-white p-2 shadow-sm sm:grid-cols-3 lg:grid-cols-4">
       {tabs.map(item=><button key={item.key} type="button" onClick={()=>chooseMarket(item.key)}
         className={"rounded-xl px-3 py-3 text-left text-xs font-black transition md:text-sm "+(market===item.key?
