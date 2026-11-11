@@ -156,15 +156,15 @@ export default function ParlayGameCard({game,home,away,quote,onAdd,locked=false}
         </>:null}
       </div>
       {locked?<p className="mt-3 text-xs font-semibold text-[#A90117]">
-        One selection from this game is already on your slip. Remove it to choose another.
+        This matchup already has a pick on your one-day ticket. Select a different game.
       </p>:null}
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {options.filter(x=>typeof x.p==="number"&&Number.isFinite(x.p)).map(x=>
           <button type="button" key={x.key} disabled={locked}
             aria-label={"Add "+x.label+" to parlay"}
             onClick={()=>onAdd({
-              id:"game:"+game.id+":"+x.key,type:"game",gameId:game.id,
-              label:x.label,context:a+" @ "+h+" · "+date,
+              id:"game:"+game.id+":"+x.key,type:"game",gameId:game.id,date:game.date,
+              marketKey:x.key,label:x.label,context:a+" @ "+h+" · "+date,
               probability:x.p,samples:quote.count,source:quote.key,
               teamCodes:[a,h]
             })}

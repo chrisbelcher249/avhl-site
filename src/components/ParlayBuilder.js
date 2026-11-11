@@ -20,16 +20,16 @@ const shortDate=(value)=>new Date(value+"T12:00:00Z").toLocaleDateString("en-US"
 const fmtPercent=p=>p===0?"0 observed":p===1?"100% observed":
   p<0.0001?"<0.01%":(p*100).toFixed(p<0.01?2:1)+"%";
 const formatPoints=n=>Math.round(n).toLocaleString("en-US");
-function Control({label,value,onChange,options}){
+function Control({label,value,onChange,options,disabled=false}){
   return <label className="block min-w-0">
     <span className="mb-1.5 block text-xs font-bold text-[#64748B]">{label}</span>
     <select className="w-full min-w-0 rounded-xl border border-[#CED8E5] bg-white px-3 py-3 text-sm font-bold text-[#000B36]"
-      value={value} onChange={e=>onChange(e.target.value)} aria-label={label}>
+      value={value} onChange={e=>onChange(e.target.value)} disabled={disabled} aria-label={label}>
       {options.map(([v,text])=><option key={String(v)} value={String(v)}>{text}</option>)}
     </select>
   </label>;
 }
-function FuturePicker({forecast,onAdd,locked}){
+function FuturePicker({forecast,onAdd,selectedTeams=[],atCapacity=false}){
   const [selectedTeam,setSelectedTeam]=useState("");
   const [market,setMarket]=useState("cup");
   const [line,setLine]=useState("40.5");
@@ -42,6 +42,7 @@ function FuturePicker({forecast,onAdd,locked}){
       Awaiting the verified 10,000-scenario hybrid futures forecast. No substitute lines are displayed.
     </div>;
   }
+  const alreadyPicked=selectedTeams.includes(team?.abbreviation);
   const win=market==="wins",status=win?winTotalOutcomeStatus(team,line,side):{
     possible:true,guaranteed:false
   };
@@ -83,26 +84,27 @@ function FuturePicker({forecast,onAdd,locked}){
       </div>
       <div className="shrink-0 text-right">
         <p className="text-2xl font-black tabular-nums text-[#000B36]">{sample.price}</p>
-        <button type="button" disabled={locked||!available}
+        <button type="button" disabled={atCapacity||alreadyPicked||!available}
           onClick={()=>onAdd({
             id:"future:"+team.abbreviation+":"+market+":"+line+":"+side,type:"future",
             label,context:"2026–27 AVHL hybrid season futures",
             probability:p,samples:forecast.runs,source:forecast.sourceDigest+":"+forecast.generatedAt,
-            teamCodes:[team.abbreviation]
+            teamCodes:[team.abbreviation],market,division:team.division,conference:team.conference
           })}
           className="mt-2 rounded-xl bg-[#000B36] px-4 py-2.5 text-xs font-black text-white hover:bg-[#143159] disabled:cursor-not-allowed disabled:opacity-45">
-          {locked?"Futures pick added":available?"Add selection +":"Not available"}
+          {atCapacity?"8-leg limit":alreadyPicked?"Team already chosen":available?"Add selection +":"Not available"}
         </button>
       </div>
     </div>:null}
     <p className="mt-3 text-xs leading-5 text-[#687992]">
-      One futures pick per ticket. Extremely rare events have a display cap, not a measured
-      one-in-a-million probability. Other futures can be correlated or mutually exclusive.
+      Choose up to eight different teams (one pick per team). Futures are correlated;
+      the combined price is illustrative, not a joint-simulation result.
     </p>
   </section>;
 }
 export default function ParlayBuilder({games,dates,directory,initialSnapshots={},scheduleReady}){
-  const [view,setView]=useState("games");
+  const [view,setView]=useState("same");
+  const [selectedGameId,setSelectedGameId]=useState(String(games[0]?.id||""));
   const [selectedDate,setSelectedDate]=useState(dates[0]||"");
   const [gameQuotes,setGameQuotes]=useState(initialSnapshots);
   const [season,setSeason]=useState(null);
@@ -112,6 +114,8 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
   const [saved,setSaved]=useState([]);
   const [copied,setCopied]=useState(false);
   const visibleGames=useMemo(()=>games.filter(g=>g.date===selectedDate),[games,selectedDate]);
+  const selectedGame=visibleGames.find(g=>String(g.id)===selectedGameId)||visibleGames[0];
+  const modeName=view==="same"?"Same-game":view==="day"?"One-day":"Futures";
   const slipGameIds=legs.filter(l=>l.type==="game").map(l=>l.gameId).sort((a,b)=>a-b).join(",");
   useEffect(()=>{
     try{
@@ -188,12 +192,12 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
     return ()=>{cancelled=true;if(timer)clearInterval(timer);};
   },[]);
   const add=useCallback(candidate=>{
-    const decision=canAddParlayLeg(legs,candidate);
+    const decision=canAddParlayLeg(legs,candidate,view);
     if(!decision.ok){setNotice(decision.reason);return;}
     setLegs(prev=>[...prev,{...candidate,stale:false}]);
     setNotice("Added to your slip: "+candidate.label);
     setCopied(false);
-  },[legs]);
+  },[legs,view]);
   const remove=id=>{setLegs(prev=>prev.filter(x=>x.id!==id));setCopied(false);};
   const stale=legs.some(l=>l.stale);
   const result=estimatedParlay(legs,virtualPoints);
@@ -201,11 +205,11 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
   const ticketText=()=>{
     const items=legs.map((l,i)=>(i+1)+". "+l.label+" ("+l.context+") · "+
       probabilityToAmerican(l.probability,l.samples));
-    return ["AVHL FUN PARLAY · NOT REAL MONEY",...items,"",
+    return ["AVHL "+modeName.toUpperCase()+" FUN PARLAY · NOT REAL MONEY",...items,"",
       "Combined estimated odds: "+result.american+(result.capped?" (display capped)":""),
       "Virtual points: "+virtualPoints,
       "Potential imaginary return: "+formatPoints(result.potentialPoints)+" points",
-      "Estimate assumes independent legs. Outcomes may be related; not an actual betting price.",
+      "Illustrative independence estimate only. Same-game and futures outcomes can be strongly correlated.",
       "No real money, accounts, wagers or prizes."].join("\n");
   };
   async function copySlip(){
@@ -217,7 +221,7 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
     if(!ready)return;
     const record={id:Date.now().toString(36),at:new Date().toISOString(),
       legs:legs.map(l=>({label:l.label,context:l.context,price:probabilityToAmerican(l.probability,l.samples)})),
-      odds:result.american,virtualPoints,potentialPoints:result.potentialPoints};
+      odds:result.american,mode:view,virtualPoints,potentialPoints:result.potentialPoints};
     const next=[record,...saved].slice(0,12);
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(next));setSaved(next);
       setNotice("Saved on this browser. This is a snapshot, not a tracked wager.");}
@@ -229,20 +233,20 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
   }
   return <div className="space-y-5">
     <div className="rounded-2xl border border-[#000B36]/10 bg-white px-5 py-4 shadow-sm">
-      <p className="text-sm font-black text-[#000B36]">The third AVHL odds experience</p>
+      <p className="text-sm font-black text-[#000B36]">Choose your parlay format</p>
       <p className="mt-1 text-sm leading-6 text-[#64748B]">
-        Choose up to six picks. Games use <strong>verified 1,000+ V7 simulations</strong>;
+        Choose up to eight picks. Games use <strong>verified 1,000+ V7 simulations</strong>;
         season picks use the <strong>10,000-scenario hybrid forecast</strong>.
-        No real money or prize is involved. The combined odds are illustrative,
+        No real money or prize is involved. Combined odds are illustrative,
         calculated by multiplying marginal probabilities and assuming independent outcomes.
       </p>
     </div>
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(330px,410px)] xl:grid-cols-[minmax(0,1fr)_440px]">
       <div className="min-w-0 space-y-4">
         <div role="group" aria-label="Choose parlay market source"
-          className="grid grid-cols-2 gap-2 rounded-2xl border border-[#000B36]/10 bg-white p-2 shadow-sm">
-          {[["games","Upcoming games & props"],["futures","Season futures"]].map(([key,label])=>
-            <button type="button" key={key} onClick={()=>{setView(key);setNotice("");}}
+          className="grid grid-cols-1 gap-2 rounded-2xl border border-[#000B36]/10 bg-white p-2 shadow-sm sm:grid-cols-3">
+          {[["same","Same-game parlay"],["day","One-day parlay"],["futures","Futures parlay"]].map(([key,label])=>
+            <button type="button" key={key} onClick={()=>{if(view===key)return;setView(key);setLegs([]);setCopied(false);setNotice(legs.length?"Changing parlay types clears your previous ticket.":"");}}
               aria-pressed={view===key}
               className={"rounded-xl px-3 py-3 text-xs font-black transition sm:text-sm "+
                 (view===key?"bg-[#000B36] text-white":"bg-[#F2F5F9] text-[#000B36] hover:bg-slate-200")}>
@@ -253,12 +257,13 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
         {notice?<p role="status" className="rounded-xl bg-[#EAF5FC] px-4 py-3 text-xs font-semibold text-[#16315E]">
           {notice}
         </p>:null}
-        {view==="games"?<>
+        {view!=="futures"?<>
           {scheduleReady&&dates.length?<div className="flex flex-wrap items-center justify-between gap-3">
-            <div><h2 className="text-xl font-black text-[#000B36]">Upcoming V7 matchups</h2>
-              <p className="mt-1 text-xs text-[#64748B]">Choose one selection per game to avoid same-game correlations.</p>
+            <div><h2 className="text-xl font-black text-[#000B36]">{view==="same"?"Same-game matchups":"One-day slate"}</h2>
+              <p className="mt-1 text-xs text-[#64748B]">{view==="same"?"Combine different markets from one matchup.":"Pick one market from each different game on this date."}</p>
             </div>
-            <Control label="Game date" value={selectedDate} onChange={setSelectedDate}
+            <Control label="Game date" value={selectedDate} disabled={legs.length>0}
+               onChange={value=>{setSelectedDate(value);setSelectedGameId("");}}
               options={dates.map(x=>[x,shortDate(x)])}/>
           </div>:null}
           {!scheduleReady?<div className="rounded-2xl bg-white p-6 text-sm text-[#64748B]">
@@ -267,30 +272,57 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
           {scheduleReady&&!visibleGames.length?<div className="rounded-2xl bg-white p-6 text-sm text-[#64748B]">
             No upcoming games for this date. Other game dates and season markets may be available.
           </div>:null}
-          {visibleGames.map(game=>
-            <ParlayGameCard key={game.id} game={game}
-              home={directory[game.home]} away={directory[game.away]}
-              quote={gameQuotes[String(game.id)]} onAdd={add}
-              locked={legs.some(l=>l.type==="game"&&l.gameId===game.id)}/>
-          )}
+          {visibleGames.length?<div className="grid gap-2 rounded-2xl border border-[#DDE6EF] bg-white p-3 sm:grid-cols-2">
+            {visibleGames.map(g=>{
+              const active=selectedGame?.id===g.id;
+              const picked=legs.some(l=>l.gameId===g.id);
+              const disabled=view==="same"&&legs.length>0&&legs[0].gameId!==g.id;
+              return <button key={g.id} type="button" disabled={disabled} aria-pressed={active}
+                onClick={()=>setSelectedGameId(String(g.id))}
+                className={"flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition "+
+                  (active?"border-[#007FAF] bg-[#EAF7FC] ring-1 ring-[#18BDFC]":"border-[#DCE4EE] bg-[#F8FAFD] hover:border-[#93B4C7]")+
+                  " disabled:cursor-not-allowed disabled:opacity-40"}>
+                <span className="min-w-0">
+                  <span className="block text-sm font-black text-[#000B36]">
+                    {directory[g.away]?.abbreviation||"?"} @ {directory[g.home]?.abbreviation||"?"}
+                  </span>
+                  <span className="block text-[11px] text-[#64748B]">
+                    Game {g.id} · {gameQuotes[String(g.id)]?.ready?"V7 ready":"Odds pending"}
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs font-black text-[#007DA0]">
+                  {picked?"✓ Picked":active?"Selected":"View"}
+                </span>
+              </button>;
+            })}
+          </div>:null}
+          {legs.length?<p className="text-xs text-[#64748B]">Date is locked for this ticket. Clear your picks to select another date.</p>:null}
+          {selectedGame?<ParlayGameCard key={selectedGame.id} game={selectedGame}
+            home={directory[selectedGame.home]} away={directory[selectedGame.away]}
+            quote={gameQuotes[String(selectedGame.id)]} onAdd={add}
+            locked={view==="day"&&legs.some(l=>l.gameId===selectedGame.id)}/>:null}
+          <p className="text-xs leading-5 text-[#64748B]">
+            {view==="same"?"Same-game outcomes may be strongly correlated. The combined odds below assume independence; they are not measured joint V7 probabilities.":
+            "One-day outcomes are from separate games; combined odds still assume independence."}
+          </p>
         </>:<>
           <div><h2 className="text-xl font-black text-[#000B36]">Hybrid season futures</h2>
             <p className="mt-1 text-xs text-[#64748B]">
               Win totals, playoffs, Cup, relegation and advancement markets for all 40 teams.
             </p>
           </div>
-          <FuturePicker forecast={season} onAdd={add} locked={legs.some(l=>l.type==="future")}/>
+          <FuturePicker forecast={season} onAdd={add} selectedTeams={legs.map(l=>l.teamCodes?.[0])} atCapacity={legs.length>=8}/>
         </>}
       </div>
-      <aside className="min-w-0 space-y-4 lg:sticky lg:top-5">
+      <aside className="min-w-0 space-y-4">
         <section className="overflow-hidden rounded-[1.65rem] border border-[#000B36]/12 bg-white shadow-lg">
           <div className="bg-[#000B36] px-5 py-5 text-white">
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-200">
               Imaginary ticket · For fun only
             </p>
             <div className="mt-1 flex items-end justify-between">
-              <h2 className="text-2xl font-black">My parlay</h2>
-              <span className="text-sm font-bold text-white/70">{legs.length} / 6 legs</span>
+              <h2 className="text-xl font-black sm:text-2xl">{modeName} slip</h2>
+              <span className="text-sm font-bold text-white/70">{legs.length} / 8 legs</span>
             </div>
           </div>
           <div className="space-y-4 p-4 sm:p-5">
@@ -328,7 +360,7 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
                 options={[10,25,50,100,250,1000].map(v=>[String(v),v+" points"])}/>
               <div className="mt-4 rounded-xl bg-[#EFF5FB] p-4">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-[#526A87]">Illustrative combined odds</p>
-                <p className="mt-2 break-all text-3xl font-black tabular-nums text-[#000B36]">
+                <p className="mt-2 break-words text-2xl font-black tracking-tight tabular-nums sm:text-3xl text-[#000B36]">
                   {result?.american||"—"}
                 </p>
                 {result?.capped?<p className="mt-1 text-xs font-bold text-[#7C547B]">
@@ -372,7 +404,7 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
             Combined odds multiply the selected single-market probabilities, with a small
             adjustment for zero/100% simulation counts. This <strong>assumes independence</strong>;
             even different games and futures can be correlated. Actual joint-event odds may
-            differ substantially. Each game and the season may contribute only one pick.
+            differ substantially. Each ticket follows its selected parlay mode. All combined odds are approximate.
           </p>
           <p className="mt-2 text-xs leading-5 text-[#64748B]">
             This is a fan-made prediction game, not a real sportsbook.
@@ -387,7 +419,7 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
             {saved.map(ticket=><details key={ticket.id}
               className="rounded-xl border border-[#DCE5EF] bg-[#FAFBFE] p-3">
               <summary className="cursor-pointer text-xs font-bold text-[#000B36]">
-                {ticket.legs.length} legs · {ticket.odds} · {new Date(ticket.at).toLocaleDateString("en-US")}
+                {ticket.mode==="same"?"Same-game":ticket.mode==="futures"?"Futures":"One-day"} · {ticket.legs.length} legs · {ticket.odds} · {new Date(ticket.at).toLocaleDateString("en-US")}
               </summary>
               <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-[#65748B]">
                 {ticket.legs.map((leg,i)=><li key={i}>{leg.label} · {leg.price}</li>)}
