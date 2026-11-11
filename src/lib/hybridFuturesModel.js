@@ -113,7 +113,7 @@ export function buildHybridContext({teams,players,lineups,injuries=[],goalieStat
       const dressed=isDefense(player)?healthyDefense:healthyForwards;
       const lowest=Math.min(...dressed.map(p=>number(p.overall)));
       const improvement=clip((number(player.overall)-lowest)*0.018,0,0.28);
-      skaterReturns.push({playerId:id(player.id),returnGameId:Number(injury.expectedReturnGameId)||null,
+      skaterReturns.push({playerId:id(player.id),playerName:player.name,returnGameId:Number(injury.expectedReturnGameId)||null,
         missedGameIds:injury.missedGameIds||[],improvement});
       relevantInjuries++;
     }
