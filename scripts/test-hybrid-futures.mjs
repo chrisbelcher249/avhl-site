@@ -80,7 +80,7 @@ for(const [market,count] of Object.entries({
   division:4,conference:2,presidents:1,playoffs:20,round1:16,
   round2:8,conferenceFinal:4,cupFinal:2,cup:1,relegation:3
 }))assert(Math.abs(sum(market)-count)<1e-8,market+" did not conserve "+count+" titles");
-assert.equal(hybrid.teams.reduce((s,x)=>s+x.projectedWins,0),1640);
+assert(Math.abs(hybrid.teams.reduce((s,x)=>s+x.projectedWins,0)-1640)<1e-8);
 assert.notDeepEqual(hybrid.teams.map(x=>x.projectedWins),pure.teams.map(x=>x.projectedWins));
 assert.deepEqual(
   forecastSeasonFutures(schedule,teams,80,scores,"synthetic-test-only",{
