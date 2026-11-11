@@ -127,6 +127,17 @@ async function main(){
  if(mode==="finalize"){
    const snapshot=arg("--snapshot");
    if(!/^[a-f0-9]{24}$/.test(snapshot))throw Error("Expected canonical snapshot digest.");
+   // Prevent any stale 780-pair snapshot from becoming a public season
+   // forecast after the owner updates a lineup mid-calculation.
+   const {ctx,engine}=await liveEngine();
+   const fresh=makeAllPairEntries(teams.map(t=>t.abbreviation),engine,
+     (home,away)=>ctx.AVHL_CREATE_MATCHUP_DATA(home,away));
+   const now=snapshotDigest(fresh);
+   if(now!==snapshot){
+     console.warn("V7 future lineup snapshot superseded before publication; next refresh will reuse valid pair caches.");
+     console.log(JSON.stringify({mode:"finalize",status:"superseded",snapshot,freshSnapshot:now}));
+     return;
+   }
    const result=await postControl({action:"finalize",snapshot});
    console.log(JSON.stringify(result));return;
  }
@@ -165,10 +176,21 @@ async function main(){
  const requested=JSON.parse(process.env.V7_FUTURES_PAIRS_JSON||"null");
  const expected=arg("--snapshot");
  if(!Array.isArray(requested)||!requested.length||requested.length>10||
-    expected!==snapshot)throw Error("Live V7 team lineup fingerprint changed since planning; retry at next 30-minute refresh.");
+    !/^[a-f0-9]{24}$/.test(expected))throw Error("Invalid V7 pairing shard request.");
+ // A global season fingerprint can change if any of the 40 owners changes
+ // their lineup. Do NOT discard unrelated team pairings already scheduled.
+ // Each pair is independently hashed with its two current real V7 matchups.
+ if(expected!==snapshot)console.warn(
+   "V7 season snapshot changed since planning; validating each pairing individually."
+ );
+ let completed=0,skipped=0;
  for(const [i,p] of requested.entries()){
    const exact=all.find(e=>e.a===p.a&&e.b===p.b);
-   if(!exact||exact.key!==p.key)throw Error("Requested pair no longer matches the exact V7 engine/lineups.");
+   if(!exact||exact.key!==p.key){
+     console.warn("V7 pairing changed since planning; withholding stale sample "+p.a+"–"+p.b);
+     skipped++;
+     continue;
+   }
    const matchA=ctx.AVHL_CREATE_MATCHUP_DATA(p.a,p.b);
    const matchB=ctx.AVHL_CREATE_MATCHUP_DATA(p.b,p.a);
    if(canonicalPairKey(p.a,p.b,engine,matchA,matchB)!==p.key)
@@ -178,10 +200,13 @@ async function main(){
      secondHome:sampleMatchup(ctx,matchB,p.key,false,50)
    };
    if(!validatePairPool(pool))throw Error("Invalid genuine V7 50/50 sample pool.");
-   await postControl({action:"ingest",snapshot,key:p.key,pool});
+   await postControl({action:"ingest",snapshot:expected,key:p.key,pool});
+   completed++;
    console.log("Saved real V7 pair "+(i+1)+"/"+requested.length+": "+p.a+"–"+p.b+" (50/50)");
  }
- console.log(JSON.stringify({mode:"shard",completedPairs:requested.length,simulatedGames:requested.length*100,snapshot}));
+ console.log(JSON.stringify({mode:"shard",completedPairs:completed,
+   withheldChangedPairs:skipped,simulatedGames:completed*100,
+   plannedSnapshot:expected,currentSnapshot:snapshot}));
 }
 main().catch(error=>{
  console.error("V7 FUTURES:",error instanceof Error?error.message:String(error));
