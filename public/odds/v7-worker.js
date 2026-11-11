@@ -69,7 +69,45 @@ async function start(message){
   if (!/^[A-Z0-9]{2,4}$/.test(away)|| !/^[A-Z0-9]{2,4}$/.test(home)||away===home) {
     throw new Error("Invalid game matchup.");
   }
-  // Always reload official live player and owner-lineup data for each new job.
+  // The *server* owns the canonical matchup hash. Never depend on browser-
+  // cached simulator files, roster state or IndexedDB to locate published odds.
+  // Each response re-verifies the current lineup against exactly 1,000 real V7 games.
+  if(message.mode==="readOnly"){
+    let lastStatus="";
+    while(request===activeRequest){
+      try{
+        const url="/api/odds/v7-current?home="+encodeURIComponent(home)+
+          "&away="+encodeURIComponent(away);
+        const response=await fetch(url,{cache:"no-store"});
+        const result=await response.json();
+        if(request!==activeRequest)return;
+        if(!response.ok||!result?.ok)throw Error(result?.error||"The verified odds cache is unavailable.");
+        if(result.ready===true&&result.count>=1000&&
+          result.summary?.source==="v7-complete-games"&&
+          result.summary.count===result.count&&
+          result.summary.home===home&&result.summary.away===away){
+          self.postMessage({type:"done",gameId,key:result.key,
+            completed:result.count,target:result.count,summary:result.summary,fromCache:true});
+          return;
+        }
+        if(lastStatus!=="pending"){
+          self.postMessage({type:"pending",gameId,key:result.key,completed:0,target:1000,
+            message:"Current V7 lineup needs 1,000 game samples."});
+          lastStatus="pending";
+        }
+      }catch(error){
+        if(request!==activeRequest)return;
+        if(lastStatus!=="error"){
+          self.postMessage({type:"error",gameId,error:
+            "Unable to verify official V7 odds; checking again automatically."});
+          lastStatus="error";
+        }
+      }
+      await new Promise(resolve=>setTimeout(resolve,30000));
+    }
+    return;
+  }
+  // Only the interactive V7 simulator needs local engine/roster scripts.
   const [, engine] = await Promise.all([self.AVHL_LOAD_LIVE_ROSTERS(),engineHash()]);
   if(request!==activeRequest)return;
   const matchup=self.AVHL_CREATE_MATCHUP_DATA(home,away);
@@ -101,39 +139,6 @@ async function start(message){
   if(request!==activeRequest)return;
   target=Math.max(target,samples.length);
 
-  if(message.mode==="readOnly"){
-    // A visitor must never run 1,000 full V7 physics games just by opening
-    // the odds page. Read saved results; poll for the 30-minute prewarm job.
-    const sendReady=()=>self.postMessage({
-      type:"done",gameId,key,completed:samples.length,target:samples.length,
-      samples,fromCache:true
-    });
-    if(samples.length>=1000){sendReady();return;}
-    self.postMessage({type:"pending",gameId,key,completed:samples.length,target:1000,
-      message:"Waiting for 1,000 precomputed V7 games."});
-    while(request===activeRequest){
-      await new Promise(resolve=>setTimeout(resolve,30000));
-      if(request!==activeRequest)return;
-      try {
-        const response=await fetch(`/api/odds/v7-cache?key=${encodeURIComponent(key)}`,{cache:"no-store"});
-        if(!response.ok)continue;
-        const shared=await response.json();
-        if(shared?.ok && shared.ready && shared.count>=1000 &&
-            shared.summary?.source==="v7-complete-games" &&
-            shared.summary?.count===shared.count){
-          self.postMessage({type:"done",gameId,key,completed:shared.count,target:shared.count,
-            summary:shared.summary,fromCache:true});
-          return;
-        }
-        if(!shared?.ok || !shared.ready || !Array.isArray(shared.samples) || shared.samples.length<1000)continue;
-        samples=shared.samples;
-        await writeCache(key,samples);
-        sendReady();
-        return;
-      }catch{/* Keep polling; a transient shared cache outage must not price with stale data. */}
-    }
-    return;
-  }
   // Restore persisted work once. Subsequent messages report only NEW samples.
   // Previously sending all accumulated player statistics every two games was
   // O(n^2) structured-clone traffic and got expensive at 1,000+ games.
