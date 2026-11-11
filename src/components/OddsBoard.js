@@ -112,7 +112,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate,preview
     if(demoWorker.current)demoWorker.current.terminate();
     setDemo({status:"idle",completed:0,samples:[],error:""});
     setJob({status:"loading",samples:[],summary:null,completed:0,target:INITIAL_V7_SAMPLES,error:""});
-    const worker=new Worker("/odds/v7-worker.js");
+    const worker=new Worker("/odds/v7-worker.js?rev=server-canonical-v7-20261110");
     jobWorker.current=worker;
     worker.onmessage=event=>{
       const data=event.data||{};
@@ -137,7 +137,7 @@ export default function OddsBoard({games,dates,teamDirectory,initialDate,preview
   function startPreview(){
     if(!previewOnly||!selected||!away||!home||demo.status==="running")return;
     if(demoWorker.current)demoWorker.current.terminate();
-    const worker=new Worker("/odds/v7-worker.js");
+    const worker=new Worker("/odds/v7-worker.js?rev=server-canonical-v7-20261110");
     demoWorker.current=worker;
     setDemo({status:"running",completed:0,samples:[],error:""});
     worker.onmessage=e=>{
