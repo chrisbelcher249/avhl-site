@@ -1,7 +1,10 @@
 import {verifyActionsToken} from "../v7-ingest/route.js";
 import {snapshotDigest,TOTAL_PAIRS,validatePairPool} from "../../../../lib/v7FuturesPairs.js";
 import {futuresRedisKey,redisCommand,redisMultiGet} from "../../../../lib/v7FuturesRedis.js";
-import {forecastSeasonFutures,SEASON_SCENARIOS} from "../../../../lib/seasonFuturesForecast.js";
+import {forecastSeasonFutures,SEASON_SCENARIOS,SEASON_METHOD} from "../../../../lib/seasonFuturesForecast.js";
+import {HYBRID_FUTURES_METHOD} from "../../../../lib/hybridFuturesModel.js";
+import {fetchSeasonSheet,SEASON_TABS} from "../../../../lib/seasonSheets.js";
+import {aggregateGoalies,parseGoalieGameRows} from "../../../../lib/seasonStats.js";
 import {teams} from "../../../../../data/teams.js";
 
 export const runtime="nodejs";
@@ -90,8 +93,31 @@ export async function POST(request){
        conference:t.conference,division:t.division,
        logo:t.assets?.logo||"/teams/"+t.abbreviation+"/logo.webp"
      }));
-     const outlook=forecastSeasonFutures(schedule,league,SEASON_SCENARIOS,pools,snapshot);
-     const published={...outlook,sourceDigest:snapshot,
+     // Validate and retain the pure-V7 forecast for side-by-side comparison.
+     // It must never silently masquerade as our calibrated hybrid projection.
+     const pure=forecastSeasonFutures(schedule,league,SEASON_SCENARIOS,pools,snapshot);
+     const [rosterResponse,goalieSheet]=await Promise.all([
+       fetch("https://www.avhl.org/api/sim-rosters",{
+         cache:"no-store",signal:AbortSignal.timeout(45000)
+       }),
+       fetchSeasonSheet(SEASON_TABS.goalieStats),
+     ]);
+     if(!rosterResponse.ok)throw Error("Live injury/owner lineup source unavailable.");
+     const live=await rosterResponse.json();
+     if(!live?.ok||live.source!=="live"||!Array.isArray(live.players)||
+        Object.keys(live.lineups||{}).length!==40||!Array.isArray(live.activeInjuries))
+       throw Error("Injuries and effective owner lineups are not fully available.");
+     const goalieStats=aggregateGoalies(parseGoalieGameRows(goalieSheet.rows),[]);
+     const outlook=forecastSeasonFutures(schedule,league,SEASON_SCENARIOS,pools,snapshot,{
+       players:live.players,lineups:live.lineups,
+       injuries:live.activeInjuries,goalieStats
+     });
+     if(outlook.method!==HYBRID_FUTURES_METHOD||pure.method!==SEASON_METHOD)
+       throw Error("Expected separate pure-V7 and hybrid season forecast models.");
+     const published={...outlook,
+       pureV7:{method:pure.method,runs:pure.runs,teams:pure.teams,
+         modelNote:pure.modelNote},
+       sourceDigest:snapshot,
        generatedAt:new Date().toISOString(),pairedGameSamples:TOTAL_PAIRS*100,
        perPairHomeSamples:50,perPairAwaySamples:50};
      // Publish after the *entire* snapshot and official schedule have passed.

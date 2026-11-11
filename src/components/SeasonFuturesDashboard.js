@@ -86,6 +86,7 @@ const marketDescription={
 };
 export default function SeasonFuturesDashboard({initialMarket="wins"}){
   const [snapshot,setSnapshot]=useState(null);
+  const [forecastMode,setForecastMode]=useState("hybrid");
   const [state,setState]=useState({status:"loading",error:""});
   const [market,setMarket]=useState(TABS.some(t=>t.key===initialMarket)?initialMarket:"wins");
   const [filter,setFilter]=useState("all");
@@ -104,7 +105,7 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
         const data=await response.json();
         if(cancelled)return;
         if(response.ok && data.ok && data.sourceDigest &&
-           data.method==="exact-V7-game-outcome-resampling" && data.matchedPairs===780){
+           (data.method==="exact-V7-game-outcome-resampling"||data.method==="hybrid-V7-empirical-injury-goalie-v1") && data.matchedPairs===780){
           setSnapshot(data);
           setSelectedTeam(current=>current||data.teams?.[0]?.abbreviation||"");
           setState({status:"ready",error:""});
@@ -126,7 +127,9 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
     refresh();
     return ()=>{cancelled=true;if(next)clearTimeout(next);};
   },[]);
-  const data=snapshot,teams=data?.teams||[];
+  const data=snapshot;
+  const showingPure=forecastMode==="pure"&&data?.pureV7?.teams;
+  const teams=(showingPure?data.pureV7.teams:data?.teams)||[];
   const tabs=TABS;
   const current=tabs.find(x=>x.key===market)||tabs[0];
   const divisions=[...new Set(teams.map(t=>t.division))];
@@ -161,13 +164,20 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
     <section className="rounded-[1.75rem] border border-[#000B36]/10 bg-white p-5 shadow-sm md:p-7">
       <p className="text-[11px] font-black uppercase tracking-[0.19em] text-[#A90117]">2026–27 AVHL · Season Markets</p>
       <h2 className="mt-2 text-2xl font-black tracking-tight text-[#000B36] md:text-3xl">Every race. Every team. One season.</h2>
-      <p className="mt-3 max-w-4xl text-sm leading-6 text-[#54647A]">
-        Projected wins, division titles, playoff spots, postseason advancement, Cup odds and relegation.
-        Every remaining-game result is drawn from <strong>actual V7 hockey simulations</strong>:
-        780 team pairings, 50 with each team at home, for <strong>78,000 complete V7 games</strong>.
-        Then 10,000 full-season scenarios reuse those real results. They are not 10,000 new physics simulations;
-        100 games per pairing is an initial sample and rare-outcome odds remain uncertain.
-      </p>
+      {data?.method==="exact-V7-game-outcome-resampling"?
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-[#54647A]">
+          The <strong>unadjusted V7 baseline</strong> is currently displayed while the
+          first injury-aware hybrid forecast publishes. It reuses all 78,000
+          V7 games, but does not yet account for goalie rotation or scheduled returns.
+        </p>:
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-[#54647A]">
+          Projected wins, division titles, playoffs, Cup odds and relegation use
+          <strong> official AVHL results and opponent strength</strong> alongside
+          <strong> 78,000 genuine V7 matchup simulations</strong>.
+          The 10,000 hybrid season scenarios model scheduled injury returns and
+          rotating goalies under the 60-start limit. V7 scoreline winners are
+          statistically recalibrated; these are estimates, not guarantees.
+        </p>}
       {data?<div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-[#5A6880]">
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">{data.runs.toLocaleString()} season draws</span>
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">780 V7 matchups · 50/50 home split</span>
@@ -176,6 +186,21 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
         <span className="rounded-xl bg-[#F2F5F9] px-3 py-2">Updated {date(data.generatedAt)} ET</span>
       </div>:null}
     </section>
+    {data?.pureV7?.teams?<section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#000B36]/10 bg-white px-4 py-3 shadow-sm">
+      <div><p className="text-sm font-black text-[#000B36]">Forecast methodology</p>
+        <p className="mt-1 text-xs text-[#64748B]">{showingPure?
+          "Unadjusted V7 only: current starters and injury-depleted lineups carried across every remaining game.":
+          "Hybrid: current V7 skill, historical performance, injury returns and goalie rotation."}</p></div>
+      <div role="group" aria-label="Choose futures model" className="flex shrink-0 gap-1 rounded-xl bg-[#EFF3F8] p-1">
+        {[{id:"hybrid",label:"Hybrid (recommended)"},{id:"pure",label:"Pure V7"}].map(item=>
+          <button type="button" key={item.id} onClick={()=>setForecastMode(item.id)}
+            aria-pressed={forecastMode===item.id}
+            className={"rounded-lg px-3 py-2 text-xs font-black "+(forecastMode===item.id?"bg-[#000B36] text-white":"text-[#50617A] hover:bg-white")}>
+            {item.label}
+          </button>
+        )}
+      </div>
+    </section>:null}
     <nav aria-label="Season markets" className="grid grid-cols-2 gap-2 rounded-2xl border border-[#000B36]/10 bg-white p-2 shadow-sm sm:grid-cols-3 lg:grid-cols-4">
       {tabs.map(item=><button key={item.key} type="button" onClick={()=>chooseMarket(item.key)}
         className={"rounded-xl px-3 py-3 text-left text-xs font-black transition md:text-sm "+(market===item.key?
@@ -273,6 +298,30 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
             <Price p={explorer?.probabilities?.[key]||0}/>
           </div>)}
         </div>
+        {explorer?.goalieOutlook?.length?<section className="rounded-2xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-black text-[#000B36]">Projected goalie rotation</h3>
+          <p className="mt-1 text-xs text-[#64748B]">Expected remaining regular-season starts, using recorded starts and the 60-start maximum</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {explorer.goalieOutlook.map(g=><div key={g.playerId}
+              className="rounded-xl border border-[#000B36]/10 bg-[#F8FAFC] p-3">
+              <p className="text-sm font-bold text-[#000B36]">{g.name}</p>
+              <p className="mt-1 text-xs text-[#64748B]">{g.currentStarts} starts so far · {g.overall} OVR</p>
+              <p className="mt-2 text-lg font-black text-[#000B36]">{g.projectedFutureStarts.toFixed(1)}
+                <span className="text-xs font-medium text-[#64748B]"> remaining starts</span>
+              </p>
+            </div>)}
+          </div>
+        </section>:null}
+        {explorer?.injuryReturns?.length?<section className="rounded-2xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-black text-[#000B36]">Injured-player returns considered</h3>
+          <p className="mt-1 text-xs text-[#64748B]">Players are withheld through their recorded missed games and become eligible for projection on their expected return game</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {explorer.injuryReturns.map(p=><div key={p.playerId} className="rounded-xl bg-[#F5F7FA] p-3">
+              <p className="text-sm font-bold text-[#000B36]">{p.name}</p>
+              <p className="mt-1 text-xs text-[#64748B]">{p.expectedReturnGameId?"Eligible from game #"+p.expectedReturnGameId:"Return game not yet scheduled"}</p>
+            </div>)}
+          </div>
+        </section>:null}
         {explorer?<section className="rounded-2xl border border-[#000B36]/10 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-black text-[#000B36]">Projected win-total distribution</h3>
           <p className="mt-1 text-xs text-[#64748B]">Observed model frequency in each completed-season scenario</p>
@@ -287,10 +336,11 @@ export default function SeasonFuturesDashboard({initialMarket="wins"}){
       </div>}
       <p className="text-xs leading-5 text-[#6B7A90]">
         Odds are mathematically fair model-implied American prices, with no sportsbook margin.
-        A dash indicates an event observed in none or all of the sampled seasons. Every simulated outcome
-        comes from the V7 game engine, but only 50 samples per home orientation means matchup and long-shot
-        Cup/relegation odds still have modeling and sampling uncertainty. Game/player props separately require
-        1,000 complete V7 simulations for the actual scheduled home/away matchup.
+        A dash indicates an event observed in none or all sampled seasons. Pure V7 uses unmodified
+        simulator outcomes; hybrid reweights the winner of sampled V7 scorelines using actual AVHL form,
+        expected injury returns and projected goalie rotation. Neither is a guarantee, and only
+        50 samples per home orientation means long-shot futures remain uncertain.
+        Game/player props separately require 1,000 complete V7 simulations for each scheduled matchup.
       </p>
     </>:null}
   </div>;

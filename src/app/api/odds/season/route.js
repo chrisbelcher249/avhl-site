@@ -1,4 +1,5 @@
 import {redisCommand,futuresRedisKey} from "../../../../lib/v7FuturesRedis.js";
+import {HYBRID_FUTURES_METHOD} from "../../../../lib/hybridFuturesModel.js";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -24,7 +25,7 @@ export async function GET(){
    if(saved){
      const forecast=JSON.parse(saved);
      const recent=Date.parse(forecast.generatedAt);
-     if(forecast.method==="exact-V7-game-outcome-resampling"&&
+     if((forecast.method===HYBRID_FUTURES_METHOD||forecast.method==="exact-V7-game-outcome-resampling")&&
         forecast.sourceDigest===snapshot&&forecast.matchedPairs===780&&
         forecast.engineSamples===78000&&
         Number.isFinite(recent)&&recent<=Date.now()+5*60*1000){
