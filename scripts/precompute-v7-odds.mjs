@@ -90,17 +90,37 @@ async function getOidcToken(){
 
 const summaryRedisKey="avhl:odds:exact:summary:"+key;
 const V7_ODDS_CACHE_TTL_SECONDS=30*24*60*60;
+async function publishSignedSummary(summary){
+  const token=await getOidcToken();
+  const response=await fetch(`${site}/api/odds/v7-ingest`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},
+    body:JSON.stringify({key,summary}),cache:"no-store",signal:AbortSignal.timeout(30000)
+  });
+  const receipt=await response.json();
+  if(!response.ok||!receipt.ok||!receipt.published)
+    throw Error("V7 odds publication failed; HTTP "+response.status+": "+JSON.stringify(receipt));
+  return receipt;
+}
 let samples=[];
 if(oidc){
   // The normal 30-minute check is cheap: skip without any V7 physics when
   // identical engine+owner-lineup odds have already been published.
-  const response=await fetch(`${site}/api/odds/v7-cache?key=${encodeURIComponent(key)}`,{
+  const response=await fetch(`${site}/api/odds/v7-cache?key=${encodeURIComponent(key)}&checkLatest=1`,{
     cache:"no-store",signal:AbortSignal.timeout(10000)
   });
   if(response.ok){
     const cached=await response.json();
     if(cached?.ok&&cached.ready&&cached.count>=target){
-      console.log(JSON.stringify({status:"already-cached",away,home,count:cached.count,key}));
+      if(cached.referenceReady===false&&cached.publisher==="trusted-github-actions"&&
+         cached.summary?.source==="v7-complete-games"&&cached.summary?.count===cached.count){
+        // Populate the new last-good pointer for previously published 1,000-
+        // game prices without running unnecessary physics or trusting a client.
+        await publishSignedSummary(cached.summary);
+        console.log(JSON.stringify({status:"verified-reference-restored",away,home,key}));
+      }else{
+        console.log(JSON.stringify({status:"already-cached",away,home,count:cached.count,key}));
+      }
       process.exit(0);
     }
   }
@@ -145,14 +165,7 @@ for(let i=initial;i<target;i++){
 if(oidc){
   if(samples.length<1000)throw Error("Refusing to publish fewer than 1,000 actual V7 games.");
   const summary=summarizeV7Samples(samples,away,home);
-  const token=await getOidcToken();
-  const response=await fetch(`${site}/api/odds/v7-ingest`,{
-    method:"POST",
-    headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},
-    body:JSON.stringify({key,summary}),cache:"no-store",signal:AbortSignal.timeout(30000)
-  });
-  const receipt=await response.json();
-  if(!response.ok||!receipt.ok||!receipt.published)throw Error("V7 odds publication failed; HTTP "+response.status+": "+JSON.stringify(receipt));
+  const receipt=await publishSignedSummary(summary);
   console.log(JSON.stringify({status:"published",away,home,count:receipt.count,key}));
 }
 if(dry)console.log(JSON.stringify({smoke:"PASS",samples:samples.length,scores:samples.slice(0,2).map(s=>[s.a,s.h,s.f]),player:samples[0]?.players?.[0]?.name}));
