@@ -22,6 +22,9 @@ export default async function SeasonFuturesPage({searchParams}){
     </section>
     <div className="mx-auto max-w-7xl space-y-6 px-5 py-8 md:px-8 md:py-10">
       <OddsNav />
+      <div className="flex justify-end">
+        <a href="/odds/status" className="text-xs font-bold text-[#52647B] underline underline-offset-4 hover:text-[#000B36]">Track live odds calculations</a>
+      </div>
       <SeasonFuturesDashboard initialMarket={market}/>
     </div>
   </main>;
