@@ -139,7 +139,7 @@ export default function ParlayGameCard({game,home,away,quote,onAdd,locked=false}
       No previously verified prices for this matchup yet. New prices will appear when the official V7 cache is complete.
     </p>:<>
       {reference?<p role="status" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs font-semibold leading-5 text-amber-950">
-        Previous verified odds · Updating for the current lineup. Prices are reference-only; adding these picks is disabled.
+        Previous verified odds · Updating for the current lineup. You can build a virtual ticket using the last verified prices until new simulations replace them.
       </p>:null}
       <div className="mt-3 flex flex-wrap gap-2">
         <Picker label="Market" value={market} onChange={setMarket} options={MARKETS}/>
@@ -169,12 +169,13 @@ export default function ParlayGameCard({game,home,away,quote,onAdd,locked=false}
       </p>:null}
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {options.filter(x=>typeof x.p==="number"&&Number.isFinite(x.p)).map(x=>
-          <button type="button" key={x.key} disabled={locked||!valid}
-            aria-label={reference?"Previously verified "+x.label+" (updating)":"Add "+x.label+" to parlay"}
+          <button type="button" key={x.key} disabled={locked}
+            aria-label={reference?"Add previously verified "+x.label+" to virtual parlay":"Add "+x.label+" to parlay"}
             onClick={()=>onAdd({
               id:"game:"+game.id+":"+x.key,type:"game",gameId:game.id,date:game.date,
               marketKey:x.key,label:x.label,context:a+" @ "+h+" · "+date,
-              probability:x.p,samples:sampleCount,source:quote.key,
+              probability:x.p,samples:sampleCount,source:reference?prior.key:quote.key,
+              reference,quotedAt:reference?prior.generatedAt:quote.generatedAt||null,
               teamCodes:[a,h]
             })}
             className="flex min-h-20 min-w-0 items-center justify-between gap-3 rounded-xl border border-[#D7DFEB] bg-[#F8FAFD] p-3 text-left transition hover:border-[#18BDFC] hover:bg-[#EFFBFF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500 disabled:cursor-not-allowed disabled:opacity-45">
@@ -188,7 +189,7 @@ export default function ParlayGameCard({game,home,away,quote,onAdd,locked=false}
               <span className="block text-base font-black tabular-nums text-[#000B36]">
                 {probabilityToAmerican(x.p,sampleCount)}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[#007DA0]">{reference?"Updating":"Add +"}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#007DA0]">{reference?"Add prior +":"Add +"}</span>
             </span>
           </button>
         )}
