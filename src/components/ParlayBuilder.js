@@ -1,6 +1,7 @@
 "use client";
 import {useCallback,useEffect,useMemo,useState} from "react";
 import ParlayGameCard from "@/components/ParlayGameCard";
+import {renderParlayShareCard} from "@/lib/parlayShareCard";
 import {canAddParlayLeg,estimatedParlay,probabilityToAmerican} from "@/lib/parlayMath";
 import {seasonFuturesPrice,winTotalOutcomeStatus} from "@/lib/seasonFuturesPrices";
 
@@ -113,10 +114,23 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
   const [virtualPoints,setVirtualPoints]=useState(100);
   const [saved,setSaved]=useState([]);
   const [copied,setCopied]=useState(false);
+  const [share,setShare]=useState(null);
+  const [shareNotice,setShareNotice]=useState("");
+  const [shareBusy,setShareBusy]=useState(false);
   const visibleGames=useMemo(()=>games.filter(g=>g.date===selectedDate),[games,selectedDate]);
   const selectedGame=visibleGames.find(g=>String(g.id)===selectedGameId)||visibleGames[0];
   const modeName=view==="same"?"Same-game":view==="day"?"One-day":"Futures";
   const slipGameIds=legs.filter(l=>l.type==="game").map(l=>l.gameId).sort((a,b)=>a-b).join(",");
+  useEffect(()=>{
+    if(!share?.url)return;
+    return ()=>URL.revokeObjectURL(share.url);
+  },[share?.url]);
+  useEffect(()=>{
+    if(!share)return;
+    const handler=event=>{if(event.key==="Escape")setShare(null);};
+    document.addEventListener("keydown",handler);
+    return ()=>document.removeEventListener("keydown",handler);
+  },[share]);
   useEffect(()=>{
     try{
       const raw=localStorage.getItem(STORAGE_KEY);
@@ -217,15 +231,66 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
     try{await navigator.clipboard.writeText(ticketText());setCopied(true);setNotice("Ticket copied! Share it anywhere.");}
     catch{setNotice("Clipboard access is blocked. Try copying from a supported browser.");}
   }
-  function saveSlip(){
-    if(!ready)return;
+  async function openShareImage(ticket){
+    setShareBusy(true);
+    try{
+      const rendered=await renderParlayShareCard(ticket);
+      setShare({...rendered,url:URL.createObjectURL(rendered.blob),ticket});
+      setShareNotice("");
+    }catch(error){
+      setNotice(error instanceof Error?error.message:"Could not create the image on this browser.");
+    }finally{setShareBusy(false);}
+  }
+  async function saveSlip(){
+    if(!ready||shareBusy)return;
     const record={id:Date.now().toString(36),at:new Date().toISOString(),
       legs:legs.map(l=>({label:l.label,context:l.context,price:probabilityToAmerican(l.probability,l.samples)})),
       odds:result.american,mode:view,virtualPoints,potentialPoints:result.potentialPoints};
     const next=[record,...saved].slice(0,12);
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(next));setSaved(next);
-      setNotice("Saved on this browser. This is a snapshot, not a tracked wager.");}
-    catch{setNotice("This browser could not save your slip locally.");}
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(next));
+      setSaved(next);
+      setNotice("Ticket saved on this device. Share the generated image with other owners.");
+    }catch{
+      setNotice("Local storage is unavailable. The ticket image can still be shared.");
+    }
+    await openShareImage(record);
+  }
+  function downloadShareImage(){
+    if(!share)return;
+    const link=document.createElement("a");
+    link.href=share.url;link.download=share.filename;
+    document.body.appendChild(link);link.click();link.remove();
+    setShareNotice("PNG image saved or opened by your browser.");
+  }
+  async function copyShareImage(){
+    if(!share)return;
+    if(typeof ClipboardItem==="undefined"||!navigator.clipboard?.write){
+      setShareNotice("Image copying is not supported here. Use Share image or Download PNG.");
+      return;
+    }
+    try{
+      await navigator.clipboard.write([new ClipboardItem({"image/png":share.blob})]);
+      setShareNotice("Image copied. Paste it into Discord, messages or a social post.");
+    }catch{
+      setShareNotice("This browser blocked image copying. Use Share image or Download PNG.");
+    }
+  }
+  async function shareAsImage(){
+    if(!share)return;
+    const file=new File([share.blob],share.filename,{type:"image/png"});
+    if(typeof navigator.share==="function"&&
+      (typeof navigator.canShare!=="function"||navigator.canShare({files:[file]}))){
+      try{
+        await navigator.share({title:"AVHL Sportsbook parlay",files:[file]});
+        setShareNotice("Image sent to your device's share sheet.");
+      }catch(error){
+        if(error?.name!=="AbortError")
+          setShareNotice("Sharing failed. Use Copy image or Download PNG.");
+      }
+      return;
+    }
+    await copyShareImage();
   }
   function removeSaved(id){
     const next=saved.filter(x=>x.id!==id);setSaved(next);
@@ -380,14 +445,14 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
               {legs.length===1?<p className="mt-3 text-xs text-[#64748B]">
                 Add one more selection to make a parlay.
               </p>:null}
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <button type="button" disabled={!ready} onClick={copySlip}
-                  className="rounded-xl bg-[#000B36] px-3 py-3 text-xs font-black text-white hover:bg-[#15315B] disabled:cursor-not-allowed disabled:opacity-40">
-                  {copied?"Copied!":"Copy & share"}
+              <div className="mt-4 space-y-2">
+                <button type="button" disabled={!ready||shareBusy} onClick={saveSlip}
+                  className="w-full rounded-xl bg-[#000B36] px-4 py-3.5 text-sm font-black text-white transition hover:bg-[#143159] disabled:cursor-not-allowed disabled:opacity-40">
+                  {shareBusy?"Creating ticket image…":"Save & share ticket image"}
                 </button>
-                <button type="button" disabled={!ready} onClick={saveSlip}
-                  className="rounded-xl border border-[#000B36]/20 bg-white px-3 py-3 text-xs font-black text-[#000B36] hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
-                  Save on device
+                <button type="button" disabled={!ready} onClick={copySlip}
+                  className="w-full rounded-xl border border-[#CBD7E5] bg-white px-3 py-2.5 text-xs font-bold text-[#52647B] hover:bg-[#F2F6FA] disabled:opacity-40">
+                  {copied?"Picks copied":"Copy picks as text"}
                 </button>
               </div>
               <button type="button" disabled={!legs.length}
@@ -414,7 +479,7 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
         </section>
         {saved.length?<section className="rounded-2xl border border-[#000B36]/10 bg-white p-4 shadow-sm">
           <h3 className="text-sm font-black text-[#000B36]">Saved fun tickets</h3>
-          <p className="mt-1 text-xs text-[#64748B]">Stored locally on this device; no account needed.</p>
+          <p className="mt-1 text-xs text-[#64748B]">Stored on this device. Share or download any saved ticket as an image.</p>
           <div className="mt-3 space-y-2">
             {saved.map(ticket=><details key={ticket.id}
               className="rounded-xl border border-[#DCE5EF] bg-[#FAFBFE] p-3">
@@ -424,14 +489,62 @@ export default function ParlayBuilder({games,dates,directory,initialSnapshots={}
               <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-[#65748B]">
                 {ticket.legs.map((leg,i)=><li key={i}>{leg.label} · {leg.price}</li>)}
               </ol>
-              <button type="button" onClick={()=>removeSaved(ticket.id)}
-                className="mt-3 text-xs font-bold text-[#A90117] underline">
-                Delete saved ticket
-              </button>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button type="button" disabled={shareBusy} onClick={()=>openShareImage(ticket)}
+                  className="rounded-lg bg-[#000B36] px-3 py-2 text-xs font-black text-white hover:bg-[#143159] disabled:opacity-40">
+                  Share image
+                </button>
+                <button type="button" onClick={()=>removeSaved(ticket.id)}
+                  className="text-xs font-bold text-[#A90117] underline">
+                  Delete
+                </button>
+              </div>
             </details>)}
           </div>
         </section>:null}
       </aside>
     </div>
+    {share?<div role="dialog" aria-modal="true" aria-label="Share your AVHL Sportsbook ticket"
+      className="fixed inset-0 z-[100] overflow-y-auto bg-[#00071F]/80 p-3 backdrop-blur-sm sm:p-6">
+      <div className="mx-auto max-w-lg rounded-3xl bg-white p-4 shadow-2xl sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#007DA0]">AVHL Sportsbook</p>
+            <h2 className="mt-1 text-xl font-black text-[#000B36]">Share your parlay</h2>
+            <p className="mt-1 text-xs leading-5 text-[#667A93]">
+              A ready-to-post PNG with your picks, model odds and virtual points.
+            </p>
+          </div>
+          <button type="button" onClick={()=>setShare(null)} aria-label="Close image preview"
+            className="rounded-full border border-[#DCE5EF] px-3 py-1.5 text-lg font-black text-[#536781] hover:bg-[#F3F6FA]">
+            ×
+          </button>
+        </div>
+        <div className="mt-4 max-h-[52vh] overflow-y-auto rounded-2xl border border-[#E0E7EF] bg-[#EAF0F7]">
+          <img src={share.url} alt="Preview of the branded AVHL Sportsbook parlay image"
+            className="h-auto w-full" />
+        </div>
+        {shareNotice?<p role="status" className="mt-3 rounded-lg bg-[#EAF6FC] px-3 py-2 text-xs font-semibold text-[#163A60]">
+          {shareNotice}
+        </p>:null}
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <button type="button" onClick={shareAsImage}
+            className="rounded-xl bg-[#000B36] px-3 py-3 text-xs font-black text-white hover:bg-[#143159]">
+            Share image
+          </button>
+          <button type="button" onClick={copyShareImage}
+            className="rounded-xl border border-[#CBD7E5] px-3 py-3 text-xs font-black text-[#000B36] hover:bg-[#F3F7FB]">
+            Copy image
+          </button>
+          <button type="button" onClick={downloadShareImage}
+            className="rounded-xl border border-[#CBD7E5] px-3 py-3 text-xs font-black text-[#000B36] hover:bg-[#F3F7FB]">
+            Download PNG
+          </button>
+        </div>
+        <p className="mt-3 text-center text-[11px] leading-4 text-[#708197]">
+          For entertainment only. No money, wagers or prizes. Odds are illustrative.
+        </p>
+      </div>
+    </div>:null}
   </div>;
 }

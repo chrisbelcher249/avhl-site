@@ -5,7 +5,7 @@ import {getTeams} from "@/lib/teams";
 import {GET as getCurrentVerifiedV7Odds} from "@/app/api/odds/v7-current/route";
 
 export const metadata={
-  title:"Parlay Builder · AVHL Odds",
+  title:"Parlay Builder · AVHL Sportsbook",
   description:"Build and share free, imaginary AVHL parlay slips using verified V7 game markets and hybrid season futures. No real money."
 };
 export const dynamic="force-dynamic";
@@ -58,12 +58,12 @@ export default async function ParlayPage(){
   return <main className="min-h-screen bg-[#F4F7FB] text-[#000B36]">
     <section className="bg-[#000B36] px-5 py-12 text-white md:px-8 md:py-16">
       <div className="mx-auto max-w-7xl">
-        <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">AVHL odds · For fun only</p>
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">AVHL Sportsbook · Virtual picks</p>
         <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-5xl">Parlay Builder</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70 md:text-base">
-          Create a fantasy ticket with AVHL game predictions and season futures.
-          Combine your picks, preview estimated odds and share your slip with friends.
-          No real money, accounts, purchases or prizes.
+          Build same-game, one-day or futures parlays with up to eight picks.
+          Save a polished AVHL Sportsbook ticket image and share it with other owners.
+          Virtual points only. No real money, accounts, purchases or prizes.
         </p>
       </div>
     </section>

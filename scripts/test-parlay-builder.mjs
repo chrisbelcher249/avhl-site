@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {renderParlayShareCard} from "../src/lib/parlayShareCard.js";
 import {MAX_PARLAY_LEGS,PARLAY_MODES,MAX_DISPLAY_DECIMAL_ODDS,
   displayLegProbability,probabilityToAmerican,decimalToAmerican,
   estimatedParlay,canAddParlayLeg} from "../src/lib/parlayMath.js";
@@ -76,4 +77,42 @@ const longshot=estimatedParlay([{...a,probability:0,samples:10000},b],100);
 assert.equal(longshot.american,"+1,000,000");
 assert.equal(longshot.capped,true);
 assert.equal(longshot.potentialPoints,1_000_100);
+// Verify client-side branded share card creation without a browser, server or network call.
+const drawn=[];
+const canvas={width:0,height:0,
+  getContext:()=>({
+    beginPath(){},moveTo(){},lineTo(){},quadraticCurveTo(){},closePath(){},fill(){},
+    fillRect(){},drawImage(){},
+    measureText:value=>({width:String(value).length*13}),
+    fillText:value=>drawn.push(String(value))
+  }),
+  toBlob:callback=>callback(new Blob(["virtual-ticket-test"],{type:"image/png"}))
+};
+const oldDocument=globalThis.document,oldImage=globalThis.Image;
+globalThis.document={createElement:tag=>{assert.equal(tag,"canvas");return canvas;}};
+globalThis.Image=class{set src(value){queueMicrotask(()=>this.onerror?.());}};
+try{
+  for(const [mode,legsCount] of [["same",2],["day",5],["futures",8]]){
+    drawn.length=0;
+    const ticket={mode,at:"2026-11-11T15:00:00Z",
+      legs:Array.from({length:legsCount},(_,i)=>({
+        label:"Team "+(i+1)+" · Win the Cup",
+        context:"2026–27 AVHL season",price:"+150"
+      })),
+      odds:"+12,500",virtualPoints:100,potentialPoints:12600};
+    const output=await renderParlayShareCard(ticket);
+    assert.equal(output.blob.type,"image/png");
+    assert.match(output.filename,new RegExp(mode+"-"+legsCount+"-leg\\.png$"));
+    assert.equal(canvas.width,1080);
+    assert(canvas.height>=1120);
+    assert(drawn.includes("AVHL SPORTSBOOK"));
+    assert(drawn.some(line=>line.includes("NO REAL MONEY")));
+    assert(drawn.includes("Team "+legsCount+" · Win the Cup"));
+  }
+  await assert.rejects(()=>renderParlayShareCard({mode:"same",legs:[]}),/Invalid shareable parlay/);
+}finally{
+  if(oldDocument===undefined)delete globalThis.document;else globalThis.document=oldDocument;
+  if(oldImage===undefined)delete globalThis.Image;else globalThis.Image=oldImage;
+}
 console.log("AVHL virtual parlay maths: PASS (8 legs; same-game, one-day and futures rules; contradiction guards; independence estimate).");
+console.log("AVHL Sportsbook PNG share cards: PASS (same-game, one-day, eight-leg futures, no backend).");

@@ -49,7 +49,7 @@ const navGroups = [
   {
     title: "League Tools",
     links: [
-      ["Odds", "/odds"],
+      ["Sportsbook", "/odds"],
       ["Cap", "/cap"],
       ["Transactions", "/transactions"],
       ["Trades", "/trades"],
