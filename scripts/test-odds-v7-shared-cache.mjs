@@ -60,6 +60,14 @@ try {
     count:1000,source:"v7-complete-games",home:"ARI",away:"ATL",
     homeWin:0.62,awayWin:0.38
   },publisher:"trusted-github-actions",generatedAt:new Date().toISOString()};
+  const referenceRead=await GET(new Request("https://site.invalid/api/odds/v7-cache?key="+encodeURIComponent(key)+"&checkLatest=1"));
+  const referenceData=await referenceRead.json();
+  assert.equal(referenceData.referenceReady,true);
+  assert.equal(referenceData.publisher,"trusted-github-actions");
+  pointer=null;
+  const unregistered=await GET(new Request("https://site.invalid/api/odds/v7-cache?key="+encodeURIComponent(key)+"&checkLatest=1"));
+  assert.equal((await unregistered.json()).referenceReady,false);
+  pointer=key;
   const historical=await lastVerifiedGameOdds("ARI","ATL");
   assert.equal(historical.key,key);
   assert.equal(historical.summary.homeWin,0.62);
