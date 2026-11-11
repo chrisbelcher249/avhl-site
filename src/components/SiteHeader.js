@@ -17,7 +17,7 @@ const navItems = [
   ["Statistics", "/statistics"],
   ["Sportsbook", "/odds"],
   ["Rivals", "/rivals"],
-  ["League Info", "/info"],
+  ["Info", "/info"],
 ];
 
 export default function SiteHeader() {
