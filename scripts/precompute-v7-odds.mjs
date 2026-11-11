@@ -89,6 +89,7 @@ async function getOidcToken(){
 }
 
 const summaryRedisKey="avhl:odds:exact:summary:"+key;
+const V7_ODDS_CACHE_TTL_SECONDS=30*24*60*60;
 let samples=[];
 if(oidc){
   // The normal 30-minute check is cheap: skip without any V7 physics when
@@ -118,7 +119,7 @@ if(!dry && samples.length>=1000){
     await redis(["SET",summaryRedisKey,JSON.stringify({
       count:samples.length,summary:summarizeV7Samples(samples,away,home),
       engineHash:fnv(scripts[2]),generatedAt:new Date().toISOString()
-    })]);
+    }),"EX",V7_ODDS_CACHE_TTL_SECONDS]);
   }
 }
 console.log(JSON.stringify({away,home,target,initial,mode:fixture?"fixture":"live",key}));
@@ -129,13 +130,13 @@ for(let i=initial;i<target;i++){
  if(samples.length%25===0||samples.length===target){
   if(!dry&&!oidc){
     const generatedAt=new Date().toISOString();
-    await redis(["SET",redisKey,JSON.stringify({samples,engineHash:fnv(scripts[2]),away,home,source:"exact-v7",at:generatedAt})]);
+    await redis(["SET",redisKey,JSON.stringify({samples,engineHash:fnv(scripts[2]),away,home,source:"exact-v7",at:generatedAt}),"EX",V7_ODDS_CACHE_TTL_SECONDS]);
     // Published viewers fetch only this compact summary, not 1,000+ box scores.
     if(samples.length>=1000){
       const summary=summarizeV7Samples(samples,away,home);
       await redis(["SET",summaryRedisKey,JSON.stringify({
         count:samples.length,summary,engineHash:fnv(scripts[2]),generatedAt
-      })]);
+      }),"EX",V7_ODDS_CACHE_TTL_SECONDS]);
     }
   }
   console.log(`Exact V7 games: ${samples.length} / ${target}`);
