@@ -2,8 +2,8 @@ name: Refresh exact V7 season futures (780 pairs)
 
 on:
   schedule:
-    # Avoid the busiest :00 and :30 GitHub Actions cron minutes.
-    - cron: "7,37 * * * *"
+    # Daily at 17:07 UTC (12:07 PM Eastern standard time).
+    - cron: "7 17 * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -16,7 +16,6 @@ on:
       - "src/app/api/odds/season/route.js"
       - "src/app/api/odds/v7-futures-control/route.js"
       - "scripts/precompute-v7-futures.mjs"
-      - ".github/workflows/refresh-v7-futures.yml"
 
 permissions:
   contents: read
