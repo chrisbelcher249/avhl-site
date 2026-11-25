@@ -1,9 +1,9 @@
-name: Refresh AVHL exact V7 odds (every 30 minutes)
+name: Refresh AVHL exact V7 odds (daily)
 
 on:
   schedule:
-    # Offset from busy GitHub Actions half-hour boundaries; still twice hourly.
-    - cron: "11,41 * * * *"
+    # Daily at 17:11 UTC (12:11 PM Eastern standard time).
+    - cron: "11 17 * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -12,7 +12,6 @@ on:
       - "public/odds/v7-sample-extractor.js"
       - "src/lib/v7OddsSamples.js"
       - "scripts/precompute-v7-odds.mjs"
-      - ".github/workflows/refresh-v7-odds.yml"
 
 permissions:
   contents: read
